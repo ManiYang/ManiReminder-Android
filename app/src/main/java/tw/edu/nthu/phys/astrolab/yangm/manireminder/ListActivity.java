@@ -20,7 +20,7 @@ public class ListActivity extends AppCompatActivity {
 
     private SQLiteDatabase db;
     private Cursor cursorRemindersBrief;
-    private SparseArray<String> allTags = new SparseArray<>();
+    private SparseArray<String> allTags;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +34,6 @@ public class ListActivity extends AppCompatActivity {
         SQLiteOpenHelper mainDbHelper = new MainDbHelper(this);
         try {
             db = mainDbHelper.getWritableDatabase();
-
             cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
                     null, null, null, null, null);
         } catch (SQLiteException e) {
@@ -44,7 +43,7 @@ public class ListActivity extends AppCompatActivity {
 
         //
         if (db != null) {
-            getAllTags();
+            allTags = UtilReminder.getAllTagsFromDb(db);
             populateList();
         }
     }
@@ -58,21 +57,8 @@ public class ListActivity extends AppCompatActivity {
         }
     }
 
-    private void getAllTags() {
-        Cursor cursor = db.query(MainDbHelper.TABLE_TAGS, null,
-                null, null, null, null, null);
-
-        allTags.clear();
-        cursor.moveToPosition(-1);
-        while (cursor.moveToNext()) {
-            int tagId = cursor.getInt(0);
-            String tagName = cursor.getString(1);
-            allTags.put(tagId, tagName);
-        }
-        cursor.close();
-    }
-
     private void populateList() {
+        // get reminders brief data from database
         int nRows = cursorRemindersBrief.getCount();
         Toast.makeText(this, "Number of reminders: "+Integer.toString(nRows),
                 Toast.LENGTH_LONG).show();
@@ -85,21 +71,22 @@ public class ListActivity extends AppCompatActivity {
             cursorRemindersBrief.moveToPosition(p);
             ids[p] = cursorRemindersBrief.getInt(0);
             titles[p] = cursorRemindersBrief.getString(1);
-
-            String tagIdsString = cursorRemindersBrief.getString(2);
-            String[] tagIds = tagIdsString.split(",");
-            StringBuilder builder = new StringBuilder();
-            for (int i=0; i<tagIds.length; i++) {
-                String tagName = allTags.get(Integer.parseInt(tagIds[i].trim()), "(invalid_tag_id)");
-                if (i > 0) {
-                    builder.append(", ");
-                }
-                builder.append(tagName);
-            }
-            tagsStrings[p] = builder.toString();
+            tagsStrings[p] = UtilReminder.buildTagsString(
+                    cursorRemindersBrief.getString(2), allTags);
         }
 
+        // create BriefListAdapter with data
         BriefListAdapter adapter = new BriefListAdapter(ids, titles, tagsStrings);
+        adapter.setItemClickListener(new BriefListAdapter.ItemClickListener() {
+            @Override
+            public void onClick(int reminderId) {
+                Intent intent = new Intent(ListActivity.this, DetailActivity.class)
+                        .putExtra(DetailActivity.EXTRA_REMINDER_ID, reminderId);
+                startActivity(intent);
+            }
+        });
+
+        // prepare brief_list_recycler
         RecyclerView briefListRecycler = findViewById(R.id.brief_list_recycler);
         briefListRecycler.setAdapter(adapter);
         briefListRecycler.setLayoutManager(new LinearLayoutManager(this));

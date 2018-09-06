@@ -6,9 +6,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,7 +44,7 @@ public class DetailFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_detail, container, false);
     }
@@ -82,6 +84,9 @@ public class DetailFragment extends Fragment {
             return;
         }
 
+        // get all tags
+        SparseArray<String> allTags = UtilReminder.getAllTagsFromDb(db);
+
         // get brief data
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
                 "_id = ?", new String[] {Integer.toString(reminderId)},
@@ -91,7 +96,7 @@ public class DetailFragment extends Fragment {
                     String.format("Reminder (id: %d) not found in database", reminderId));
         }
         String title = cursor.getString(1);
-        String tagIdsStr = cursor.getString(2);
+        String tagsStr = UtilReminder.buildTagsString(cursor.getString(2), allTags);
         cursor.close();
 
         // get detailed data
@@ -108,9 +113,12 @@ public class DetailFragment extends Fragment {
         }
         cursor.close();
 
-        //
+
+
+
+        // set contents of views
         ((TextView) view.findViewById(R.id.title)).setText(title);
-        ((TextView) view.findViewById(R.id.tags)).setText(tagIdsStr); //[temp]
+        ((TextView) view.findViewById(R.id.tags)).setText(tagsStr);
         ((TextView) view.findViewById(R.id.description)).setText(description);
     }
 }

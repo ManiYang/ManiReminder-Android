@@ -7,7 +7,7 @@
 
     <!-- reminder details -->
     <string name="label_description">Description: </string>
-    <string name="label_tags">Tags: %1$s</string>
+    <string name="label_tags">Tags: </string>
 
     <string name="test_long_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
         eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
