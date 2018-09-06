@@ -1,11 +1,11 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.support.annotation.NonNull;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class BriefListAdapter
@@ -30,20 +30,20 @@ public class BriefListAdapter
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LinearLayout layout = (LinearLayout) LayoutInflater.from(parent.getContext())
+        CardView cardView = (CardView) LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.brief_list_item, parent, false);
-        return new ViewHolder(layout);
+        return new ViewHolder(cardView);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        LinearLayout layout = holder.layout;
+        CardView cardView = holder.cardView;
 
-        ((TextView) layout.findViewById(R.id.item_title)).setText(titles[position]);
-        ((TextView) layout.findViewById(R.id.item_tags)).setText(tagStrings[position]);
+        ((TextView) cardView.findViewById(R.id.item_title)).setText(titles[position]);
+        ((TextView) cardView.findViewById(R.id.item_tags)).setText(tagStrings[position]);
 
         final int reminderId = reminderIds[position];
-        layout.setOnClickListener(new View.OnClickListener() {
+        cardView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (itemClickListener != null) {
@@ -60,11 +60,11 @@ public class BriefListAdapter
 
     //
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        private LinearLayout layout;
+        private CardView cardView;
 
-        public ViewHolder(LinearLayout layout) {
-            super(layout);
-            this.layout = layout;
+        public ViewHolder(CardView v) {
+            super(v);
+            this.cardView = v;
         }
     }
 

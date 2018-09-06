@@ -1,24 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:id="@+id/brief_list_item"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="6dp">
+    android:layout_margin="4dp"
+    card_view:cardElevation="2dp"
+    card_view:cardCornerRadius="2dp" >
 
-    <TextView
-        android:id="@+id/item_title"
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="@android:style/TextAppearance.Medium"
-        tools:text="Reminder Title" />
+        android:padding="4dp" >
 
-    <TextView
-        android:id="@+id/item_tags"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:text="Tags" />
+        <TextView
+            android:id="@+id/item_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@android:style/TextAppearance.Medium"
+            tools:text="Reminder Title" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/item_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Tags" />
+
+    </LinearLayout>
+</android.support.v7.widget.CardView>
