@@ -8,8 +8,12 @@
     <!-- dialogs -->
     <string name="dialog_title_confirm_remove">Confirm removal</string>
     <string name="dialog_msg_confirm_remove">Are you sure to remove this reminder?</string>
+    <string name="dialog_title_edit_title">Edit title:</string>
+
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 
 
 

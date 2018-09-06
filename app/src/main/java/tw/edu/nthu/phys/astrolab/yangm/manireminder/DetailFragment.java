@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.text.InputType;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -46,7 +47,16 @@ public class DetailFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_detail, container, false);
+        View view = inflater.inflate(R.layout.fragment_detail, container, false);
+
+        // set OnClick listeners
+        view.findViewById(R.id.title).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.label_tags).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.tags).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.label_description).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.description).setOnClickListener(viewsOnClickListener);
+
+        return view;
     }
 
     @Override
@@ -131,5 +141,61 @@ public class DetailFragment extends Fragment {
         ((TextView) view.findViewById(R.id.title)).setText(title);
         ((TextView) view.findViewById(R.id.tags)).setText(tagsStr);
         ((TextView) view.findViewById(R.id.description)).setText(description);
+    }
+
+    // OnClick listener for all views
+    private View.OnClickListener viewsOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.title:
+                    showDialogEditTitle();
+                    break;
+
+                case R.id.label_tags:
+                case R.id.tags:
+                    // TODO: edit tags
+                    break;
+
+                case R.id.label_description:
+                case R.id.description:
+                    showDialogEditDescription();
+                    break;
+            }
+        }
+    };
+
+    // dialogs for editing reminder
+    private void showDialogEditTitle() {
+        View view = getView();
+        if (view == null) { return; }
+
+        TextView textViewTitle = view.findViewById(R.id.title);
+        String oldTitle = textViewTitle.getText().toString();
+
+        SimpleTextEditDialogFragment dialogFragment =
+                SimpleTextEditDialogFragment.newInstance(
+                        "Edit title:", oldTitle,
+                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        dialogFragment.show(getFragmentManager(), "dialog_edit_title");
+    }
+
+    private void showDialogEditDescription() {
+        View view = getView();
+        if (view == null) { return; }
+
+        TextView textViewDescription = view.findViewById(R.id.description);
+        String oldDescription = textViewDescription.getText().toString();
+
+        SimpleTextEditDialogFragment dialogFragment =
+                SimpleTextEditDialogFragment.newInstance(
+                        "Edit description:", oldDescription,
+                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        dialogFragment.show(getFragmentManager(), "dialog_edit_description");
+    }
+
+    public void onDialogPositiveClicked(String dialogFragmentTag) { // called by DetailActivity
+        Toast.makeText(getActivity(), "dialog: "+dialogFragmentTag, Toast.LENGTH_SHORT).show();
+
     }
 }

@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -11,7 +12,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-public class DetailActivity extends AppCompatActivity {
+public class DetailActivity extends AppCompatActivity
+        implements SimpleTextEditDialogFragment.Listener {
 
     public static final String EXTRA_REMINDER_ID = "reminder_id";
     private int reminderId;
@@ -74,4 +76,10 @@ public class DetailActivity extends AppCompatActivity {
                     }
                 }
             };
+
+    //
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        detailFragment.onDialogPositiveClicked(dialog.getTag());
+    }
 }
