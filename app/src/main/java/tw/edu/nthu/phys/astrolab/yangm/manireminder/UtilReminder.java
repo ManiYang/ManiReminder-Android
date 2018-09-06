@@ -13,6 +13,10 @@ public class UtilReminder {
      * @return a string joining the tag names corresponding to tag ID's in tagIdsString
      */
     public static String buildTagsString(String tagIdsString, SparseArray<String> allTags) {
+        if (tagIdsString.trim().isEmpty()) {
+            return "";
+        }
+
         String[] idStringSplit = tagIdsString.split(",");
         StringBuilder builder = new StringBuilder();
         for (int i=0; i<idStringSplit.length; i++) {

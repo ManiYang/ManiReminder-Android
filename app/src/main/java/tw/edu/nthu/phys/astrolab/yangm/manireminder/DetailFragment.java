@@ -97,6 +97,9 @@ public class DetailFragment extends Fragment {
         }
         String title = cursor.getString(1);
         String tagsStr = UtilReminder.buildTagsString(cursor.getString(2), allTags);
+        if (tagsStr.isEmpty()) {
+            tagsStr = "(none)";
+        }
         cursor.close();
 
         // get detailed data
@@ -109,12 +112,9 @@ public class DetailFragment extends Fragment {
         }
         String description = cursor.getString(1);
         if (description.isEmpty()) {
-            description = "none";
+            description = "(none)";
         }
         cursor.close();
-
-
-
 
         // set contents of views
         ((TextView) view.findViewById(R.id.title)).setText(title);
