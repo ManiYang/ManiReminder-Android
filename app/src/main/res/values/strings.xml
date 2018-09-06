@@ -2,8 +2,17 @@
     <string name="app_name">ManiReminder</string>
 
     <string name="view_all_reminders">View All Reminders</string>
-
     <string name="create_reminder">Create Reminder</string>
+    <string name="remove_reminder">Remove This Reminder</string>
+
+    <!-- dialogs -->
+    <string name="dialog_title_confirm_remove">Confirm removal</string>
+    <string name="dialog_msg_confirm_remove">Are you sure to remove this reminder?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+
+
 
     <!-- reminder details -->
     <string name="label_description">Description: </string>

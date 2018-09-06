@@ -73,6 +73,17 @@ public class DetailFragment extends Fragment {
         this.reminderId = reminderId;
     }
 
+    public void removeReminder() {
+        if (db == null) {
+            return;
+        }
+
+        db.delete(MainDbHelper.TABLE_REMINDERS_BRIEF,
+                "_id = ?", new String[] {Integer.toString(reminderId)});
+        db.delete(MainDbHelper.TABLE_REMINDERS_DETAIL,
+                "_id = ?", new String[] {Integer.toString(reminderId)});
+    }
+
     //
     private void loadReminderData() {
         if (db == null) {

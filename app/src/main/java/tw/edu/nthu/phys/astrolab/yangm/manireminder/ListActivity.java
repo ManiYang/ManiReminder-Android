@@ -60,8 +60,7 @@ public class ListActivity extends AppCompatActivity {
     private void populateList() {
         // get reminders brief data from database
         int nRows = cursorRemindersBrief.getCount();
-        Toast.makeText(this, "Number of reminders: "+Integer.toString(nRows),
-                Toast.LENGTH_LONG).show();
+        Log.v("ListActivity", "### Number of reminders: "+Integer.toString(nRows));
 
         int[] ids = new int[nRows];
         String[] titles = new String[nRows];
@@ -148,7 +147,7 @@ public class ListActivity extends AppCompatActivity {
                     .show();
             return;
         } else {
-            Toast.makeText(this, "Added new reminder to DB", Toast.LENGTH_SHORT)
+            Toast.makeText(this, "New reminder created!", Toast.LENGTH_SHORT)
                     .show();
         }
 
