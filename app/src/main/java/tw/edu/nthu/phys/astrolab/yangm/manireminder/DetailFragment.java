@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
 import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
@@ -27,6 +28,7 @@ public class DetailFragment extends Fragment {
 
     private int reminderId = -9;
     private SQLiteDatabase db;
+    private final int REQUEST_CODE_EDIT = 0;
 
     public DetailFragment() {
     }
@@ -150,49 +152,41 @@ public class DetailFragment extends Fragment {
         public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.title:
-                    showDialogEditTitle();
+                    showSimpleTextEditDialog("title", R.id.title,
+                            InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
                     break;
 
                 case R.id.label_tags:
                 case R.id.tags:
-                    // TODO: edit tags
+                    startEditActivity("tags", R.id.tags);
                     break;
 
                 case R.id.label_description:
                 case R.id.description:
-                    showDialogEditDescription();
+                    showSimpleTextEditDialog("description", R.id.description,
+                            InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
                     break;
             }
         }
     };
 
-    // dialogs for editing reminder
-    private void showDialogEditTitle() {
+    //
+    private void showSimpleTextEditDialog(
+            String fieldName, int associateTextViewId, int textInputType) {
         View view = getView();
         if (view == null) { return; }
 
-        TextView textViewTitle = view.findViewById(R.id.title);
-        String oldTitle = textViewTitle.getText().toString();
+        String oldText;
+        try {
+            TextView textView = (TextView) view.findViewById(associateTextViewId);
+            oldText = textView.getText().toString();
+        } catch (ClassCastException e) {
+            throw new ClassCastException("'associateTextViewId' does not refer to a TextView");
+        }
 
-        SimpleTextEditDialogFragment dialogFragment =
-                SimpleTextEditDialogFragment.newInstance(
-                        "Edit title:", oldTitle,
-                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        dialogFragment.show(getFragmentManager(), "dialog_edit_title");
-    }
-
-    private void showDialogEditDescription() {
-        View view = getView();
-        if (view == null) { return; }
-
-        TextView textViewDescription = view.findViewById(R.id.description);
-        String oldDescription = textViewDescription.getText().toString();
-
-        SimpleTextEditDialogFragment dialogFragment =
-                SimpleTextEditDialogFragment.newInstance(
-                        "Edit description:", oldDescription,
-                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        dialogFragment.show(getFragmentManager(), "dialog_edit_description");
+        SimpleTextEditDialogFragment dialogFragment = SimpleTextEditDialogFragment.newInstance(
+                "Edit "+fieldName+":", oldText, textInputType);
+        dialogFragment.show(getFragmentManager(), "dialog_edit_"+fieldName);
     }
 
     public void onDialogPositiveClicked(String dialogFragmentTag, String newText) {
@@ -227,6 +221,46 @@ public class DetailFragment extends Fragment {
         if (! doneDbUpdate) {
             Toast.makeText(getActivity(), "Could not update database!", Toast.LENGTH_LONG)
                     .show();
+        }
+    }
+
+    private void startEditActivity(String fieldName, int textViewIdWithData) {
+        // get old data from TextView textViewIdWithData
+        String oldData;
+        View view = getView();
+        if (view == null) { return; }
+        try {
+            oldData = ((TextView) view.findViewById(textViewIdWithData)).getText().toString();
+        } catch (ClassCastException e) {
+            throw new ClassCastException("textViewIdWithData does not refer to a TextView");
+        }
+
+        //
+        Intent intent = new Intent(getContext(), EditActivity.class)
+                .putExtra(EditActivity.EXTRA_FIELD_NAME, fieldName)
+                .putExtra(EditActivity.EXTRA_INIT_DATA, oldData);
+        startActivityForResult(intent, REQUEST_CODE_EDIT);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CODE_EDIT:
+                if (resultCode == EditActivity.RESULT_CODE_OK) {
+                    String fieldName = data.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
+                    String newData = data.getStringExtra(EditActivity.EXTRA_NEW_DATA);
+
+                    switch (fieldName) {
+                        case "tags":
+                            Toast.makeText(getActivity(), "to update tags...", Toast.LENGTH_SHORT)
+                                    .show();
+                            break;
+                    }
+                }
+                break;
+
+            default:
+                super.onActivityResult(requestCode, resultCode, data);
         }
     }
 }
