@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,6 +50,19 @@ public class TextListAdapter
         }
     }
 
+    /** call this when an item is removed */
+    public void itemRemoved(int position) {
+        if (texts.size() != isPositionSelected.size() - 1) {
+            throw new AssertionError("texts.size() != isPositionSelected.size() - 1");
+        }
+
+        if (singleSelectedPosition == position)
+            singleSelectedPosition = -1;
+        isPositionSelected.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, texts.size() - position);
+    }
+
     public interface SingleSelectionListener {
         void onSingleSelection(String selectedText);
     }
@@ -75,14 +89,33 @@ public class TextListAdapter
     }
 
     /** get selected texts */
-    public ArrayList<String> getSelectedTexts() {
-        ArrayList<String> list = new ArrayList<>();
-        for (int p=0; p<texts.size(); p++) {
-            if (isPositionSelected.get(p)) {
-                list.add(texts.get(p));
+    public String[] getSelectedTexts() {
+        int[] selectedPositions = getSelectedPositions();
+        String[] selectedTexts = new String[selectedPositions.length];
+        for (int i=0; i<selectedPositions.length; i++) {
+            selectedTexts[i] = texts.get(selectedPositions[i]);
+        }
+        return selectedTexts;
+    }
+
+    /** get selected positions */
+    public int[] getSelectedPositions() {
+        int count = 0;
+        for (boolean b: isPositionSelected) {
+            if (b) {
+                count++;
             }
         }
-        return list;
+
+        int[] positions = new int[count];
+        int i = 0;
+        for (int p=0; p<isPositionSelected.size(); p++) {
+            if (isPositionSelected.get(p)) {
+                positions[i] = p;
+                i++;
+            }
+        }
+        return positions;
     }
 
     //
@@ -103,6 +136,10 @@ public class TextListAdapter
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
         holder.textView.setText(texts.get(position));
         holder.textView.setSelected(isPositionSelected.get(position));
+
+        Log.v("onBindViewHolder",
+                String.format("### position=%d, text=%s", position, texts.get(position)));
+
 
         if (selectionMode == NO_SELECTION) {
             holder.textView.setSelected(false);

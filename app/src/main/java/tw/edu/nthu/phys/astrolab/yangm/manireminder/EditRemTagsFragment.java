@@ -14,6 +14,7 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -25,18 +26,19 @@ public class EditRemTagsFragment extends Fragment {
     private static final String KEY_INIT_REM_TAGS = "init_rem_tags";
     private static final String KEY_INIT_ALL_TAGS = "init_all_tags";
     private String initRemTagsString;
-    private String initAllTagsString;
+    private String initAllTagsPairString;
     private ArrayList<String> remTags;
-    private ArrayList<String> allTags;
+    private ArrayList<String> allTagNames;
+    private ArrayList<Integer> allTagIds;
 
     public EditRemTagsFragment() {
         // Required empty public constructor
     }
 
-    public static EditRemTagsFragment newInstance(String initialRemTags, String initialAllTags) {
+    public static EditRemTagsFragment newInstance(String initialRemTags, String initialAllTagsPair) {
         Bundle bundle = new Bundle();
         bundle.putString(KEY_INIT_REM_TAGS, initialRemTags);
-        bundle.putString(KEY_INIT_ALL_TAGS, initialAllTags);
+        bundle.putString(KEY_INIT_ALL_TAGS, initialAllTagsPair);
 
         EditRemTagsFragment fragment = new EditRemTagsFragment();
         fragment.setArguments(bundle);
@@ -49,7 +51,7 @@ public class EditRemTagsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_edit_rem_tags, container, false);
 
         readBundle(getArguments());
-        loadData(view, initRemTagsString, initAllTagsString);
+        loadData(view, initRemTagsString, initAllTagsPairString);
 
         ((ImageButton) view.findViewById(R.id.button_remove)).setVisibility(ImageButton.INVISIBLE);
         ((ImageButton) view.findViewById(R.id.button_remove)).setOnClickListener(buttonClickListener);
@@ -68,8 +70,8 @@ public class EditRemTagsFragment extends Fragment {
             throw new RuntimeException("KEY_INIT_REM_TAGS not found in bundle");
         }
 
-        initAllTagsString = bundle.getString(KEY_INIT_ALL_TAGS);
-        if (initAllTagsString == null) {
+        initAllTagsPairString = bundle.getString(KEY_INIT_ALL_TAGS);
+        if (initAllTagsPairString == null) {
             throw new RuntimeException("KEY_INIT_ALL_TAGS not found in bundle");
         }
     }
@@ -78,14 +80,20 @@ public class EditRemTagsFragment extends Fragment {
     private void loadData(final View view, String remTagsString, String allTagsString) {
         if (view == null) { return; }
 
-        // set remTags and allTags
+        // set remTags, allTagNames, allTagIds
         remTags = UtilGeneral.splitString(remTagsString, ",");
 
         List<String> allTagsPairs = UtilGeneral.splitString(allTagsString, ",");
-        allTags = new ArrayList<>();
-        for (int i=0; i<allTagsPairs.size(); i++) {
-            String[] tokens = allTagsPairs.get(i).split(":");
-            allTags.add(tokens[tokens.length - 1]);
+        allTagNames = new ArrayList<>();
+        allTagIds = new ArrayList<>();
+        try {
+            for (int i = 0; i < allTagsPairs.size(); i++) {
+                String[] tokens = allTagsPairs.get(i).split(":");
+                allTagIds.add(Integer.parseInt(tokens[0].trim()));
+                allTagNames.add(tokens[1]);
+            }
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            throw new RuntimeException("wrong format of allTagsString");
         }
 
         // populate reminder tags
@@ -111,7 +119,7 @@ public class EditRemTagsFragment extends Fragment {
                 GridLayoutManager.VERTICAL, false));
 
         // populate all tags
-        adapter = new TextListAdapter(allTags, TextListAdapter.NO_SELECTION);
+        adapter = new TextListAdapter(allTagNames, TextListAdapter.NO_SELECTION);
         adapter.setNoSelectionOnClickListener(new TextListAdapter.NoSelectionOnClickListener() {
             @Override
             public void onClick(String clickedText) {
@@ -147,8 +155,12 @@ public class EditRemTagsFragment extends Fragment {
                     break;
 
                 case R.id.button_remove:
-                    // TODO...
-                    Toast.makeText(getContext(), "remove tag...", Toast.LENGTH_SHORT).show();
+                    RecyclerView remTagsRecycler = getView().findViewById(R.id.reminder_tags);
+                    int[] selectedPositions =
+                            ((TextListAdapter) remTagsRecycler.getAdapter()).getSelectedPositions();
+                    if (selectedPositions.length > 0) {
+                        actionRemoveTag(selectedPositions[0]);
+                    }
                     break;
             }
         }
@@ -166,8 +178,11 @@ public class EditRemTagsFragment extends Fragment {
         RecyclerView remTagsRecycler = view.findViewById(R.id.reminder_tags);
         ((TextListAdapter) remTagsRecycler.getAdapter()).itemsAppended();
 
-        if (!allTags.contains(tagToAdd)) {
-            allTags.add(tagToAdd);
+        if (!allTagNames.contains(tagToAdd)) {
+            int newTagId = allTagIds.isEmpty() ? 0 : (Collections.max(allTagIds) + 1);
+            allTagIds.add(newTagId);
+
+            allTagNames.add(tagToAdd);
             RecyclerView allTagsRecycler = view.findViewById(R.id.all_tags);
             ((TextListAdapter) allTagsRecycler.getAdapter()).itemsAppended();
         }
@@ -175,6 +190,19 @@ public class EditRemTagsFragment extends Fragment {
         ((EditText) view.findViewById(R.id.tag_to_add)).setText("");
     }
 
+    private void actionRemoveTag(int index) {
+        View view = getView();
+
+        String removedTag = remTags.remove(index);
+        RecyclerView remTagsRecycler = view.findViewById(R.id.reminder_tags);
+        ((TextListAdapter) remTagsRecycler.getAdapter()).itemRemoved(index);
+
+        view.findViewById(R.id.button_remove).setVisibility(View.INVISIBLE);
+
+        // TODO... if tag is not among initial all-tags, also remove it from current all-tags
+
+
+    }
 
 
 //    private String buildDataString() {
