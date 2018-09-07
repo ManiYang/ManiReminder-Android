@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class TextListAdapter
         extends RecyclerView.Adapter<TextListAdapter.ViewHolder> {
@@ -15,32 +17,56 @@ public class TextListAdapter
     public static final int NO_SELECTION = 0; //Can set NoSelectionOnClickListener.
     public static final int SINGLE_SELECTION = 1; //Item can be selected and deselected, but at most
                                                   //one item is selected at any time.
-                                                  //Can set SingleSelectedListener.
+                                                  //Can set SingleSelectedListener and
+                                                  //SingleDeselectedListener.
     public static final int MULTIPLE_SELECTION = 2; //Item can be selected and deselected.
-                                                    //Can use getMultipleSelectedTexts().
+
 
     private int selectionMode;
-    private String[] texts;
+    private List<String> texts; //reference to data
+    private int singleSelectedPosition = -1; //used only in single-selection mode
+    private List<Boolean> isPositionSelected; //used in all selection modes
+
     private SingleSelectionListener singleSelectionListener;
+    private SingleDeselectionListener singleDeselectionListener;
     private NoSelectionOnClickListener noSelectionOnClickListener;
 
-    public TextListAdapter(String[] texts, int selectionMode) {
-        this.texts = texts;
+    public TextListAdapter(List<String> textsRef, int selectionMode) {
+        this.texts = textsRef;
         this.selectionMode = selectionMode;
-        isPositionSelected = new boolean[texts.length];
+        isPositionSelected = new ArrayList<>(Collections.nCopies(texts.size(), false));
+    }
+
+    /** call this when items are appended */
+    public void itemsAppended() {
+        if (texts.size() <= isPositionSelected.size()) {
+            throw new AssertionError("texts.size() <= isPositionSelected.size()");
+        }
+
+        for (int p=isPositionSelected.size(); p<texts.size(); p++) {
+            isPositionSelected.add(false);
+            notifyItemInserted(p);
+        }
     }
 
     public interface SingleSelectionListener {
         void onSingleSelection(String selectedText);
     }
 
+    public interface SingleDeselectionListener {
+        void onSingleDeselection(String DeselectedText);
+    }
+
     public interface NoSelectionOnClickListener {
         void onClick(String clickedText);
     }
 
-    /** set item selection listener for single-selection mode */
+    /** set item selection/deselection listeners for single-selection mode */
     public void setSingleSelectedListener(SingleSelectionListener singleSelectionListener) {
         this.singleSelectionListener = singleSelectionListener;
+    }
+    public void setSingleDeselectedListener(SingleDeselectionListener singleDeselectionListener) {
+        this.singleDeselectionListener = singleDeselectionListener;
     }
 
     /** set item click listener for no-selection mode */
@@ -48,12 +74,12 @@ public class TextListAdapter
         this.noSelectionOnClickListener = noSelectionOnClickListener;
     }
 
-    /** get selected texts for multiple-selection mode */
-    public ArrayList<String> getMultipleSelectedTexts() {
+    /** get selected texts */
+    public ArrayList<String> getSelectedTexts() {
         ArrayList<String> list = new ArrayList<>();
-        for (int p=0; p<texts.length; p++) {
-            if (isPositionSelected[p]) {
-                list.add(texts[p]);
+        for (int p=0; p<texts.size(); p++) {
+            if (isPositionSelected.get(p)) {
+                list.add(texts.get(p));
             }
         }
         return list;
@@ -62,7 +88,7 @@ public class TextListAdapter
     //
     @Override
     public int getItemCount() {
-        return texts.length;
+        return texts.size();
     }
 
     @NonNull
@@ -73,20 +99,18 @@ public class TextListAdapter
         return new ViewHolder(textView);
     }
 
-    private int singleSelectedPosition = -1;
-    private boolean[] isPositionSelected;
-
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
-        holder.textView.setText(texts[position]);
-        holder.textView.setSelected(false);
+        holder.textView.setText(texts.get(position));
+        holder.textView.setSelected(isPositionSelected.get(position));
 
         if (selectionMode == NO_SELECTION) {
+            holder.textView.setSelected(false);
             holder.textView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (noSelectionOnClickListener != null) {
-                        noSelectionOnClickListener.onClick(texts[position]);
+                        noSelectionOnClickListener.onClick(texts.get(position));
                     }
                 }
             });
@@ -96,19 +120,26 @@ public class TextListAdapter
                 public void onClick(View v) {
                     if (singleSelectedPosition == -1) {
                         singleSelectedPosition = position;
+                        isPositionSelected.set(position, true);
                         v.setSelected(true);
                         if (singleSelectionListener != null) {
-                            singleSelectionListener.onSingleSelection(texts[position]);
+                            singleSelectionListener.onSingleSelection(texts.get(position));
                         }
                     } else if (singleSelectedPosition == position) {
                         singleSelectedPosition = -1;
+                        isPositionSelected.set(position, false);
                         v.setSelected(false);
+                        if (singleDeselectionListener != null) {
+                            singleDeselectionListener.onSingleDeselection(texts.get(position));
+                        }
                     } else {
                         int prevSelectedPosition = singleSelectedPosition;
                         singleSelectedPosition = position;
+                        isPositionSelected.set(prevSelectedPosition, false);
+                        isPositionSelected.set(singleSelectedPosition, true);
                         v.setSelected(true);
                         if (singleSelectionListener != null) {
-                            singleSelectionListener.onSingleSelection(texts[position]);
+                            singleSelectionListener.onSingleSelection(texts.get(position));
                         }
                         notifyItemChanged(prevSelectedPosition);
                     }
@@ -118,11 +149,11 @@ public class TextListAdapter
             holder.textView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (v.isSelected() != isPositionSelected[position]) {
+                    if (v.isSelected() != isPositionSelected.get(position)) {
                         throw new AssertionError("selected position inconsistent");
                     }
                     v.setSelected(!v.isSelected());
-                    isPositionSelected[position] = v.isSelected();
+                    isPositionSelected.set(position, v.isSelected());
                 }
             });
         }

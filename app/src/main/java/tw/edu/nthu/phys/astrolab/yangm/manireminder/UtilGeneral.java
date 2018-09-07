@@ -1,24 +1,23 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
 
 public class UtilGeneral {
 
     /**
-     * Split input string to form a set of strings. Empty tokens are ignored.
+     * Split input string to form a list of strings. Empty tokens are ignored.
      * @param s: input string
      * @param regex: the separator
      */
-    public static Set<String> splitString(String s, String regex) {
-        Set<String> set = new HashSet<>();
+    public static ArrayList<String> splitString(String s, String regex) {
+        ArrayList<String> list = new ArrayList<>();
         String[] split = s.split(regex);
-        for (int i=0; i<split.length; i++) {
-            String token = split[i].trim();
-            if (!token.isEmpty()) {
-                set.add(token);
+        for (String token: split) {
+            String tokenTrim = token.trim();
+            if (!tokenTrim.isEmpty()) {
+                list.add(tokenTrim);
             }
         }
-        return set;
+        return list;
     }
 }
