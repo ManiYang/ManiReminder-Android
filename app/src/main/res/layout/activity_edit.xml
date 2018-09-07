@@ -12,20 +12,8 @@
         android:id="@+id/toolbar"
         layout="@layout/toolbar_main" />
 
-    <TextView
-        android:id="@+id/field_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:text="field" />
-
-    <TextView
-        android:id="@+id/init_data"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:text="initial data" />
-
     <FrameLayout
-        android:id="@+id/frame_layout"
+        android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent" >
 

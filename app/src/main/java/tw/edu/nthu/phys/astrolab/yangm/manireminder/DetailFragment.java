@@ -158,7 +158,7 @@ public class DetailFragment extends Fragment {
 
                 case R.id.label_tags:
                 case R.id.tags:
-                    startEditActivity("tags", R.id.tags);
+                    startEditActivity("tags", R.id.tags, true);
                     break;
 
                 case R.id.label_description:
@@ -224,7 +224,8 @@ public class DetailFragment extends Fragment {
         }
     }
 
-    private void startEditActivity(String fieldName, int textViewIdWithData) {
+    private void startEditActivity(String fieldName, int textViewIdWithData,
+                                   boolean needAllTags) {
         // get old data from TextView textViewIdWithData
         String oldData;
         View view = getView();
@@ -239,6 +240,12 @@ public class DetailFragment extends Fragment {
         Intent intent = new Intent(getContext(), EditActivity.class)
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, fieldName)
                 .putExtra(EditActivity.EXTRA_INIT_DATA, oldData);
+
+        if (needAllTags) {
+            String allTagsString = UtilReminder.getAllTagsEncodedFromDb(db);
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS, allTagsString);
+        }
+
         startActivityForResult(intent, REQUEST_CODE_EDIT);
     }
 
@@ -252,6 +259,7 @@ public class DetailFragment extends Fragment {
 
                     switch (fieldName) {
                         case "tags":
+                            // TODO: update data (view and database)
                             Toast.makeText(getActivity(), "to update tags...", Toast.LENGTH_SHORT)
                                     .show();
                             break;

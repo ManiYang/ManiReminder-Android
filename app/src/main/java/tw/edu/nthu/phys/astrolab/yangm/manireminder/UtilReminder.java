@@ -47,4 +47,18 @@ public class UtilReminder {
         }
         return allTags;
     }
+
+    public static String getAllTagsEncodedFromDb(SQLiteDatabase db) {
+        SparseArray<String> allTags = getAllTagsFromDb(db);
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<allTags.size(); i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append(allTags.keyAt(i))
+                    .append(':')
+                    .append(allTags.valueAt(i));
+        }
+        return builder.toString();
+    }
 }
