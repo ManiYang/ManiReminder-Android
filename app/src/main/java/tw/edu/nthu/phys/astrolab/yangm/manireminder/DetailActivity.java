@@ -79,7 +79,7 @@ public class DetailActivity extends AppCompatActivity
 
     //
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
-        detailFragment.onDialogPositiveClicked(dialog.getTag());
+    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
+        detailFragment.onDialogPositiveClicked(dialog.getTag(), newText);
     }
 }

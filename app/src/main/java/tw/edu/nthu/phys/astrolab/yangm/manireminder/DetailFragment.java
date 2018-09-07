@@ -1,6 +1,7 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
@@ -194,8 +195,38 @@ public class DetailFragment extends Fragment {
         dialogFragment.show(getFragmentManager(), "dialog_edit_description");
     }
 
-    public void onDialogPositiveClicked(String dialogFragmentTag) { // called by DetailActivity
-        Toast.makeText(getActivity(), "dialog: "+dialogFragmentTag, Toast.LENGTH_SHORT).show();
+    public void onDialogPositiveClicked(String dialogFragmentTag, String newText) {
+        // (called by DetailActivity)
+        View view = getView();
+        if (view == null) { return; }
 
+        boolean doneDbUpdate = false;
+        switch (dialogFragmentTag) {
+            case "dialog_edit_title": {
+                // update title
+                ((TextView) view.findViewById(R.id.title)).setText(newText);
+                ContentValues values = new ContentValues();
+                values.put("title", newText);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_BRIEF, values,
+                        "_id = ?", new String[]{Integer.toString(reminderId)});
+                doneDbUpdate = (check == 1);
+                break;
+            }
+            case "dialog_edit_description": {
+                // update description
+                ((TextView) view.findViewById(R.id.description)).setText(newText);
+                ContentValues values = new ContentValues();
+                values.put("description", newText);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
+                        "_id = ?", new String[]{Integer.toString(reminderId)});
+                doneDbUpdate = (check == 1);
+                break;
+            }
+        }
+
+        if (! doneDbUpdate) {
+            Toast.makeText(getActivity(), "Could not update database!", Toast.LENGTH_LONG)
+                    .show();
+        }
     }
 }

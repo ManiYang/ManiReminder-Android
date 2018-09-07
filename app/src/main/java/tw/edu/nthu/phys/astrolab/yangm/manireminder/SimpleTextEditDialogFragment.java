@@ -20,6 +20,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
     private String title = "";
     private String initText = "";
     private int inputType = 1;
+    private EditText editText;
     private Listener listener;
 
     public static SimpleTextEditDialogFragment newInstance(
@@ -37,7 +38,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
     }
 
     public interface Listener {
-        void onDialogPositiveClick(DialogFragment dialog);
+        void onDialogPositiveClick(DialogFragment dialog, String newText);
     }
 
     //
@@ -48,7 +49,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
 
         View customView = getActivity().getLayoutInflater()
                 .inflate(R.layout.dialog_text_edit, null);
-        EditText editText = customView.findViewById(R.id.text_edit);
+        editText = customView.findViewById(R.id.text_edit);
         editText.setText(initText);
         editText.setInputType(inputType);
 
@@ -86,7 +87,11 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
         public void onClick(DialogInterface dialog, int which) {
             switch (which) {
                 case AlertDialog.BUTTON_POSITIVE:
-                    listener.onDialogPositiveClick(SimpleTextEditDialogFragment.this);
+                    String newText = editText.getText().toString();
+                    if (!newText.equals(initText)) {
+                        listener.onDialogPositiveClick(
+                                SimpleTextEditDialogFragment.this, newText);
+                    }
                     break;
                 case AlertDialog.BUTTON_NEGATIVE:
                     break;
