@@ -20,6 +20,7 @@
 
     <string name="label_tag_to_add">Tag to add:</string>
     <string name="label_all_tags">All tags:</string>
+    <string name="label_reminder_tags">Reminder tags:</string>
     <string name="label_description">Description: </string>
     <string name="label_tags">Tags: </string>
     <string name="hint_tag_to_add">tag to add</string>

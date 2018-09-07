@@ -57,6 +57,18 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("_id", 0);
             values.put("name", "testing");
             db.insert(TABLE_TAGS, null, values);
+            values = new ContentValues();
+            values.put("_id", 1);
+            values.put("name", "testing1");
+            db.insert(TABLE_TAGS, null, values);
+            values = new ContentValues();
+            values.put("_id", 2);
+            values.put("name", "testing2");
+            db.insert(TABLE_TAGS, null, values);
+            values = new ContentValues();
+            values.put("_id", 3);
+            values.put("name", "testing3");
+            db.insert(TABLE_TAGS, null, values);
         }
     }
 }

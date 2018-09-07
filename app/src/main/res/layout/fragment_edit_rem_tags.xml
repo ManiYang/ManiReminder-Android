@@ -7,6 +7,14 @@
     android:orientation="vertical"
     tools:context=".EditRemTagsFragment">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="4dp"
+        android:layout_gravity="start"
+        android:text="@string/label_reminder_tags"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,7 +25,10 @@
             android:id="@+id/reminder_tags"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:layout_marginRight="4dp"
+            android:padding="4dp"
+            android:background="@drawable/shape_rect_border_white_back" />
 
         <ImageButton
             android:id="@+id/button_remove"
@@ -48,7 +59,7 @@
             android:layout_weight="1"
             android:hint="@string/hint_tag_to_add"
             android:inputType="text"
-            android:textSize="16sp" />
+            android:textSize="18sp" />
 
         <ImageButton
             android:id="@+id/button_add"
@@ -70,6 +81,8 @@
         android:id="@+id/all_tags"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="4dp"/>
+        android:layout_margin="4dp"
+        android:padding="4dp"
+        android:background="@drawable/shape_rect_border_white_back" />
 
 </LinearLayout>

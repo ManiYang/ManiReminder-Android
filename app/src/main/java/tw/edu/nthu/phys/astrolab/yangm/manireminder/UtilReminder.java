@@ -20,12 +20,16 @@ public class UtilReminder {
         String[] idStringSplit = tagIdsString.split(",");
         StringBuilder builder = new StringBuilder();
         for (int i=0; i<idStringSplit.length; i++) {
+            String s = idStringSplit[i].trim();
+            if (s.isEmpty()) {
+                continue;
+            }
+
+            int id = Integer.parseInt(s);
+            String tagName = allTags.get(id, "(invalid_tag_id)");
             if (i > 0) {
                 builder.append(", ");
             }
-
-            int id = Integer.parseInt(idStringSplit[i].trim());
-            String tagName = allTags.get(id, "(invalid_tag_id)");
             builder.append(tagName);
         }
         return builder.toString();
