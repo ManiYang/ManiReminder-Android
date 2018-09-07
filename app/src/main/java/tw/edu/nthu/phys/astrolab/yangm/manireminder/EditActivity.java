@@ -3,7 +3,9 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
 
 public class EditActivity extends AppCompatActivity {
@@ -20,6 +22,8 @@ public class EditActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit);
 
+        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+
         Intent intent = getIntent();
         fieldName = intent.getStringExtra(EXTRA_FIELD_NAME);
         String initData = intent.getStringExtra(EXTRA_INIT_DATA);
@@ -29,13 +33,27 @@ public class EditActivity extends AppCompatActivity {
         setResult(RESULT_CODE_CANCELED);
     }
 
-    public void onButtonClick(View v) {
-        if (v.getId() == R.id.button_done) {
-            Intent newData = new Intent()
-                    .putExtra(EXTRA_FIELD_NAME, fieldName)
-                    .putExtra(EXTRA_NEW_DATA, "new data...");
-            setResult(RESULT_CODE_OK, newData);
+    // menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_edit, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_done:
+                setResult(RESULT_CODE_OK,
+                        new Intent().putExtra(EXTRA_FIELD_NAME, fieldName)
+                                .putExtra(EXTRA_NEW_DATA, "new data...")); //[temp].....
+                finish();
+                return true;
+            case R.id.action_cancel:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-        finish();
     }
 }

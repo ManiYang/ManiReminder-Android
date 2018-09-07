@@ -256,6 +256,8 @@ public class DetailFragment extends Fragment {
                                     .show();
                             break;
                     }
+                } else {
+                    Toast.makeText(getActivity(), "Discarded editing", Toast.LENGTH_SHORT).show();
                 }
                 break;
 

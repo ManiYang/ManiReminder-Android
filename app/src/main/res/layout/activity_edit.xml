@@ -8,6 +8,10 @@
     android:orientation="vertical"
     tools:context=".EditActivity">
 
+    <include
+        android:id="@+id/toolbar"
+        layout="@layout/toolbar_main" />
+
     <TextView
         android:id="@+id/field_name"
         android:layout_width="match_parent"
@@ -19,20 +23,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         tools:text="initial data" />
-
-    <Button
-        android:id="@+id/button_done"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="DONE"
-        android:onClick="onButtonClick"/>
-
-    <Button
-        android:id="@+id/button_cancel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="CANCEL"
-        android:onClick="onButtonClick"/>
 
     <FrameLayout
         android:id="@+id/frame_layout"
