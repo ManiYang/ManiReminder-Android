@@ -71,7 +71,8 @@ public class EditRemTagsFragment extends Fragment {
         Set<String> allTagsPairs = UtilGeneral.splitString(allTagsString, ",");
 
         //
-        TextListAdapter adapter = new TextListAdapter(remTags.toArray(new String[] {}));
+        TextListAdapter adapter = new TextListAdapter(
+                remTags.toArray(new String[] {}), TextListAdapter.SINGLE_SELECTION);
 
         RecyclerView remTagsRecyclerView = view.findViewById(R.id.reminder_tags);
         remTagsRecyclerView.setAdapter(adapter);
@@ -79,7 +80,8 @@ public class EditRemTagsFragment extends Fragment {
                 GridLayoutManager.VERTICAL, false));
 
         //
-        adapter = new TextListAdapter(allTagsPairs.toArray(new String[] {}));
+        adapter = new TextListAdapter(
+                allTagsPairs.toArray(new String[] {}), TextListAdapter.NO_SELECTION);
 
         RecyclerView allTagsRecyclerView = view.findViewById(R.id.all_tags);
         allTagsRecyclerView.setAdapter(adapter);
@@ -87,6 +89,9 @@ public class EditRemTagsFragment extends Fragment {
                 GridLayoutManager.VERTICAL, false));
 
         // TODO ....
+
+
+
 
     }
 
