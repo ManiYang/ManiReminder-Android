@@ -14,9 +14,15 @@ public class EditActivity extends AppCompatActivity {
     public static final String EXTRA_INIT_DATA = "init_data";
     public static final String EXTRA_NEW_DATA = "new_data";
     public static final String EXTRA_INIT_ALL_TAGS = "init_all_tags";
+    public static final String EXTRA_NEW_ALL_TAGS = "new_all_tags";
     public static final int RESULT_CODE_OK = 1;
     public static final int RESULT_CODE_CANCELED = 0;
     private String fieldName;
+    EditResultHolder editResultHolder;
+
+    public interface EditResultHolder {
+        Intent getResult();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +41,8 @@ public class EditActivity extends AppCompatActivity {
         setTitle("Editing "+fieldName);
         setResult(RESULT_CODE_CANCELED);
 
-        // set fragment
+        // set the fragment designated to fieldName
+        // the fragment must implement interface EditResultHolder
         switch (fieldName) {
             case "tags":
                 if (initAllTags == null) {
@@ -48,6 +55,12 @@ public class EditActivity extends AppCompatActivity {
     }
 
     void setFragment(Fragment fragment) {
+        try {
+            editResultHolder = (EditResultHolder) fragment;
+        } catch (ClassCastException e) {
+            throw new RuntimeException(fragment.toString()+" should implement EditResultHolder");
+        }
+
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, fragment)
                 .commit();
@@ -62,17 +75,19 @@ public class EditActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intentResult;
         switch (item.getItemId()) {
             case R.id.action_done:
-                // TODO....
-                setResult(RESULT_CODE_OK,
-                        new Intent().putExtra(EXTRA_FIELD_NAME, fieldName)
-                                .putExtra(EXTRA_NEW_DATA, "new data...")); //[temp].....
+                intentResult = editResultHolder.getResult();
+                setResult(RESULT_CODE_OK, intentResult);
                 finish();
                 return true;
+
             case R.id.action_cancel:
+                setResult(RESULT_CODE_CANCELED);
                 finish();
                 return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }

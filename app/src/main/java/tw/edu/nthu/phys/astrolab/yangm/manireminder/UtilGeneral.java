@@ -1,6 +1,7 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class UtilGeneral {
 
@@ -19,5 +20,17 @@ public class UtilGeneral {
             }
         }
         return list;
+    }
+
+
+    public static String joinStringList(String delimiter, List<String> stringList) {
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<stringList.size(); i++) {
+            if (i > 0) {
+                builder.append(delimiter);
+            }
+            builder.append(stringList.get(i));
+        }
+        return builder.toString();
     }
 }

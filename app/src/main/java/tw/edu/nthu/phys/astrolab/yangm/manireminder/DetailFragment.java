@@ -170,7 +170,7 @@ public class DetailFragment extends Fragment {
         }
     };
 
-    //
+    // SimpleTextEditDialog //
     private void showSimpleTextEditDialog(
             String fieldName, int associateTextViewId, int textInputType) {
         View view = getView();
@@ -224,6 +224,7 @@ public class DetailFragment extends Fragment {
         }
     }
 
+    // EditActivity //
     private void startEditActivity(String fieldName, int textViewIdWithData,
                                    boolean needAllTags) {
         // get old data from TextView textViewIdWithData
@@ -254,16 +255,7 @@ public class DetailFragment extends Fragment {
         switch (requestCode) {
             case REQUEST_CODE_EDIT:
                 if (resultCode == EditActivity.RESULT_CODE_OK) {
-                    String fieldName = data.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
-                    String newData = data.getStringExtra(EditActivity.EXTRA_NEW_DATA);
-
-                    switch (fieldName) {
-                        case "tags":
-                            // TODO: update data (view and database)
-                            Toast.makeText(getActivity(), "to update tags...", Toast.LENGTH_SHORT)
-                                    .show();
-                            break;
-                    }
+                    updateDataAfterEditActivity(data);
                 } else {
                     Toast.makeText(getActivity(), "Discarded editing", Toast.LENGTH_SHORT).show();
                 }
@@ -271,6 +263,32 @@ public class DetailFragment extends Fragment {
 
             default:
                 super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    private void updateDataAfterEditActivity(Intent intentNewData) {
+        String fieldName = intentNewData.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
+        String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
+        String newAllTagsPairString =
+                intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //can be null
+//        Log.v("DetailFragment", "### newData = "+newData);
+
+        View view = getView();
+        switch (fieldName) {
+            case "tags":
+                if (newAllTagsPairString == null) {
+                    throw new RuntimeException("new all-tags should be given");
+                }
+                // TODO: update data in database
+
+
+
+
+                
+
+
+
+                break;
         }
     }
 }

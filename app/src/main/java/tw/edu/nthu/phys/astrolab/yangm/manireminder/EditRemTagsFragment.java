@@ -1,6 +1,7 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
@@ -21,8 +22,10 @@ import java.util.List;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class EditRemTagsFragment extends Fragment {
+public class EditRemTagsFragment extends Fragment
+        implements EditActivity.EditResultHolder {
 
+    private static final String FIELD_NAME = "tags";
     private static final String KEY_INIT_REM_TAGS = "init_rem_tags";
     private static final String KEY_INIT_ALL_TAGS = "init_all_tags";
     private String initRemTagsString;
@@ -77,13 +80,13 @@ public class EditRemTagsFragment extends Fragment {
     }
 
     //
-    private void loadData(final View view, String remTagsString, String allTagsString) {
+    private void loadData(final View view, String remTagsString, String allTagsPairString) {
         if (view == null) { return; }
 
         // set remTags, allTagNames, allTagIds
         remTags = UtilGeneral.splitString(remTagsString, ",");
 
-        List<String> allTagsPairs = UtilGeneral.splitString(allTagsString, ",");
+        List<String> allTagsPairs = UtilGeneral.splitString(allTagsPairString, ",");
         allTagNames = new ArrayList<>();
         allTagIds = new ArrayList<>();
         try {
@@ -199,13 +202,50 @@ public class EditRemTagsFragment extends Fragment {
 
         view.findViewById(R.id.button_remove).setVisibility(View.INVISIBLE);
 
-        // TODO... if tag is not among initial all-tags, also remove it from current all-tags
+        // if removedTag is not among initial all-tags, also remove it from current all-tags
+        if (! isTagInInitAllTags(removedTag)) {
+            int at = allTagNames.indexOf(removedTag);
+            if (at != -1) {
+                allTagNames.remove(at);
+                allTagIds.remove(at);
 
-
+                RecyclerView allTagsRecycler = view.findViewById(R.id.all_tags);
+                ((TextListAdapter) allTagsRecycler.getAdapter()).itemRemoved(at);
+            }
+        }
     }
 
+    private boolean isTagInInitAllTags(String tag) {
+        List<String> initAllTagsPairs = UtilGeneral.splitString(initAllTagsPairString, ",");
+        try {
+            for (String tagPair : initAllTagsPairs) {
+                String tagName = tagPair.split(":")[1];
+                if (tag.equals(tagName)) {
+                    return true;
+                }
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new RuntimeException("Wrong format of initAllTagsPairString");
+        }
+        return false;
+    }
 
-//    private String buildDataString() {
-//        return ""; // [temp]
-//    }
+    //
+    @Override
+    public Intent getResult() {
+        String remTagsString = UtilGeneral.joinStringList(", ", remTags);
+
+        StringBuilder allTagsPairString = new StringBuilder();
+        for (int i=0; i<allTagNames.size(); i++) {
+            if (i > 0) {
+                allTagsPairString.append(',');
+            }
+            allTagsPairString.append(allTagIds).append(':').append(allTagNames);
+        }
+
+        return new Intent()
+                .putExtra(EditActivity.EXTRA_FIELD_NAME, FIELD_NAME)
+                .putExtra(EditActivity.EXTRA_NEW_DATA, remTagsString)
+                .putExtra(EditActivity.EXTRA_NEW_ALL_TAGS, allTagsPairString.toString());
+    }
 }

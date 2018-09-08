@@ -2,7 +2,6 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -136,10 +135,8 @@ public class TextListAdapter
     public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
         holder.textView.setText(texts.get(position));
         holder.textView.setSelected(isPositionSelected.get(position));
-
-        Log.v("onBindViewHolder",
-                String.format("### position=%d, text=%s", position, texts.get(position)));
-
+//        Log.v("onBindViewHolder",
+//                String.format("### position=%d, text=%s", position, texts.get(position)));
 
         if (selectionMode == NO_SELECTION) {
             holder.textView.setSelected(false);
