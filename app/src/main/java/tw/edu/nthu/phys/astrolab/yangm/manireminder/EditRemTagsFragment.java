@@ -240,7 +240,7 @@ public class EditRemTagsFragment extends Fragment
             if (i > 0) {
                 allTagsPairString.append(',');
             }
-            allTagsPairString.append(allTagIds).append(':').append(allTagNames);
+            allTagsPairString.append(allTagIds.get(i)).append(':').append(allTagNames.get(i));
         }
 
         return new Intent()

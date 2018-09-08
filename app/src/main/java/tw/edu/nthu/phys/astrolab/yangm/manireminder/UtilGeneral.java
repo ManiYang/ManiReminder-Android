@@ -6,7 +6,8 @@ import java.util.List;
 public class UtilGeneral {
 
     /**
-     * Split input string to form a list of strings. Empty tokens are ignored.
+     * Split input string to form a list of strings. Each token will be trimmed.
+     * Empty tokens are ignored.
      * @param s: input string
      * @param regex: the separator
      */
@@ -30,6 +31,17 @@ public class UtilGeneral {
                 builder.append(delimiter);
             }
             builder.append(stringList.get(i));
+        }
+        return builder.toString();
+    }
+
+    public static String joinIntegerList(String delimiter, List<Integer> intList) {
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<intList.size(); i++) {
+            if (i > 0) {
+                builder.append(delimiter);
+            }
+            builder.append(intList.get(i));
         }
         return builder.toString();
     }

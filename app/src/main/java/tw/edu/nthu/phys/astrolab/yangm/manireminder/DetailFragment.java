@@ -20,6 +20,9 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -275,20 +278,85 @@ public class DetailFragment extends Fragment {
 
         View view = getView();
         switch (fieldName) {
-            case "tags":
+            case "tags": {
                 if (newAllTagsPairString == null) {
                     throw new RuntimeException("new all-tags should be given");
                 }
-                // TODO: update data in database
 
+                // update data in database (no need to update view)
+                SparseArray<String> allTags = parseAllTagsPairString(newAllTagsPairString);
+                saveAllTagsToDb(allTags, db);
 
-
-
-                
-
-
-
+                List<String> remTags = UtilGeneral.splitString(newData, ",");
+                List<Integer> remTagIds = getTagIds(remTags, allTags);
+                String remTagIdsString = UtilGeneral.joinIntegerList(",", remTagIds);
+                ContentValues values = new ContentValues();
+                values.put("tags", remTagIdsString);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_BRIEF, values,
+                        "_id = ?", new String[] {Integer.toString(reminderId)});
+                if (check != 1) {
+                    Toast.makeText(getContext(), "Could not update database", Toast.LENGTH_LONG)
+                            .show();
+                }
                 break;
+            }
         }
+    }
+
+    private SparseArray<String> parseAllTagsPairString(String allTagsPairString) {
+        if (allTagsPairString == null) {
+            return null;
+        }
+
+        SparseArray<String> allTags = new SparseArray<>();
+        List<String> allTagsPair = UtilGeneral.splitString(allTagsPairString, ",");
+        try {
+            for (String tagPair : allTagsPair) {
+                String[] tokens = tagPair.split(":");
+                int id = Integer.parseInt(tokens[0].trim());
+                allTags.append(id, tokens[1].trim());
+            }
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            //Log.e("DetailFragment", "allTagsPairString = "+allTagsPairString);
+            throw new RuntimeException("wrong format of allTagsPairString");
+        }
+        return allTags;
+    }
+
+    private boolean saveAllTagsToDb(SparseArray<String> allTags, SQLiteDatabase db) {
+        db.delete(MainDbHelper.TABLE_TAGS, null, null);
+        for (int i=0; i<allTags.size(); i++) {
+            ContentValues values = new ContentValues();
+            values.put("_id", allTags.keyAt(i));
+            values.put("name", allTags.valueAt(i));
+            long check = db.insert(MainDbHelper.TABLE_TAGS, null, values);
+            if (check == -1) {
+                Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
+                        .show();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private ArrayList<Integer> getTagIds(List<String> tags, SparseArray<String> allTags) {
+        ArrayList<Integer> ids = new ArrayList<>();
+        for (String tag: tags) {
+            //int i = allTags.indexOfValue(tag); // doesn't work
+            int index  = -1;
+            for (int i=0; i<allTags.size(); i++) {
+                if (allTags.valueAt(i).equals(tag)) {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index != -1) {
+                ids.add(allTags.keyAt(index));
+            } else {
+                throw new RuntimeException("tag not found in 'allTags'");
+            }
+        }
+        return ids;
     }
 }
