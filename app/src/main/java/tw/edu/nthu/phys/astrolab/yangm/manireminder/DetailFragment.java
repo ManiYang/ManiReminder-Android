@@ -32,6 +32,7 @@ public class DetailFragment extends Fragment {
     private int reminderId = -9;
     private SQLiteDatabase db;
     private final int REQUEST_CODE_EDIT = 0;
+    private static final String NONE_INDICATOR = "(none)";
 
     public DetailFragment() {
     }
@@ -125,7 +126,7 @@ public class DetailFragment extends Fragment {
         String title = cursor.getString(1);
         String tagsStr = UtilReminder.buildTagsString(cursor.getString(2), allTags);
         if (tagsStr.isEmpty()) {
-            tagsStr = "(none)";
+            tagsStr = NONE_INDICATOR;
         }
         cursor.close();
 
@@ -139,7 +140,7 @@ public class DetailFragment extends Fragment {
         }
         String description = cursor.getString(1);
         if (description.isEmpty()) {
-            description = "(none)";
+            description = NONE_INDICATOR;
         }
         cursor.close();
 
@@ -183,6 +184,9 @@ public class DetailFragment extends Fragment {
         try {
             TextView textView = (TextView) view.findViewById(associateTextViewId);
             oldText = textView.getText().toString();
+            if (oldText.equals(NONE_INDICATOR)) {
+                oldText = "";
+            }
         } catch (ClassCastException e) {
             throw new ClassCastException("'associateTextViewId' does not refer to a TextView");
         }
@@ -236,6 +240,9 @@ public class DetailFragment extends Fragment {
         if (view == null) { return; }
         try {
             oldData = ((TextView) view.findViewById(textViewIdWithData)).getText().toString();
+            if (oldData.equals(NONE_INDICATOR)) {
+                oldData = "";
+            }
         } catch (ClassCastException e) {
             throw new ClassCastException("textViewIdWithData does not refer to a TextView");
         }
