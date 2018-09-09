@@ -127,7 +127,7 @@ public class TextListAdapter
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         TextView textView = (TextView) LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.text_list_item, parent, false);
+                .inflate(R.layout.text_list_item_oval, parent, false);
         return new ViewHolder(textView);
     }
 

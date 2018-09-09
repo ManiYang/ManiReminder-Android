@@ -17,11 +17,13 @@ import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class DetailFragment extends Fragment {
 
@@ -112,7 +114,7 @@ public class DetailFragment extends Fragment {
         SparseArray<String> allSituations = UtilReminder.getAllSituationsFromDb(db);
         SparseArray<String> allEvents = UtilReminder.getAllEventsFromDb(db);
 
-        // get brief data
+        // get and load brief data
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
                 "_id = ?", new String[] {Integer.toString(reminderId)},
                 null, null, null);
@@ -127,7 +129,10 @@ public class DetailFragment extends Fragment {
         }
         cursor.close();
 
-        // get detailed data
+        ((TextView) view.findViewById(R.id.title)).setText(title);
+        ((TextView) view.findViewById(R.id.tags)).setText(tagsStr);
+
+        // get and load detailed data
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_DETAIL, null,
                 "_id = ?", new String[] {Integer.toString(reminderId)},
                 null, null, null);
@@ -141,7 +146,9 @@ public class DetailFragment extends Fragment {
         }
         cursor.close();
 
-        // get behavior settings data
+        ((TextView) view.findViewById(R.id.description)).setText(description);
+
+        // get and load behavior settings data
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, null,
                 "_id = ?", new String[] {Integer.toString(reminderId)},
                 null, null, null);
@@ -149,13 +156,93 @@ public class DetailFragment extends Fragment {
             throw new RuntimeException(String.format("Reminder (id: %d) not found in table '%s'",
                     reminderId, MainDbHelper.TABLE_REMINDERS_BEHAVIOR));
         }
-
+        int remType = cursor.getInt(1);
+        String behaviorSettingDbString = cursor.getString(2);
         cursor.close();
+        loadBehaviorData(remType, behaviorSettingDbString, allSituations, allEvents);
+    }
 
-        // set contents of views
-        ((TextView) view.findViewById(R.id.title)).setText(title);
-        ((TextView) view.findViewById(R.id.tags)).setText(tagsStr);
-        ((TextView) view.findViewById(R.id.description)).setText(description);
+    private void loadBehaviorData(int remType, String stringRepresentation,
+                                  SparseArray<String> allSituations, SparseArray<String> allEvents) {
+        ReminderDataBehavior behaviorData = new ReminderDataBehavior()
+                .setFromStringRepresentation(stringRepresentation);
+        if (behaviorData.getRemType() != remType) {
+            throw new RuntimeException("behaviorData.getRemType() != remType");
+        }
+
+        View view = getView();
+        TextView tvModel = view.findViewById(R.id.model);
+        LinearLayout layoutRepeatSpec = view.findViewById(R.id.layout_repeat_spec);
+        TextView labelInstantsOrPeriods = view.findViewById(R.id.label_instants_or_periods);
+        LinearLayout layoutInstantsOrPeriodsList =
+                view.findViewById(R.id.layout_instants_or_periods_list);
+
+        String[] displayStrings = null;
+        switch (remType) {
+            case ReminderDataBehavior.TYPE_NO_BOARD_CONTROL:
+                tvModel.setText("(no settings)");
+                layoutRepeatSpec.setVisibility(View.GONE);
+                ((TextView) view.findViewById(R.id.repeat_spec)).setText("(no settings)");
+                labelInstantsOrPeriods.setVisibility(View.GONE);
+                layoutInstantsOrPeriodsList.setVisibility(View.GONE);
+                break;
+
+            case ReminderDataBehavior.TYPE_TODO_AT_INSTANTS: {
+                tvModel.setText("Todo at Instants");
+                layoutRepeatSpec.setVisibility(View.GONE);
+                labelInstantsOrPeriods.setVisibility(View.VISIBLE);
+                labelInstantsOrPeriods.setText("instants:");
+
+                ReminderDataBehavior.Instant[] instants = behaviorData.getInstants();
+                displayStrings = new String[instants.length];
+                for (int i = 0; i < instants.length; i++) {
+                    displayStrings[i] = instants[i].getDisplayString(allSituations, allEvents);
+                }
+                break;
+            }
+            case ReminderDataBehavior.TYPE_REMINDER_IN_PERIOD: {
+                tvModel.setText("Remind during Periods");
+                layoutRepeatSpec.setVisibility(View.GONE);
+                labelInstantsOrPeriods.setVisibility(View.VISIBLE);
+                labelInstantsOrPeriods.setText("periods:");
+
+                ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
+                displayStrings = new String[periods.length];
+                for (int i = 0; i < periods.length; i++) {
+                    displayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
+                }
+                break;
+            }
+            case ReminderDataBehavior.TYPE_TODO_REPETITIVE_IN_PERIOD: {
+                tvModel.setText("Todo Repeatedly during Periods");
+
+                layoutRepeatSpec.setVisibility(View.VISIBLE);
+                String repeatSpecStr = String.format(Locale.US, "every %d min, offset %d min",
+                        behaviorData.getRepeatEveryMinutes(), behaviorData.getRepeatOffsetMinutes());
+                ((TextView) view.findViewById(R.id.repeat_spec)).setText(repeatSpecStr);
+
+                labelInstantsOrPeriods.setVisibility(View.VISIBLE);
+                labelInstantsOrPeriods.setText("periods:");
+
+                ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
+                displayStrings = new String[periods.length];
+                for (int i = 0; i < periods.length; i++) {
+                    displayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
+                }
+                break;
+            }
+        }
+
+        // populate list of instants/periods with displayStrings
+        if (remType != ReminderDataBehavior.TYPE_NO_BOARD_CONTROL) {
+            layoutInstantsOrPeriodsList.setVisibility(View.VISIBLE);
+            for (String s: displayStrings) {
+                TextView textView = (TextView) LayoutInflater.from(getContext())
+                        .inflate(R.layout.text_list_item_plain_monospace, null);
+                textView.setText(s);
+                layoutInstantsOrPeriodsList.addView(textView);
+            }
+        }
     }
 
     // OnClick listener for all views
@@ -190,7 +277,7 @@ public class DetailFragment extends Fragment {
 
         String oldText;
         try {
-            TextView textView = (TextView) view.findViewById(associateTextViewId);
+            TextView textView = view.findViewById(associateTextViewId);
             oldText = textView.getText().toString();
             if (oldText.equals(NONE_INDICATOR)) {
                 oldText = "";

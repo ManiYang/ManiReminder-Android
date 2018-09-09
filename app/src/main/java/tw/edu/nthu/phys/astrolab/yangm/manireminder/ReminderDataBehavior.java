@@ -1,6 +1,7 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.util.SparseArray;
 
 import java.util.Locale;
@@ -90,6 +91,9 @@ public class ReminderDataBehavior {
                 String[] tokens = string.split(" in ");
 
                 Matcher matcher = Pattern.compile("every(\\d+)m\\.offset(\\d+)m").matcher(tokens[0]);
+                if (!matcher.find()) {
+                    throw new RuntimeException();
+                }
                 repeatEveryMinutes = Integer.parseInt(matcher.group(1));
                 repeatOffsetMinutes = Integer.parseInt(matcher.group(2));
 
@@ -140,11 +144,16 @@ public class ReminderDataBehavior {
                 }
             }
         } catch (RuntimeException e) {
-            throw new RuntimeException("Bad format of displayString");
+            Log.v("ReminderDataBehavior", "string: "+string);
+            throw new RuntimeException("Bad format of string");
         }
     }
 
     //
+    public int getRemType() {
+        return remType;
+    }
+
     public boolean hasNoBoardControl() {
         return remType == TYPE_NO_BOARD_CONTROL;
     }

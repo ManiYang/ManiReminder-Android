@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/text_list_item"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
-    android:paddingTop="1dp"
-    android:paddingBottom="2dp"
+    android:fontFamily="monospace"
     android:textAppearance="@android:style/TextAppearance.Medium"
-    android:gravity="center_horizontal"
-    android:background="@drawable/selector_text_item" />
+    android:textSize="16sp"
+    tools:text="text" />
