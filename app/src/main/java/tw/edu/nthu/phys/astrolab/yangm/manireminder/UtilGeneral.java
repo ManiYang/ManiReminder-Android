@@ -1,5 +1,7 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.util.SparseArray;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +25,8 @@ public class UtilGeneral {
         }
         return -1;
     }
+
+
 
     /**
      * Split input string to form a list of strings. Each token will be trimmed.
@@ -62,5 +66,17 @@ public class UtilGeneral {
             builder.append(intList.get(i));
         }
         return builder.toString();
+    }
+
+
+    /**
+     * @return Return the (first) key whose value equals `value`. If not found, return -1.
+     */
+    public static int searchSparseStringArrayByValue(SparseArray<String> array, String value) {
+        for (int i=0; i<array.size(); i++) {
+            if (array.valueAt(i).equals(value))
+                return array.keyAt(i);
+        }
+        return -1;
     }
 }

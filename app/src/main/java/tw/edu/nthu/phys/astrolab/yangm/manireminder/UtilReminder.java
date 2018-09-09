@@ -35,7 +35,6 @@ public class UtilReminder {
         return builder.toString();
     }
 
-
     public static SparseArray<String> getAllTagsFromDb(SQLiteDatabase db) {
         SparseArray<String> allTags = new SparseArray<>();
         if (db != null) {
@@ -65,4 +64,7 @@ public class UtilReminder {
         }
         return builder.toString();
     }
+
+    public static
+
 }

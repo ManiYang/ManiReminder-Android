@@ -23,10 +23,6 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
-
-/**
- * A simple {@link Fragment} subclass.
- */
 public class DetailFragment extends Fragment {
 
     private int reminderId = -9;
@@ -90,7 +86,7 @@ public class DetailFragment extends Fragment {
         this.reminderId = reminderId;
     }
 
-    public void removeReminder() {
+    public void removeReminder() { // called by DetailActivity
         if (db == null) {
             return;
         }

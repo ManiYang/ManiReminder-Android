@@ -1,5 +1,9 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.support.annotation.Nullable;
+import android.util.SparseArray;
+
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,14 +59,35 @@ public class ReminderDataBoardControl {
         return this;
     }
 
-    public ReminderDataBoardControl setFromDisplayString(String displayString) {
+    public ReminderDataBoardControl setFromStringRepresentation(String stringRepresentation) {
+        setFromString(stringRepresentation, false, null, null);
+        return this;
+    }
+
+    public ReminderDataBoardControl setFromDisplayString(String displayString,
+                                                         SparseArray<String> allSituations,
+                                                         SparseArray<String> allEvents) {
+        setFromString(displayString, true, allSituations, allEvents);
+        return this;
+    }
+
+    private void setFromString(String string, boolean isDisplayString,
+                               @Nullable SparseArray<String> allSituations,
+                               @Nullable SparseArray<String> allEvents) {
+        if (isDisplayString) {
+            if (allSituations == null || allEvents == null) {
+                throw new RuntimeException("allSituations & allEvents should not be null "
+                        +"as they may be needed");
+            }
+        }
+
         this.instants = null;
         this.periods = null;
         try {
-            if (displayString.trim().isEmpty()) {
+            if (string.trim().isEmpty()) {
                 remType = TYPE_NO_BOARD_CONTROL;
-            } else if (displayString.contains(" in ")) {
-                String[] tokens = displayString.split(" in ");
+            } else if (string.contains(" in ")) {
+                String[] tokens = string.split(" in ");
 
                 Matcher matcher = Pattern.compile("every(\\d+)m\\.offset(\\d+)m").matcher(tokens[0]);
                 repeatEveryMinutes = Integer.parseInt(matcher.group(1));
@@ -73,23 +98,43 @@ public class ReminderDataBoardControl {
                 }
                 String[] periodStrings = tokens[1].split(", ");
                 periods = new Period[periodStrings.length];
-                for (int i=0; i<periods.length; i++) {
-                    periods[i] = new Period().setFromDisplayString(periodStrings[i].trim());
+                if (isDisplayString) {
+                    for (int i = 0; i < periods.length; i++) {
+                        periods[i] = new Period().setFromDisplayString(
+                                periodStrings[i].trim(), allSituations, allEvents);
+                    }
+                } else {
+                    for (int i = 0; i < periods.length; i++) {
+                        periods[i] = new Period().setFromStringRepresentation(periodStrings[i].trim());
+                    }
                 }
-
                 remType = TYPE_TODO_REPETITIVE_IN_PERIOD;
             } else {
-                String[] tokens = displayString.split(", ");
+                String[] tokens = string.split(", ");
                 if (tokens[0].contains("-")) {
                     periods = new Period[tokens.length];
-                    for (int i=0; i<periods.length; i++) {
-                        periods[i] = new Period().setFromDisplayString(tokens[i].trim());
+                    if (isDisplayString) {
+                        for (int i = 0; i < periods.length; i++) {
+                            periods[i] = new Period().setFromDisplayString(
+                                    tokens[i].trim(), allSituations, allEvents);
+                        }
+                    } else {
+                        for (int i = 0; i < periods.length; i++) {
+                            periods[i] = new Period().setFromStringRepresentation(tokens[i].trim());
+                        }
                     }
                     remType = TYPE_REMINDER_IN_PERIOD;
                 } else {
                     instants = new Instant[tokens.length];
-                    for (int i=0; i<instants.length; i++) {
-                        instants[i] = new Instant().setFromDisplayString(tokens[i].trim());
+                    if (isDisplayString) {
+                        for (int i = 0; i < instants.length; i++) {
+                            instants[i] = new Instant().setFromDisplayString(
+                                    tokens[i].trim(), allSituations, allEvents);
+                        }
+                    } else {
+                        for (int i = 0; i < instants.length; i++) {
+                            instants[i] = new Instant().setFromStringRepresentation(tokens[i].trim());
+                        }
                     }
                     remType = TYPE_TODO_AT_INSTANTS;
                 }
@@ -97,7 +142,6 @@ public class ReminderDataBoardControl {
         } catch (RuntimeException e) {
             throw new RuntimeException("Bad format of displayString");
         }
-        return this;
     }
 
     //
@@ -147,7 +191,27 @@ public class ReminderDataBoardControl {
         return repeatOffsetMinutes;
     }
 
-    public String getDisplayString() {
+    public String getStringRepresentation() {
+        return getString(false, null, null);
+    }
+
+    public String getDisplayString(SparseArray<String> allSituations, SparseArray<String> allEvents) {
+        return getString(true, allSituations, allEvents);
+    }
+
+    /**
+     * @param forDisplay -- true: get display string,  false: get string representation
+     * allSituations and allEvents can be null if `forDisplay` = false (for getting string
+     * representation) */
+    private String getString(boolean forDisplay,
+                             SparseArray<String> allSituations, SparseArray<String> allEvents) {
+        if (forDisplay) {
+            if (allSituations == null || allEvents == null) {
+                throw new RuntimeException("allSituations and allEvents should not be null "
+                        +"as they may be needed");
+            }
+        }
+
         StringBuilder builder = new StringBuilder();
         switch (remType) {
             case TYPE_NO_BOARD_CONTROL:
@@ -159,7 +223,11 @@ public class ReminderDataBoardControl {
                         if (i > 0) {
                             builder.append(", ");
                         }
-                        builder.append(instants[i].getDisplayString());
+                        if (forDisplay) {
+                            builder.append(instants[i].getDisplayString(allSituations, allEvents));
+                        } else {
+                            builder.append(instants[i].getStringRepresentation());
+                        }
                     }
                 }
                 return builder.toString();
@@ -170,7 +238,11 @@ public class ReminderDataBoardControl {
                         if (i > 0) {
                             builder.append(", ");
                         }
-                        builder.append(periods[i].getDisplayString());
+                        if (forDisplay) {
+                            builder.append(periods[i].getDisplayString(allSituations, allEvents));
+                        } else {
+                            builder.append(periods[i].getStringRepresentation());
+                        }
                     }
                 }
                 return builder.toString();
@@ -183,7 +255,11 @@ public class ReminderDataBoardControl {
                         if (i > 0) {
                             builder.append(", ");
                         }
-                        builder.append(periods[i].getDisplayString());
+                        if (forDisplay) {
+                            builder.append(periods[i].getDisplayString(allSituations, allEvents));
+                        } else {
+                            builder.append(periods[i].getStringRepresentation());
+                        }
                     }
                 }
                 return builder.toString();
@@ -267,7 +343,7 @@ public class ReminderDataBoardControl {
             if (dayOfWeek > 0) {
                 builder.append(UtilGeneral.DAYS_OF_WEEK[dayOfWeek]).append('.');
             }
-            builder.append(String.format("%02d:%02d", hour, minute));
+            builder.append(String.format(Locale.US, "%02d:%02d", hour, minute));
             return builder.toString();
         }
     } // class Time
@@ -310,35 +386,74 @@ public class ReminderDataBoardControl {
             return this;
         }
 
-        public Instant setFromDisplayString(String displayString) {
+        public Instant setFromStringRepresentation(String stringRepresentation) {
+            setFromString(stringRepresentation, false, null, null);
+            return this;
+        }
+
+        public Instant setFromDisplayString(String displayString,
+                                            SparseArray<String> allSituations,
+                                            SparseArray<String> allEvents) {
+            setFromString(displayString, true, allSituations, allEvents);
+            return this;
+        }
+
+        private void setFromString(String string, boolean isDisplayString,
+                                   SparseArray<String> allSituations,
+                                   SparseArray<String> allEvents) {
+            if (isDisplayString) {
+                if (allSituations == null || allEvents == null) {
+                    throw new RuntimeException("allSituations & allEvents should not be null "
+                            + "as they may be needed.");
+                }
+            }
+
             try {
-                int n = displayString.length();
+                time = new Time(string);
+                type = 4;
+                return;
+            } catch (RuntimeException e) {
+                time = null;
                 type = -1;
-                if (displayString.startsWith("sit")) {
-                    if (displayString.endsWith("start")) {
+            }
+
+            try {
+                String substr = "";
+                if (string.startsWith("sit")) {
+                    if (string.endsWith("start")) {
+                        substr = string.substring(3, string.length() - 5);
                         type = 1;
-                        String id = displayString.substring(3, n - 5);
-                        sitOrEventId = Integer.parseInt(id);
-                    } else if (displayString.endsWith("end")) {
+                    } else if (string.endsWith("end")) {
+                        substr = string.substring(3, string.length() - 3);
                         type = 2;
-                        String id = displayString.substring(3, n - 3);
-                        sitOrEventId = Integer.parseInt(id);
                     }
-                } else if (displayString.startsWith("event")) {
+                } else if (string.startsWith("event")) {
+                    substr = string.substring(5);
                     type = 3;
-                    String id = displayString.substring(5);
-                    sitOrEventId = Integer.parseInt(id);
-                } else {
-                    time = new Time(displayString);
                 }
 
                 if (type == -1) {
                     throw new RuntimeException();
                 }
+
+                if (isDisplayString) {
+                    if (!substr.startsWith("[") || !substr.endsWith("[")) {
+                        throw new RuntimeException();
+                    }
+                    String name = substr.substring(1, substr.length()-1);
+
+                    sitOrEventId = (type != 3) ?
+                            UtilGeneral.searchSparseStringArrayByValue(allSituations, name)
+                            : UtilGeneral.searchSparseStringArrayByValue(allEvents, name);
+                    if (sitOrEventId == -1) {
+                        throw new RuntimeException();
+                    }
+                } else {
+                    sitOrEventId = Integer.parseInt(substr);
+                }
             } catch (RuntimeException e) {
-                throw new RuntimeException("Bad format of displayString");
+                throw new RuntimeException("Bad format of `string`");
             }
-            return this;
         }
 
         // copy constructor
@@ -386,17 +501,45 @@ public class ReminderDataBoardControl {
             return new Time(time);
         }
 
-        public String getDisplayString() {
+        public String getStringRepresentation() {
             if (type == -1) {
                 throw new RuntimeException("object content not set yet");
             }
             switch (type) {
                 case 1:
-                    return "sit" + Integer.toString(sitOrEventId) + "start";
+                    return String.format(Locale.US, "sit%dstart", sitOrEventId);
                 case 2:
-                    return "sit" + Integer.toString(sitOrEventId) + "end";
+                    return String.format(Locale.US, "sit%dend", sitOrEventId);
                 case 3:
-                    return "event" + Integer.toString(sitOrEventId);
+                    return String.format(Locale.US, "event%d", sitOrEventId);
+                case 4:
+                    return time.getDisplayString();
+                default:
+                    return "";
+            }
+        }
+
+        public String getDisplayString(@Nullable SparseArray<String> allSituations,
+                                       @Nullable SparseArray<String> allEvents) {
+            if (type == -1) {
+                throw new RuntimeException("object content not set yet");
+            } else if (type == 1 || type == 2) {
+                if (allSituations == null) {
+                    throw new RuntimeException("allSituations should not be null as it is needed");
+                }
+            } else if (type == 3) {
+                if (allEvents == null) {
+                    throw new RuntimeException("allEvent should not be null as it is needed");
+                }
+            }
+
+            switch (type) {
+                case 1:
+                    return String.format(Locale.US, "sit[%s]start", allSituations.get(sitOrEventId));
+                case 2:
+                    return String.format(Locale.US, "sit[%s]end", allSituations.get(sitOrEventId));
+                case 3:
+                    return String.format(Locale.US, "event[%s]", allEvents.get(sitOrEventId));
                 case 4:
                     return time.getDisplayString();
                 default:
@@ -460,16 +603,45 @@ public class ReminderDataBoardControl {
             return this;
         }
 
-        public Period setFromDisplayString(String displayString) {
+        public Period setFromStringRepresentation(String stringRepresentation) {
+            setFromString(stringRepresentation, false, null, null);
+            return this;
+        }
+
+        public Period setFromDisplayString(String displayString,
+                                           SparseArray<String> allSituations,
+                                           SparseArray<String> allEvents) {
+            setFromString(displayString, true, allSituations, allEvents);
+            return this;
+        }
+
+        private void setFromString(String string, boolean isDisplayString,
+                                   SparseArray<String> allSituations,
+                                   SparseArray<String> allEvents) {
+            if (isDisplayString) {
+                if (allSituations == null || allEvents == null) {
+                    throw new RuntimeException("allSituations & allEvents should not be null "
+                            + "as they may be needed.");
+                }
+            }
+
             isSituationStartEnd = false;
             endAfterMinutes = -1;
             endTimeMinute = -1;
 
             try {
-                String[] startEndTokens = displayString.split("-");
-                startInstant = new Instant().setFromDisplayString(startEndTokens[0]);
-                String endStr = startEndTokens[1];
+                String[] startEndTokens = string.split("-");
 
+                // startInstant
+                if (isDisplayString) {
+                    startInstant = new Instant().setFromDisplayString(
+                            startEndTokens[0], allSituations, allEvents);
+                } else {
+                    startInstant = new Instant().setFromStringRepresentation(startEndTokens[0]);
+                }
+
+                // end condition
+                String endStr = startEndTokens[1];
                 boolean done = false;
                 if (endStr.equals("sitEnd")) {
                     if (startInstant.isSituationStart()) {
@@ -501,7 +673,6 @@ public class ReminderDataBoardControl {
             } catch (RuntimeException e) {
                 throw new RuntimeException("Bad format of displayString");
             }
-            return this;
         }
 
         // copy constructor
@@ -553,19 +724,29 @@ public class ReminderDataBoardControl {
         }
 
         //
-        public String getDisplayString() {
+        public String getDisplayString(SparseArray<String> allSituations,
+                                       SparseArray<String> allEvents) {
             checkDataIsSet();
+            String startStr = startInstant.getDisplayString(allSituations, allEvents);
+            return startStr + "-" + getEndString();
+        }
 
-            String startStr = startInstant.getDisplayString();
+        public String getStringRepresentation() {
+            checkDataIsSet();
+            String startStr = startInstant.getStringRepresentation();
+            return startStr + "-" + getEndString();
+        }
+
+        private String getEndString() {
             String endStr;
             if (isSituationStartEnd) {
                 endStr = "sitEnd";
             } else if (endAfterMinutes != -1) {
-                endStr = "after" + Integer.toString(endAfterMinutes) + "m";
+                endStr = String.format(Locale.US, "after%dm", endAfterMinutes);
             } else {
-                endStr = String.format("%02d:%02d", endTimeHr, endTimeMinute);
+                endStr = String.format(Locale.US, "%02d:%02d", endTimeHr, endTimeMinute);
             }
-            return startStr + "-" + endStr;
+            return endStr;
         }
 
         //
