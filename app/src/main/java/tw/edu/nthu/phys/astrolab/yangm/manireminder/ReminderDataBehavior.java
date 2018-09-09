@@ -7,7 +7,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ReminderDataBoardControl {
+public class ReminderDataBehavior {
 
     public static final int TYPE_NO_BOARD_CONTROL = 0;
     public static final int TYPE_TODO_AT_INSTANTS = 1;
@@ -21,11 +21,11 @@ public class ReminderDataBoardControl {
     private int repeatEveryMinutes;    //for TYPE_TODO_REPETITIVE_IN_PERIOD
     private int repeatOffsetMinutes;   //for TYPE_TODO_REPETITIVE_IN_PERIOD
 
-    public ReminderDataBoardControl() {
+    public ReminderDataBehavior() {
         remType = TYPE_NO_BOARD_CONTROL;
     }
 
-    public ReminderDataBoardControl setAsTodoAtInstants(Instant[] instants) {
+    public ReminderDataBehavior setAsTodoAtInstants(Instant[] instants) {
         this.remType = TYPE_TODO_AT_INSTANTS;
         this.instants = instants;
         this.periods = null;
@@ -34,7 +34,7 @@ public class ReminderDataBoardControl {
         return this;
     }
 
-    public ReminderDataBoardControl setAsReminderInPeriod(Period[] periods) {
+    public ReminderDataBehavior setAsReminderInPeriod(Period[] periods) {
         this.remType = TYPE_REMINDER_IN_PERIOD;
         this.instants = null;
         this.periods = periods; //will take the union
@@ -43,7 +43,7 @@ public class ReminderDataBoardControl {
         return this;
     }
 
-    public ReminderDataBoardControl setAsTodoRepeatedlyInPeriod(
+    public ReminderDataBehavior setAsTodoRepeatedlyInPeriod(
             Period[] periods, int repeatEveryMinutes, int repeatOffsetMinutes) {
         if (repeatEveryMinutes <= 0) {
             throw new RuntimeException("repeatEveryMinutes should be > 0");
@@ -59,14 +59,14 @@ public class ReminderDataBoardControl {
         return this;
     }
 
-    public ReminderDataBoardControl setFromStringRepresentation(String stringRepresentation) {
+    public ReminderDataBehavior setFromStringRepresentation(String stringRepresentation) {
         setFromString(stringRepresentation, false, null, null);
         return this;
     }
 
-    public ReminderDataBoardControl setFromDisplayString(String displayString,
-                                                         SparseArray<String> allSituations,
-                                                         SparseArray<String> allEvents) {
+    public ReminderDataBehavior setFromDisplayString(String displayString,
+                                                     SparseArray<String> allSituations,
+                                                     SparseArray<String> allEvents) {
         setFromString(displayString, true, allSituations, allEvents);
         return this;
     }
@@ -269,7 +269,10 @@ public class ReminderDataBoardControl {
         }
     }
 
-    //
+
+
+    //// inner classes ////
+
     /*  A Time can be
            <hr>:<min>
            <day-of-week>.<hr>:<min>  */

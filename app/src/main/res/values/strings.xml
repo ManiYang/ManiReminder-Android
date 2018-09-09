@@ -24,6 +24,9 @@
     <string name="label_description">Description: </string>
     <string name="label_tags">Tags: </string>
     <string name="hint_tag_to_add">tag to add</string>
+    <string name="label_behavior_settings">Reminding behavior settings</string>
+    <string name="label_model">model: </string>
+    <string name="label_repeat">repeat: </string>
 
     <string name="msg_tag_should_have_no_comma">Please don\'t use commas in a tag.</string>
 

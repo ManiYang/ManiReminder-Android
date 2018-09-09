@@ -30,8 +30,7 @@ public class DetailFragment extends Fragment {
     private final int REQUEST_CODE_EDIT = 0;
     private static final String NONE_INDICATOR = "(none)";
 
-    public DetailFragment() {
-    }
+    public DetailFragment() {}
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -108,8 +107,10 @@ public class DetailFragment extends Fragment {
             return;
         }
 
-        // get all tags
+        // get all tags, situations, events
         SparseArray<String> allTags = UtilReminder.getAllTagsFromDb(db);
+        SparseArray<String> allSituations = UtilReminder.getAllSituationsFromDb(db);
+        SparseArray<String> allEvents = UtilReminder.getAllEventsFromDb(db);
 
         // get brief data
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
@@ -138,6 +139,17 @@ public class DetailFragment extends Fragment {
         if (description.isEmpty()) {
             description = NONE_INDICATOR;
         }
+        cursor.close();
+
+        // get behavior settings data
+        cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, null,
+                "_id = ?", new String[] {Integer.toString(reminderId)},
+                null, null, null);
+          if (!cursor.moveToFirst()) {
+            throw new RuntimeException(String.format("Reminder (id: %d) not found in table '%s'",
+                    reminderId, MainDbHelper.TABLE_REMINDERS_BEHAVIOR));
+        }
+
         cursor.close();
 
         // set contents of views
@@ -277,7 +289,6 @@ public class DetailFragment extends Fragment {
         String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
         String newAllTagsPairString =
                 intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //can be null
-//        Log.v("DetailFragment", "### newData = "+newData);
 
         View view = getView();
         switch (fieldName) {

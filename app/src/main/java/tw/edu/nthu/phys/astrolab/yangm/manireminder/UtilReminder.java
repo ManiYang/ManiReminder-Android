@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 import android.util.SparseArray;
 
 public class UtilReminder {
@@ -65,6 +66,36 @@ public class UtilReminder {
         return builder.toString();
     }
 
-    public static
+    public static SparseArray<String> getAllSituationsFromDb(SQLiteDatabase db) {
+        SparseArray<String> allSituations = new SparseArray<>();
+        if (db != null) {
+            Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS, null,
+                    null, null, null, null, null);
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                allSituations.put(id, name);
+            }
+            cursor.close();
+        }
+        return allSituations;
+    }
 
+    public static SparseArray<String> getAllEventsFromDb(SQLiteDatabase db) {
+        SparseArray<String> allEvents = new SparseArray<>();
+        if (db != null) {
+            Cursor cursor = db.query(MainDbHelper.TABLE_EVENTS, null,
+                    null, null, null, null, null);
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                allEvents.put(id, name);
+            }
+            cursor.close();
+        }
+        Log.v("UtilReminder", "### number of events: "+Integer.toString(allEvents.size()));
+        return allEvents;
+    }
 }
