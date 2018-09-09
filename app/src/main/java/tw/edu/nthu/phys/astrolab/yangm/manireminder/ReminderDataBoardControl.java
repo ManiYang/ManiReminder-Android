@@ -10,14 +10,15 @@ public class ReminderDataBoardControl {
     public static final int TYPE_REMINDER_IN_PERIOD = 2;
     public static final int TYPE_TODO_REPETITIVE_IN_PERIOD = 3;
 
-    private int remType = TYPE_NO_BOARD_CONTROL;
+    private int remType;
     private Instant[] instants; //for TYPE_TODO_AT_INSTANTS
     private Period[] periods;   //for TYPE_REMINDER_IN_PERIOD & TYPE_TODO_REPETITIVE_IN_PERIOD
-                                //(will take the union)
+                                //(will take the union of the periods)
     private int repeatEveryMinutes;    //for TYPE_TODO_REPETITIVE_IN_PERIOD
     private int repeatOffsetMinutes;   //for TYPE_TODO_REPETITIVE_IN_PERIOD
 
     public ReminderDataBoardControl() {
+        remType = TYPE_NO_BOARD_CONTROL;
     }
 
     public ReminderDataBoardControl setAsTodoAtInstants(Instant[] instants) {
@@ -193,6 +194,9 @@ public class ReminderDataBoardControl {
     }
 
     //
+    /*  A Time can be
+           <hr>:<min>
+           <day-of-week>.<hr>:<min>  */
     public static class Time {
         private int hour; // can be >= 24
         private int minute;
@@ -226,8 +230,8 @@ public class ReminderDataBoardControl {
                 minute = Integer.parseInt(hrMin[1]);
 
                 if (tokens.length == 2) {
-                    dayOfWeek = Integer.parseInt(tokens[0]);
-                    if (dayOfWeek < 1 || dayOfWeek > 7)
+                    dayOfWeek = UtilGeneral.getDayOfWeekInt(tokens[0], false);
+                    if (dayOfWeek == -1)
                         throw new RuntimeException();
                 }
             } catch (RuntimeException e) {
@@ -261,13 +265,18 @@ public class ReminderDataBoardControl {
         public String getDisplayString() {
             StringBuilder builder = new StringBuilder();
             if (dayOfWeek > 0) {
-                builder.append(dayOfWeek).append('.');
+                builder.append(UtilGeneral.DAYS_OF_WEEK[dayOfWeek]).append('.');
             }
             builder.append(String.format("%02d:%02d", hour, minute));
             return builder.toString();
         }
     } // class Time
 
+    /*  An Instant can be
+            sit<id>start
+            sit<id>end
+            event<id>
+            <Time>     */
     public static class Instant {
         private int type; //1: situation start,  2: situation end,  3: event,  4: time
         private int sitOrEventId;
@@ -396,6 +405,10 @@ public class ReminderDataBoardControl {
         }
     } // class Instant
 
+    /*  A Period can be
+            sit<id>start-sitEnd
+            <Instant>-after<n>m
+            <Time>-<hr>:<min>    ( <hr>:<min> must be later than the time in <Time> )  */
     public static class Period {
         // start:
         private Instant startInstant;
@@ -562,5 +575,4 @@ public class ReminderDataBoardControl {
             }
         }
     } // class Period
-
 }

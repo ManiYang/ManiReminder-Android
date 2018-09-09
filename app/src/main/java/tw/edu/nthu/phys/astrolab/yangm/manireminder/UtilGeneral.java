@@ -5,6 +5,25 @@ import java.util.List;
 
 public class UtilGeneral {
 
+    public static final String[] DAYS_OF_WEEK = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat","Sun"};
+
+    /**
+     * Mon -> 1, Tue -> 2, etc.. Returns -1 if not done.
+     * @param ddd -- Mon, Tue, etc. (case irrelevant)
+     * @param sundayIs0 true: Sun -> 0,  false: Sun -> 7
+     */
+    public static int getDayOfWeekInt(String ddd, boolean sundayIs0) {
+        for (int i=0; i<7; i++) {
+            if (ddd.equalsIgnoreCase(DAYS_OF_WEEK[i])) {
+                if (i == 0) {
+                    return sundayIs0 ? 0 : 7;
+                }
+                return i;
+            }
+        }
+        return -1;
+    }
+
     /**
      * Split input string to form a list of strings. Each token will be trimmed.
      * Empty tokens are ignored.
@@ -22,7 +41,6 @@ public class UtilGeneral {
         }
         return list;
     }
-
 
     public static String joinStringList(String delimiter, List<String> stringList) {
         StringBuilder builder = new StringBuilder();
