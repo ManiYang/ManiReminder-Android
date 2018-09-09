@@ -30,19 +30,24 @@ public class ListActivity extends AppCompatActivity {
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        // open database and query tables 'reminder_brief'
+        // open database
         SQLiteOpenHelper mainDbHelper = new MainDbHelper(this);
         try {
             db = mainDbHelper.getWritableDatabase();
-            cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
-                    null, null, null, null, null);
         } catch (SQLiteException e) {
             db = null;
             Toast.makeText(this, "Database unavailable", Toast.LENGTH_LONG).show();
         }
+    }
 
-        //
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // read database
         if (db != null) {
+            cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
+                    null, null, null, null, null);
             allTags = UtilReminder.getAllTagsFromDb(db);
             populateList();
         }

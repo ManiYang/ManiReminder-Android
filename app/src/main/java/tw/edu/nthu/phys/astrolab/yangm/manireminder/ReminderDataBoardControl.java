@@ -5,30 +5,192 @@ import java.util.regex.Pattern;
 
 public class ReminderDataBoardControl {
 
-    public static final int TYPE_UNKNOWN = -1;
-    public static final int TYPE_TODO_AT_INSTANTS = 0;
-    public static final int TYPE_REMINDER_IN_PERIODS = 1;
-    public static final int TYPE_TODO_REPEATEDLY_IN_PERIODS = 2;
+    public static final int TYPE_NO_BOARD_CONTROL = 0;
+    public static final int TYPE_TODO_AT_INSTANTS = 1;
+    public static final int TYPE_REMINDER_IN_PERIOD = 2;
+    public static final int TYPE_TODO_REPETITIVE_IN_PERIOD = 3;
 
-    private int remType = TYPE_UNKNOWN;
+    private int remType = TYPE_NO_BOARD_CONTROL;
     private Instant[] instants; //for TYPE_TODO_AT_INSTANTS
-    private Period[] periods;  //for TYPE_REMINDER_IN_PERIODS
-    private RepetitionWithinPeriod[] repetitionPeriods; //for TYPE_TODO_REPEATEDLY_IN_PERIODS
+    private Period[] periods;   //for TYPE_REMINDER_IN_PERIOD & TYPE_TODO_REPETITIVE_IN_PERIOD
+                                //(will take the union)
+    private int repeatEveryMinutes;    //for TYPE_TODO_REPETITIVE_IN_PERIOD
+    private int repeatOffsetMinutes;   //for TYPE_TODO_REPETITIVE_IN_PERIOD
 
     public ReminderDataBoardControl() {
     }
 
     public ReminderDataBoardControl setAsTodoAtInstants(Instant[] instants) {
-        remType = TYPE_TODO_AT_INSTANTS;
+        this.remType = TYPE_TODO_AT_INSTANTS;
         this.instants = instants;
-        periods = null;
-        repetitionPeriods = null;
+        this.periods = null;
+        this.repeatEveryMinutes = -1;
+        this.repeatOffsetMinutes = -1;
         return this;
     }
 
+    public ReminderDataBoardControl setAsReminderInPeriod(Period[] periods) {
+        this.remType = TYPE_REMINDER_IN_PERIOD;
+        this.instants = null;
+        this.periods = periods; //will take the union
+        this.repeatEveryMinutes = -1;
+        this.repeatOffsetMinutes = -1;
+        return this;
+    }
 
+    public ReminderDataBoardControl setAsTodoRepeatedlyInPeriod(
+            Period[] periods, int repeatEveryMinutes, int repeatOffsetMinutes) {
+        if (repeatEveryMinutes <= 0) {
+            throw new RuntimeException("repeatEveryMinutes should be > 0");
+        }
+        if (repeatOffsetMinutes < 0) {
+            throw new RuntimeException("repeatOffsetMinutes should be >= 0");
+        }
+        this.remType = TYPE_TODO_REPETITIVE_IN_PERIOD;
+        this.instants = null;
+        this.periods = periods;
+        this.repeatEveryMinutes = repeatEveryMinutes;
+        this.repeatOffsetMinutes = repeatOffsetMinutes;
+        return this;
+    }
 
-    
+    public ReminderDataBoardControl setFromDisplayString(String displayString) {
+        this.instants = null;
+        this.periods = null;
+        try {
+            if (displayString.trim().isEmpty()) {
+                remType = TYPE_NO_BOARD_CONTROL;
+            } else if (displayString.contains(" in ")) {
+                String[] tokens = displayString.split(" in ");
+
+                Matcher matcher = Pattern.compile("every(\\d+)m\\.offset(\\d+)m").matcher(tokens[0]);
+                repeatEveryMinutes = Integer.parseInt(matcher.group(1));
+                repeatOffsetMinutes = Integer.parseInt(matcher.group(2));
+
+                if (tokens[1].trim().isEmpty()) {
+                    throw new RuntimeException();
+                }
+                String[] periodStrings = tokens[1].split(", ");
+                periods = new Period[periodStrings.length];
+                for (int i=0; i<periods.length; i++) {
+                    periods[i] = new Period().setFromDisplayString(periodStrings[i].trim());
+                }
+
+                remType = TYPE_TODO_REPETITIVE_IN_PERIOD;
+            } else {
+                String[] tokens = displayString.split(", ");
+                if (tokens[0].contains("-")) {
+                    periods = new Period[tokens.length];
+                    for (int i=0; i<periods.length; i++) {
+                        periods[i] = new Period().setFromDisplayString(tokens[i].trim());
+                    }
+                    remType = TYPE_REMINDER_IN_PERIOD;
+                } else {
+                    instants = new Instant[tokens.length];
+                    for (int i=0; i<instants.length; i++) {
+                        instants[i] = new Instant().setFromDisplayString(tokens[i].trim());
+                    }
+                    remType = TYPE_TODO_AT_INSTANTS;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Bad format of displayString");
+        }
+        return this;
+    }
+
+    //
+    public boolean hasNoBoardControl() {
+        return remType == TYPE_NO_BOARD_CONTROL;
+    }
+
+    public boolean isTodoAtInstants() {
+        return remType == TYPE_TODO_AT_INSTANTS;
+    }
+
+    public boolean isReminderInPeriod() {
+        return remType == TYPE_REMINDER_IN_PERIOD;
+    }
+
+    public boolean isTodoRepeatedlyInPeriod() {
+        return remType == TYPE_TODO_REPETITIVE_IN_PERIOD;
+    }
+
+    /** Don't modify the returned object */
+    public Instant[] getInstants() {
+        if (remType != TYPE_TODO_AT_INSTANTS) {
+            throw new RuntimeException("this is not todo-at-instants");
+        }
+        return instants;
+    }
+
+    /** Don't modify the returned object */
+    public Period[] getPeriods() {
+        if (remType != TYPE_REMINDER_IN_PERIOD && remType != TYPE_TODO_REPETITIVE_IN_PERIOD) {
+            throw new RuntimeException("this is neither reminder-in-period nor todo-repetitive-in-period");
+        }
+        return periods;
+    }
+
+    public int getRepeatEveryMinutes() {
+        if (remType != TYPE_TODO_REPETITIVE_IN_PERIOD) {
+            throw new RuntimeException("this is not todo-repetitive-in-period");
+        }
+        return repeatEveryMinutes;
+    }
+
+    public int getRepeatOffsetMinutes() {
+        if (remType != TYPE_TODO_REPETITIVE_IN_PERIOD) {
+            throw new RuntimeException("this is not todo-repetitive-in-period");
+        }
+        return repeatOffsetMinutes;
+    }
+
+    public String getDisplayString() {
+        StringBuilder builder = new StringBuilder();
+        switch (remType) {
+            case TYPE_NO_BOARD_CONTROL:
+                return "";
+
+            case TYPE_TODO_AT_INSTANTS:
+                if (instants != null) {
+                    for (int i=0; i<instants.length; i++) {
+                        if (i > 0) {
+                            builder.append(", ");
+                        }
+                        builder.append(instants[i].getDisplayString());
+                    }
+                }
+                return builder.toString();
+
+            case TYPE_REMINDER_IN_PERIOD:
+                if (periods != null) {
+                    for (int i=0; i<periods.length; i++) {
+                        if (i > 0) {
+                            builder.append(", ");
+                        }
+                        builder.append(periods[i].getDisplayString());
+                    }
+                }
+                return builder.toString();
+
+            case TYPE_TODO_REPETITIVE_IN_PERIOD:
+                builder.append("every").append(repeatEveryMinutes)
+                        .append("m.offset").append(repeatOffsetMinutes).append("m in ");
+                if (periods != null) {
+                    for (int i=0; i<periods.length; i++) {
+                        if (i > 0) {
+                            builder.append(", ");
+                        }
+                        builder.append(periods[i].getDisplayString());
+                    }
+                }
+                return builder.toString();
+
+            default:
+                return "unknown";
+        }
+    }
 
     //
     public static class Time {
@@ -400,50 +562,5 @@ public class ReminderDataBoardControl {
             }
         }
     } // class Period
-
-    public static class RepetitionWithinPeriod {
-        private Period enclosingPeriod;
-        private int offsetMinutes;
-        private int repeatEveryMinutes;
-
-        public RepetitionWithinPeriod(Period enclosingPeriod,
-                                      int repeatEveryMinutes, int offsetMinutes) {
-            this.enclosingPeriod = enclosingPeriod;
-            this.offsetMinutes = offsetMinutes;
-            this.repeatEveryMinutes = repeatEveryMinutes;
-        }
-
-        public RepetitionWithinPeriod(String displayString) {
-            try {
-                String[] tokens = displayString.split(" during ");
-                enclosingPeriod = new Period().setFromDisplayString(tokens[1]);
-
-                Matcher matcher = Pattern.compile("every(\\d+)m\\.offset(\\d+)m").matcher(tokens[0]);
-                repeatEveryMinutes = Integer.parseInt(matcher.group(1));
-                offsetMinutes = Integer.parseInt(matcher.group(2));
-            } catch (RuntimeException e) {
-                throw new RuntimeException("Bad format of displayString");
-            }
-        }
-
-        //
-        public Period getEnclosingPeriod() {
-            return new Period(enclosingPeriod);
-        }
-
-        public int getOffsetMinutes() {
-            return offsetMinutes;
-        }
-
-        public int getRepeatEveryMinutes() {
-            return repeatEveryMinutes;
-        }
-
-        public String getDisplayString() {
-            return "every" + Integer.toString(repeatEveryMinutes)
-                    + "m.offset" + Integer.toString(offsetMinutes)
-                    + "m during " + enclosingPeriod.getDisplayString();
-        }
-    } // class RepetitionWithinPeriod
 
 }
