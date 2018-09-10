@@ -2,14 +2,18 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainDbHelper extends SQLiteOpenHelper {
 
-    public static final String DATABASE_NAME = "main.db";
-    public static final int DATABASE_VERSION = 2;
+    private static final String DATABASE_NAME = "main.db";
+    private static final int DATABASE_VERSION = 1;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -40,6 +44,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
         if (oldVersion < 1) {
             Log.v("MainDbHelper", "### creating tables (1)");
 
+            // reminder brief
             db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BRIEF+" ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "title TEXT, "
@@ -50,6 +55,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("tags", "0");
             db.insert(TABLE_REMINDERS_BRIEF, null, values);
 
+            // reminder detail
             db.execSQL("CREATE TABLE "+TABLE_REMINDERS_DETAIL+" ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "description TEXT );");
@@ -58,6 +64,23 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("description", "This is a reminder for testing only.");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
 
+            // reminder behavior
+            db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BEHAVIOR+" ("
+                    + "_id INTEGER PRIMARY KEY, "
+                    + "type INTEGER, "
+                    + "behavior_settings TEXT );");
+            values = new ContentValues();
+            values.put("_id", 0);
+            values.put("type", 3);
+            values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
+//            values.put("type", 0);
+//            values.put("behavior_settings", "");
+            long check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
+            if (check == -1) {
+                throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
+            }
+
+            // tags
             db.execSQL("CREATE TABLE "+TABLE_TAGS+" ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
@@ -69,24 +92,8 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("_id", 1);
             values.put("name", "testing1");
             db.insert(TABLE_TAGS, null, values);
-        }
 
-        if (oldVersion < 2) {
-            Log.v("MainDbHelper", "### creating tables (2)");
-
-            db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BEHAVIOR+" ("
-                    + "_id INTEGER PRIMARY KEY, "
-                    + "type INTEGER, "
-                    + "behavior_settings TEXT );");
-            ContentValues values = new ContentValues();
-            values.put("_id", 0);
-            values.put("type", 3);
-            values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
-            long check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
-            if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
-            }
-
+            // situations
             db.execSQL("CREATE TABLE "+TABLE_SITUATIONS+" ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
@@ -98,6 +105,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
                 throw new RuntimeException("failed to insert a row to table "+TABLE_SITUATIONS);
             }
 
+            // events
             db.execSQL("CREATE TABLE "+TABLE_EVENTS+" ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
@@ -108,6 +116,59 @@ public class MainDbHelper extends SQLiteOpenHelper {
             if (check == -1) {
                 throw new RuntimeException("failed to insert a row to table "+TABLE_EVENTS);
             }
+        }
+    }
+
+    private List<Integer> getIdsInTable(SQLiteDatabase db, String table) {
+        Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        List<Integer> ids = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            ids.add(cursor.getInt(0));
+        }
+        cursor.close();
+        return ids;
+    }
+
+    //
+    public static void addEmptyReminder(SQLiteDatabase db, int remId, String title) {
+        if (db == null) {
+            throw new RuntimeException("db is null");
+        }
+
+        boolean check;
+
+        // brief data
+        ContentValues values = new ContentValues();
+        values.put("_id", remId);
+        values.put("title", title);
+        values.put("tags", "");
+        check = db.insert(TABLE_REMINDERS_BRIEF, null, values) != -1;
+
+        // detail data
+        values.clear();
+        values.put("_id", remId);
+        values.put("description", "");
+        check &= db.insert(TABLE_REMINDERS_DETAIL, null, values) != -1;
+
+        // behavior data
+        values.clear();
+        values.put("_id", remId);
+        values.put("type", 0);
+        values.put("behavior_settings", "");
+        check &= db.insert(TABLE_REMINDERS_BEHAVIOR, null, values) != -1;
+
+        //
+        if (!check) { // there's problem
+            db.delete(TABLE_REMINDERS_BRIEF,
+                    "_id = ?", new String [] {Integer.toString(remId)});
+            db.delete(TABLE_REMINDERS_DETAIL,
+                    "_id = ?", new String [] {Integer.toString(remId)});
+            db.delete(TABLE_REMINDERS_BEHAVIOR,
+                    "_id = ?", new String [] {Integer.toString(remId)});
+
+            throw new RuntimeException("failed to create new empty reminder in database");
         }
     }
 }

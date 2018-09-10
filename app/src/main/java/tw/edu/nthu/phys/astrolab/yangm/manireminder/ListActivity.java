@@ -132,29 +132,9 @@ public class ListActivity extends AppCompatActivity {
         }
         Log.v("ListActivity", "### largestId = "+Integer.toString(largestId));
 
-        // create new reminder and add it to database
+        // create new empty reminder in database
         int newId = largestId + 1;
-        Reminder newReminder = new Reminder(newId);
-        newReminder.setAsNewReminderTemplate();
-
-        long id = db.insert(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
-                newReminder.getBriefContentValues());
-        if (id != -1) {
-            id = db.insert(MainDbHelper.TABLE_REMINDERS_DETAIL, null,
-                    newReminder.getDetailedContentValues());
-            if (id == -1) {
-                db.delete(MainDbHelper.TABLE_REMINDERS_BRIEF,
-                        "_id = ?", new String[] {Integer.toString(newId)});
-            }
-        }
-        if (id == -1) {
-            Toast.makeText(this, "Could not add new reminder to DB", Toast.LENGTH_LONG)
-                    .show();
-            return;
-        } else {
-            Toast.makeText(this, "New reminder created!", Toast.LENGTH_SHORT)
-                    .show();
-        }
+        MainDbHelper.addEmptyReminder(db, newId, "New Empty Reminder");
 
         // launch DetailActivity with the new reminder
         startActivity(new Intent(this, DetailActivity.class)
