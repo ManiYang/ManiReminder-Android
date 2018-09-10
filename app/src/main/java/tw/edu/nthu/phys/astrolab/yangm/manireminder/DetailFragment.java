@@ -55,10 +55,14 @@ public class DetailFragment extends Fragment {
 
         // set OnClick listeners
         view.findViewById(R.id.title).setOnClickListener(viewsOnClickListener);
+
         view.findViewById(R.id.label_tags).setOnClickListener(viewsOnClickListener);
         view.findViewById(R.id.tags).setOnClickListener(viewsOnClickListener);
+
         view.findViewById(R.id.label_description).setOnClickListener(viewsOnClickListener);
         view.findViewById(R.id.description).setOnClickListener(viewsOnClickListener);
+
+        view.findViewById(R.id.container_behavior_settings).setOnClickListener(viewsOnClickListener);
 
         return view;
     }
@@ -99,6 +103,11 @@ public class DetailFragment extends Fragment {
     }
 
     //
+    private ReminderDataBehavior behaviorData;
+    SparseArray<String> allSituations;
+    SparseArray<String> allEvents;
+    //SparseArray<String> allTags;
+
     private void loadReminderData() {
         if (db == null) {
             return;
@@ -111,8 +120,8 @@ public class DetailFragment extends Fragment {
 
         // get all tags, situations, events
         SparseArray<String> allTags = UtilReminder.getAllTagsFromDb(db);
-        SparseArray<String> allSituations = UtilReminder.getAllSituationsFromDb(db);
-        SparseArray<String> allEvents = UtilReminder.getAllEventsFromDb(db);
+        allSituations = UtilReminder.getAllSituationsFromDb(db);
+        allEvents = UtilReminder.getAllEventsFromDb(db);
 
         // get and load brief data
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
@@ -164,8 +173,7 @@ public class DetailFragment extends Fragment {
 
     private void loadBehaviorData(int remType, String stringRepresentation,
                                   SparseArray<String> allSituations, SparseArray<String> allEvents) {
-        ReminderDataBehavior behaviorData = new ReminderDataBehavior()
-                .setFromStringRepresentation(stringRepresentation);
+        behaviorData = new ReminderDataBehavior().setFromStringRepresentation(stringRepresentation);
         if (behaviorData.getRemType() != remType) {
             throw new RuntimeException("behaviorData.getRemType() != remType");
         }
@@ -177,7 +185,7 @@ public class DetailFragment extends Fragment {
         LinearLayout layoutInstantsOrPeriodsList =
                 view.findViewById(R.id.layout_instants_or_periods_list);
 
-        String[] displayStrings = null;
+        String[] instantsOrPeriodsDisplayStrings = null;
         switch (remType) {
             case ReminderDataBehavior.TYPE_NO_BOARD_CONTROL:
                 tvModel.setText(getResources().getString(R.string.no_settings));
@@ -193,9 +201,10 @@ public class DetailFragment extends Fragment {
                 labelInstantsOrPeriods.setText(getResources().getString(R.string.label_instants));
 
                 ReminderDataBehavior.Instant[] instants = behaviorData.getInstants();
-                displayStrings = new String[instants.length];
+                instantsOrPeriodsDisplayStrings = new String[instants.length];
                 for (int i = 0; i < instants.length; i++) {
-                    displayStrings[i] = instants[i].getDisplayString(allSituations, allEvents);
+                    instantsOrPeriodsDisplayStrings[i] =
+                            instants[i].getDisplayString(allSituations, allEvents);
                 }
                 break;
             }
@@ -206,9 +215,9 @@ public class DetailFragment extends Fragment {
                 labelInstantsOrPeriods.setText(getResources().getString(R.string.label_periods));
 
                 ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
-                displayStrings = new String[periods.length];
+                instantsOrPeriodsDisplayStrings = new String[periods.length];
                 for (int i = 0; i < periods.length; i++) {
-                    displayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
+                    instantsOrPeriodsDisplayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
                 }
                 break;
             }
@@ -224,23 +233,25 @@ public class DetailFragment extends Fragment {
                 labelInstantsOrPeriods.setText(getResources().getString(R.string.label_periods));
 
                 ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
-                displayStrings = new String[periods.length];
+                instantsOrPeriodsDisplayStrings = new String[periods.length];
                 for (int i = 0; i < periods.length; i++) {
-                    displayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
+                    instantsOrPeriodsDisplayStrings[i] = periods[i].getDisplayString(allSituations, allEvents);
                 }
                 break;
             }
         }
 
-        // populate list of instants/periods with displayStrings
+        // populate list of instants/periods with instantsOrPeriodsDisplayStrings
         if (remType != ReminderDataBehavior.TYPE_NO_BOARD_CONTROL) {
             layoutInstantsOrPeriodsList.setVisibility(View.VISIBLE);
             layoutInstantsOrPeriodsList.removeAllViews();
-            for (String s: displayStrings) {
-                TextView textView = (TextView) LayoutInflater.from(getContext())
-                        .inflate(R.layout.text_list_item_plain_monospace, null);
-                textView.setText(s);
-                layoutInstantsOrPeriodsList.addView(textView);
+            if (instantsOrPeriodsDisplayStrings != null) {
+                for (String s : instantsOrPeriodsDisplayStrings) {
+                    TextView textView = (TextView) LayoutInflater.from(getContext())
+                            .inflate(R.layout.text_list_item_plain_monospace, null);
+                    textView.setText(s);
+                    layoutInstantsOrPeriodsList.addView(textView);
+                }
             }
         }
     }
@@ -257,13 +268,19 @@ public class DetailFragment extends Fragment {
 
                 case R.id.label_tags:
                 case R.id.tags:
-                    startEditActivity("tags", R.id.tags, true);
+                    startEditActivity("tags", R.id.tags, true, false);
                     break;
 
                 case R.id.label_description:
                 case R.id.description:
                     showSimpleTextEditDialog("description", R.id.description,
                             InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+                    break;
+
+                case R.id.container_behavior_settings:
+                    startEditActivity("behavior",
+                            behaviorData.getDisplayString(allSituations, allEvents),
+                            false, true);
                     break;
             }
         }
@@ -328,7 +345,7 @@ public class DetailFragment extends Fragment {
 
     // EditActivity //
     private void startEditActivity(String fieldName, int textViewIdWithData,
-                                   boolean needAllTags) {
+                                   boolean needAllTags, boolean needAllSitsEvents) {
         // get old data from TextView textViewIdWithData
         String oldData;
         View view = getView();
@@ -343,13 +360,27 @@ public class DetailFragment extends Fragment {
         }
 
         //
+        startEditActivity(fieldName, oldData, needAllTags, needAllSitsEvents);
+    }
+
+    private void startEditActivity(String fieldName, String initialData,
+                                   boolean needAllTags, boolean needAllSitsEvents) {
         Intent intent = new Intent(getContext(), EditActivity.class)
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, fieldName)
-                .putExtra(EditActivity.EXTRA_INIT_DATA, oldData);
+                .putExtra(EditActivity.EXTRA_INIT_DATA, initialData);
 
         if (needAllTags) {
             String allTagsString = UtilReminder.getAllTagsEncodedFromDb(db);
             intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS, allTagsString);
+        }
+
+        if (needAllSitsEvents) {
+            String allSitNames = UtilGeneral.joinStringList(",",
+                        UtilGeneral.getValuesOfSparseStringArray(allSituations));
+            String allEventNames = UtilGeneral.joinStringList(",",
+                    UtilGeneral.getValuesOfSparseStringArray(allEvents));
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_SITUATIONS, allSitNames);
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_EVENTS, allEventNames);
         }
 
         startActivityForResult(intent, REQUEST_CODE_EDIT);

@@ -54,73 +54,79 @@
         android:layout_marginBottom="6dp" />
 
     <!-- reminding behavior settings -->
-    <TextView android:id="@+id/label_behavior_settings"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/label_behavior_settings"
-        android:layout_marginBottom="4dp"
-        android:textSize="16sp" />
-
     <LinearLayout
+        android:id="@+id/container_behavior_settings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginStart="8dp">
+        android:orientation="vertical" >
 
-        <TextView android:id="@+id/label_model"
+        <TextView android:id="@+id/label_behavior_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_behavior_settings"
+            android:layout_marginBottom="4dp"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="8dp">
+
+            <TextView android:id="@+id/label_model"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="@string/label_model" />
+
+            <TextView android:id="@+id/model"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@android:style/TextAppearance.Medium"
+                tools:text="Behavior Model" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_repeat_spec"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="2dp" >
+
+            <TextView android:id="@+id/label_repeat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="@string/label_repeat" />
+
+            <TextView android:id="@+id/repeat_spec"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@android:style/TextAppearance.Medium"
+                tools:text="every 1 min, offset 0 min" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/label_instants_or_periods"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:text="@string/label_model" />
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="2dp"
+            tools:text="at instants/during periods:" />
 
-        <TextView android:id="@+id/model"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/layout_instants_or_periods_list"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textAppearance="@android:style/TextAppearance.Medium"
-            tools:text="Behavior Model" />
+            android:orientation="vertical"
+            android:layout_marginStart="16dp" >
+
+            <!-- will add TextViews here dynamically -->
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layout_repeat_spec"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="2dp" >
-
-        <TextView android:id="@+id/label_repeat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:text="@string/label_repeat" />
-
-        <TextView android:id="@+id/repeat_spec"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textAppearance="@android:style/TextAppearance.Medium"
-            tools:text="every 1 min, offset 0 min" />
-    </LinearLayout>
-
-    <TextView android:id="@+id/label_instants_or_periods"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="2dp"
-        tools:text="at instants/during periods:" />
-
-    <LinearLayout
-        android:id="@+id/layout_instants_or_periods_list"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginStart="16dp" >
-
-        <!-- will add TextViews here dynamically -->
-    </LinearLayout>
-
 
     <!-- - - - -->
     <View

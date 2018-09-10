@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 public class EditActivity extends AppCompatActivity {
 
@@ -15,6 +16,10 @@ public class EditActivity extends AppCompatActivity {
     public static final String EXTRA_NEW_DATA = "new_data";
     public static final String EXTRA_INIT_ALL_TAGS = "init_all_tags";
     public static final String EXTRA_NEW_ALL_TAGS = "new_all_tags";
+    public static final String EXTRA_INIT_ALL_SITUATIONS = "init_all_sits";
+    public static final String EXTRA_NEW_ALL_SITUATIONS = "new_all_sits";
+    public static final String EXTRA_INIT_ALL_EVENTS = "init_all_events";
+    public static final String EXTRA_NEW_ALL_EVENTS = "new_all_events";
     public static final int RESULT_CODE_OK = 1;
     public static final int RESULT_CODE_CANCELED = 0;
     private String fieldName;
@@ -36,6 +41,8 @@ public class EditActivity extends AppCompatActivity {
         fieldName = intent.getStringExtra(EXTRA_FIELD_NAME);
         String initData = intent.getStringExtra(EXTRA_INIT_DATA);
         String initAllTags = intent.getStringExtra(EXTRA_INIT_ALL_TAGS); // may be null
+        String initAllSits = intent.getStringExtra(EXTRA_INIT_ALL_SITUATIONS); // may be null
+        String initAllEvents = intent.getStringExtra(EXTRA_INIT_ALL_EVENTS); // may be null
 
         //
         setTitle("Editing "+fieldName);
@@ -51,6 +58,15 @@ public class EditActivity extends AppCompatActivity {
                 EditRemTagsFragment fragment = EditRemTagsFragment.newInstance(initData, initAllTags);
                 setFragment(fragment);
                 break;
+
+            case "behavior":
+                if (initAllSits == null || initAllEvents == null) {
+                    throw new RuntimeException("initAllSits & initAllEvents should be given");
+                }
+
+                //TODO.....
+                Toast.makeText(this, "to edit behavior data...", Toast.LENGTH_SHORT).show();
+
         }
     }
 

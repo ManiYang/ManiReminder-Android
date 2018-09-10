@@ -79,4 +79,12 @@ public class UtilGeneral {
         }
         return -1;
     }
+
+    public static List<String> getValuesOfSparseStringArray(SparseArray<String> array) {
+        List<String> list = new ArrayList<>();
+        for (int i=0; i<array.size(); i++) {
+            list.add(array.valueAt(i));
+        }
+        return list;
+    }
 }
