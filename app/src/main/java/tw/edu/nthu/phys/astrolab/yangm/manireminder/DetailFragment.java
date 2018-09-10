@@ -180,18 +180,17 @@ public class DetailFragment extends Fragment {
         String[] displayStrings = null;
         switch (remType) {
             case ReminderDataBehavior.TYPE_NO_BOARD_CONTROL:
-                tvModel.setText("(no settings)");
+                tvModel.setText(getResources().getString(R.string.no_settings));
                 layoutRepeatSpec.setVisibility(View.GONE);
-                ((TextView) view.findViewById(R.id.repeat_spec)).setText("(no settings)");
                 labelInstantsOrPeriods.setVisibility(View.GONE);
                 layoutInstantsOrPeriodsList.setVisibility(View.GONE);
                 break;
 
             case ReminderDataBehavior.TYPE_TODO_AT_INSTANTS: {
-                tvModel.setText("Todo at Instants");
+                tvModel.setText(getResources().getString(R.string.todo_at_instants));
                 layoutRepeatSpec.setVisibility(View.GONE);
                 labelInstantsOrPeriods.setVisibility(View.VISIBLE);
-                labelInstantsOrPeriods.setText("instants:");
+                labelInstantsOrPeriods.setText(getResources().getString(R.string.label_instants));
 
                 ReminderDataBehavior.Instant[] instants = behaviorData.getInstants();
                 displayStrings = new String[instants.length];
@@ -201,10 +200,10 @@ public class DetailFragment extends Fragment {
                 break;
             }
             case ReminderDataBehavior.TYPE_REMINDER_IN_PERIOD: {
-                tvModel.setText("Remind during Periods");
+                tvModel.setText(getResources().getString(R.string.remind_during_periods));
                 layoutRepeatSpec.setVisibility(View.GONE);
                 labelInstantsOrPeriods.setVisibility(View.VISIBLE);
-                labelInstantsOrPeriods.setText("periods:");
+                labelInstantsOrPeriods.setText(getResources().getString(R.string.label_periods));
 
                 ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
                 displayStrings = new String[periods.length];
@@ -214,7 +213,7 @@ public class DetailFragment extends Fragment {
                 break;
             }
             case ReminderDataBehavior.TYPE_TODO_REPETITIVE_IN_PERIOD: {
-                tvModel.setText("Todo Repeatedly during Periods");
+                tvModel.setText(getResources().getString(R.string.todo_repeatedly_during_periods));
 
                 layoutRepeatSpec.setVisibility(View.VISIBLE);
                 String repeatSpecStr = String.format(Locale.US, "every %d min, offset %d min",
@@ -222,7 +221,7 @@ public class DetailFragment extends Fragment {
                 ((TextView) view.findViewById(R.id.repeat_spec)).setText(repeatSpecStr);
 
                 labelInstantsOrPeriods.setVisibility(View.VISIBLE);
-                labelInstantsOrPeriods.setText("periods:");
+                labelInstantsOrPeriods.setText(getResources().getString(R.string.label_periods));
 
                 ReminderDataBehavior.Period[] periods = behaviorData.getPeriods();
                 displayStrings = new String[periods.length];
@@ -236,6 +235,7 @@ public class DetailFragment extends Fragment {
         // populate list of instants/periods with displayStrings
         if (remType != ReminderDataBehavior.TYPE_NO_BOARD_CONTROL) {
             layoutInstantsOrPeriodsList.setVisibility(View.VISIBLE);
+            layoutInstantsOrPeriodsList.removeAllViews();
             for (String s: displayStrings) {
                 TextView textView = (TextView) LayoutInflater.from(getContext())
                         .inflate(R.layout.text_list_item_plain_monospace, null);

@@ -5,10 +5,11 @@
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
 
-    <!-- dialogs -->
     <string name="dialog_title_confirm_remove">Confirm removal</string>
     <string name="dialog_msg_confirm_remove">Are you sure to remove this reminder?</string>
     <string name="dialog_title_edit_title">Edit title:</string>
+
+    <string name="msg_tag_should_have_no_comma">Please don\'t use commas in a tag.</string>
 
     <string name="yes">Yes</string>
     <string name="no">No</string>
@@ -27,8 +28,15 @@
     <string name="label_behavior_settings">Behavior</string>
     <string name="label_model">model: </string>
     <string name="label_repeat">repeat: </string>
+    <string name="label_instants">instants: </string>
+    <string name="label_periods">periods: </string>
 
-    <string name="msg_tag_should_have_no_comma">Please don\'t use commas in a tag.</string>
+    <string name="todo_at_instants">Todo at Instants</string>
+    <string name="remind_during_periods">Remind during Periods</string>
+    <string name="todo_repeatedly_during_periods">Todo Repeatedly during Periods</string>
+    <string name="no_settings">(no settings)</string>
+
+
 
 
     <string name="test_long_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
