@@ -7,7 +7,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 public class EditActivity extends AppCompatActivity {
 
@@ -51,22 +50,22 @@ public class EditActivity extends AppCompatActivity {
         // set the fragment designated to fieldName
         // the fragment must implement interface EditResultHolder
         switch (fieldName) {
-            case "tags":
+            case "tags": {
                 if (initAllTags == null) {
                     throw new RuntimeException("'initAllTags' should be given");
                 }
                 EditRemTagsFragment fragment = EditRemTagsFragment.newInstance(initData, initAllTags);
                 setFragment(fragment);
                 break;
-
-            case "behavior":
+            }
+            case "behavior": {
                 if (initAllSits == null || initAllEvents == null) {
                     throw new RuntimeException("initAllSits & initAllEvents should be given");
                 }
-
-                //TODO.....
-                Toast.makeText(this, "to edit behavior data...", Toast.LENGTH_SHORT).show();
-
+                EditRemBehaviorFragment fragment =
+                        EditRemBehaviorFragment.newInstance(initData, initAllSits, initAllEvents);
+                setFragment(fragment);
+            }
         }
     }
 

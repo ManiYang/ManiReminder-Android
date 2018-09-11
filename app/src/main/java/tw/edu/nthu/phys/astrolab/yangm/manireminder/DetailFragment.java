@@ -432,6 +432,11 @@ public class DetailFragment extends Fragment {
                 }
                 break;
             }
+            case "behavior": {
+                // TODO...
+                Toast.makeText(getContext(), "to update behavior data...", Toast.LENGTH_SHORT).show();
+
+            }
         }
     }
 

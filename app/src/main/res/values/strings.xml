@@ -18,6 +18,7 @@
     <string name="done">DONE</string>
     <string name="remove">Remove</string>
     <string name="add">Add</string>
+    <string name="edit">Edit</string>
 
     <string name="label_tag_to_add">Tag to add:</string>
     <string name="label_all_tags">All tags:</string>
@@ -30,13 +31,22 @@
     <string name="label_repeat">repeat: </string>
     <string name="label_instants">instants: </string>
     <string name="label_periods">periods: </string>
+    <string name="label_mode">Mode: </string>
+    <string name="label_repeat_pattern">Repeat pattern: </string>
+    <string name="label_repeat_every">repeat every </string>
+    <string name="label_min"> min</string>
+    <string name="label_offset">offset: </string>
+    <string name="label_start_instant">Start instant: </string>
+    <string name="label_end_condition">End condition: </string>
+    <string name="label_type">type: </string>
+    <string name="label_time">time: </string>
+    <string name="label_days_of_week">days of week: </string>
+    <string name="label_after">after </string>
 
     <string name="todo_at_instants">Todo at Instants</string>
     <string name="remind_during_periods">Remind during Periods</string>
     <string name="todo_repeatedly_during_periods">Todo Repeatedly during Periods</string>
     <string name="no_settings">(no settings)</string>
-
-
 
 
     <string name="test_long_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
