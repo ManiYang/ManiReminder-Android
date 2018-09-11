@@ -69,6 +69,7 @@ public class UtilGeneral {
     }
 
 
+
     /**
      * @return Return the (first) key whose value equals `value`. If not found, return -1.
      */
@@ -80,11 +81,57 @@ public class UtilGeneral {
         return -1;
     }
 
-    public static List<String> getValuesOfSparseStringArray(SparseArray<String> array) {
-        List<String> list = new ArrayList<>();
+    public static ArrayList<String> getValuesOfSparseStringArray(SparseArray<String> array) {
+        ArrayList<String> list = new ArrayList<>();
         for (int i=0; i<array.size(); i++) {
             list.add(array.valueAt(i));
         }
         return list;
+    }
+
+    public static ArrayList<Integer> getKeysOfSparseStringArray(SparseArray<String> array) {
+        ArrayList<Integer> list = new ArrayList<>();
+        for (int i=0; i<array.size(); i++) {
+            list.add(array.keyAt(i));
+        }
+        return list;
+    }
+
+    /**
+     * @param string Must be of a form like "{0=value, 2=value, ...}". Each value cannot contain
+     *               character ','.
+     */
+    public static SparseArray<String> parseAsSparseStringArray(String string) {
+        SparseArray<String> array = new SparseArray<>();
+        try {
+            string = string.substring(1, string.length() - 1);
+            if (string.isEmpty())
+                return array;
+            String[] tokens = string.split(", *");
+            for (String token: tokens) {
+                int pos = token.indexOf('=');
+                if (pos < 0) {
+                    throw new RuntimeException();
+                }
+                int key = Integer.parseInt(token.substring(0, pos));
+                String value = token.substring(pos+1);
+                array.append(key, value);
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Bad format of `string`");
+        }
+        return array;
+    }
+
+    public static SparseArray<String> buildSparseStringArray(List<Integer> keys,
+                                                             List<String> values) {
+        if (keys.size() != values.size()) {
+            throw new RuntimeException("`keys` and `values` must have the same size");
+        }
+        SparseArray<String> array = new SparseArray<>();
+        for (int i=0; i<keys.size(); i++) {
+            array.append(keys.get(i), values.get(i));
+        }
+        return array;
     }
 }

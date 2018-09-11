@@ -106,7 +106,7 @@ public class DetailFragment extends Fragment {
     private ReminderDataBehavior behaviorData;
     SparseArray<String> allSituations;
     SparseArray<String> allEvents;
-    //SparseArray<String> allTags;
+    SparseArray<String> allTags;
 
     private void loadReminderData() {
         if (db == null) {
@@ -119,7 +119,8 @@ public class DetailFragment extends Fragment {
         }
 
         // get all tags, situations, events
-        SparseArray<String> allTags = UtilReminder.getAllTagsFromDb(db);
+        allTags = UtilReminder.getAllTagsFromDb(db);
+        Log.v("DetailFragment", "### allTags: "+allTags.toString());
         allSituations = UtilReminder.getAllSituationsFromDb(db);
         allEvents = UtilReminder.getAllEventsFromDb(db);
 
@@ -370,8 +371,7 @@ public class DetailFragment extends Fragment {
                 .putExtra(EditActivity.EXTRA_INIT_DATA, initialData);
 
         if (needAllTags) {
-            String allTagsString = UtilReminder.getAllTagsEncodedFromDb(db);
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS, allTagsString);
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS, allTags.toString());
         }
 
         if (needAllSitsEvents) {
@@ -403,20 +403,22 @@ public class DetailFragment extends Fragment {
     }
 
     private void updateDataAfterEditActivity(Intent intentNewData) {
+        // Just update data in database. No need to update view, as the activity will soon be
+        // recreated.
+
         String fieldName = intentNewData.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
         String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
-        String newAllTagsPairString =
+        String newAllTagsDict =
                 intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //can be null
 
         View view = getView();
         switch (fieldName) {
             case "tags": {
-                if (newAllTagsPairString == null) {
+                if (newAllTagsDict == null) {
                     throw new RuntimeException("new all-tags should be given");
                 }
 
-                // update data in database (no need to update view)
-                SparseArray<String> allTags = parseAllTagsPairString(newAllTagsPairString);
+                allTags = UtilGeneral.parseAsSparseStringArray(newAllTagsDict);
                 saveAllTagsToDb(allTags, db);
 
                 List<String> remTags = UtilGeneral.splitString(newData, ",");
@@ -440,26 +442,6 @@ public class DetailFragment extends Fragment {
         }
     }
 
-    private SparseArray<String> parseAllTagsPairString(String allTagsPairString) {
-        if (allTagsPairString == null) {
-            return null;
-        }
-
-        SparseArray<String> allTags = new SparseArray<>();
-        List<String> allTagsPair = UtilGeneral.splitString(allTagsPairString, ",");
-        try {
-            for (String tagPair : allTagsPair) {
-                String[] tokens = tagPair.split(":");
-                int id = Integer.parseInt(tokens[0].trim());
-                allTags.append(id, tokens[1].trim());
-            }
-        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-            //Log.e("DetailFragment", "allTagsPairString = "+allTagsPairString);
-            throw new RuntimeException("wrong format of allTagsPairString");
-        }
-        return allTags;
-    }
-
     private boolean saveAllTagsToDb(SparseArray<String> allTags, SQLiteDatabase db) {
         db.delete(MainDbHelper.TABLE_TAGS, null, null);
         for (int i=0; i<allTags.size(); i++) {
@@ -479,17 +461,9 @@ public class DetailFragment extends Fragment {
     private ArrayList<Integer> getTagIds(List<String> tags, SparseArray<String> allTags) {
         ArrayList<Integer> ids = new ArrayList<>();
         for (String tag: tags) {
-            //int i = allTags.indexOfValue(tag); // doesn't work
-            int index  = -1;
-            for (int i=0; i<allTags.size(); i++) {
-                if (allTags.valueAt(i).equals(tag)) {
-                    index = i;
-                    break;
-                }
-            }
-
-            if (index != -1) {
-                ids.add(allTags.keyAt(index));
+            int id = UtilGeneral.searchSparseStringArrayByValue(allTags, tag);
+            if (id != -1) {
+                ids.add(id);
             } else {
                 throw new RuntimeException("tag not found in 'allTags'");
             }

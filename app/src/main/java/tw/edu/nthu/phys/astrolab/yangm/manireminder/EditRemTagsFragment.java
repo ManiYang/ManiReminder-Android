@@ -7,6 +7,7 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +17,6 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 
 /**
@@ -29,19 +29,20 @@ public class EditRemTagsFragment extends Fragment
     private static final String KEY_INIT_REM_TAGS = "init_rem_tags";
     private static final String KEY_INIT_ALL_TAGS = "init_all_tags";
     private String initRemTagsString;
-    private String initAllTagsPairString;
+    private String initAllTagsDict;
     private ArrayList<String> remTags;
-    private ArrayList<String> allTagNames;
+//    private SparseArray<String> allTags;
+    private ArrayList<String> allTagNames; //all-tags list adapter references this. Do not re-assign.
     private ArrayList<Integer> allTagIds;
 
     public EditRemTagsFragment() {
         // Required empty public constructor
     }
 
-    public static EditRemTagsFragment newInstance(String initialRemTags, String initialAllTagsPair) {
+    public static EditRemTagsFragment newInstance(String initialRemTags, String initialAllTagsDict) {
         Bundle bundle = new Bundle();
         bundle.putString(KEY_INIT_REM_TAGS, initialRemTags);
-        bundle.putString(KEY_INIT_ALL_TAGS, initialAllTagsPair);
+        bundle.putString(KEY_INIT_ALL_TAGS, initialAllTagsDict);
 
         EditRemTagsFragment fragment = new EditRemTagsFragment();
         fragment.setArguments(bundle);
@@ -54,11 +55,11 @@ public class EditRemTagsFragment extends Fragment
         View view = inflater.inflate(R.layout.fragment_edit_rem_tags, container, false);
 
         readBundle(getArguments());
-        loadData(view, initRemTagsString, initAllTagsPairString);
+        loadData(view, initRemTagsString, initAllTagsDict);
 
-        ((ImageButton) view.findViewById(R.id.button_remove)).setVisibility(ImageButton.INVISIBLE);
-        ((ImageButton) view.findViewById(R.id.button_remove)).setOnClickListener(buttonClickListener);
-        ((ImageButton) view.findViewById(R.id.button_add)).setOnClickListener(buttonClickListener);
+        view.findViewById(R.id.button_remove).setVisibility(ImageButton.INVISIBLE);
+        view.findViewById(R.id.button_remove).setOnClickListener(buttonClickListener);
+        view.findViewById(R.id.button_add).setOnClickListener(buttonClickListener);
 
         return view;
     }
@@ -73,46 +74,47 @@ public class EditRemTagsFragment extends Fragment
             throw new RuntimeException("KEY_INIT_REM_TAGS not found in bundle");
         }
 
-        initAllTagsPairString = bundle.getString(KEY_INIT_ALL_TAGS);
-        if (initAllTagsPairString == null) {
+        initAllTagsDict = bundle.getString(KEY_INIT_ALL_TAGS);
+        if (initAllTagsDict == null) {
             throw new RuntimeException("KEY_INIT_ALL_TAGS not found in bundle");
         }
     }
 
     //
-    private void loadData(final View view, String remTagsString, String allTagsPairString) {
+    private void loadData(final View view, String remTagsString, String allTagsDict) {
         if (view == null) { return; }
 
         // set remTags, allTagNames, allTagIds
         remTags = UtilGeneral.splitString(remTagsString, ",");
 
-        List<String> allTagsPairs = UtilGeneral.splitString(allTagsPairString, ",");
-        allTagNames = new ArrayList<>();
-        allTagIds = new ArrayList<>();
-        try {
-            for (int i = 0; i < allTagsPairs.size(); i++) {
-                String[] tokens = allTagsPairs.get(i).split(":");
-                allTagIds.add(Integer.parseInt(tokens[0].trim()));
-                allTagNames.add(tokens[1]);
-            }
-        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-            throw new RuntimeException("wrong format of allTagsString");
-        }
+        SparseArray<String> allTags = UtilGeneral.parseAsSparseStringArray(allTagsDict);
+        allTagNames = UtilGeneral.getValuesOfSparseStringArray(allTags);
+        allTagIds = UtilGeneral.getKeysOfSparseStringArray(allTags);
+//        List<String> allTagsPairs = UtilGeneral.splitString(allTagsDict, ",");
+//        allTagNames = new ArrayList<>();
+//        allTagIds = new ArrayList<>();
+//        try {
+//            for (int i = 0; i < allTagsPairs.size(); i++) {
+//                String[] tokens = allTagsPairs.get(i).split(":");
+//                allTagIds.add(Integer.parseInt(tokens[0].trim()));
+//                allTagNames.add(tokens[1]);
+//            }
+//        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+//            throw new RuntimeException("wrong format of allTagsString");
+//        }
 
         // populate reminder tags
         TextListAdapter adapter = new TextListAdapter(remTags, TextListAdapter.SINGLE_SELECTION);
         adapter.setSingleSelectedListener(new TextListAdapter.SingleSelectionListener() {
             @Override
             public void onSingleSelection(String selectedText) {
-                ((ImageButton) view.findViewById(R.id.button_remove))
-                        .setVisibility(ImageButton.VISIBLE);
+                view.findViewById(R.id.button_remove).setVisibility(ImageButton.VISIBLE);
             }
         });
         adapter.setSingleDeselectedListener(new TextListAdapter.SingleDeselectionListener() {
             @Override
             public void onSingleDeselection(String DeselectedText) {
-                ((ImageButton) view.findViewById(R.id.button_remove))
-                        .setVisibility(ImageButton.INVISIBLE);
+                view.findViewById(R.id.button_remove).setVisibility(ImageButton.INVISIBLE);
             }
         });
 
@@ -142,8 +144,8 @@ public class EditRemTagsFragment extends Fragment
         public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.button_add:
-                    EditText editText = getView().findViewById(R.id.tag_to_add);
-                    String tagToAdd = editText.getText().toString().trim();
+                    String tagToAdd = ((EditText) getView().findViewById(R.id.tag_to_add))
+                            .getText().toString().trim();
                     if (!tagToAdd.isEmpty()) {
                         if (tagToAdd.contains(",")) {
                             new AlertDialog.Builder(getContext())
@@ -182,10 +184,16 @@ public class EditRemTagsFragment extends Fragment
         ((TextListAdapter) remTagsRecycler.getAdapter()).itemsAppended();
 
         if (!allTagNames.contains(tagToAdd)) {
-            int newTagId = allTagIds.isEmpty() ? 0 : (Collections.max(allTagIds) + 1);
-            allTagIds.add(newTagId);
+            int newTagId;
+            if (allTagIds.size() == 0) {
+                newTagId = 0;
+            } else {
+                newTagId = Collections.max(allTagIds) + 1;
+            }
 
+            allTagIds.add(newTagId);
             allTagNames.add(tagToAdd);
+
             RecyclerView allTagsRecycler = view.findViewById(R.id.all_tags);
             ((TextListAdapter) allTagsRecycler.getAdapter()).itemsAppended();
         }
@@ -216,36 +224,19 @@ public class EditRemTagsFragment extends Fragment
     }
 
     private boolean isTagInInitAllTags(String tag) {
-        List<String> initAllTagsPairs = UtilGeneral.splitString(initAllTagsPairString, ",");
-        try {
-            for (String tagPair : initAllTagsPairs) {
-                String tagName = tagPair.split(":")[1];
-                if (tag.equals(tagName)) {
-                    return true;
-                }
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new RuntimeException("Wrong format of initAllTagsPairString");
-        }
-        return false;
+        SparseArray<String> initAllTags = UtilGeneral.parseAsSparseStringArray(initAllTagsDict);
+        return UtilGeneral.searchSparseStringArrayByValue(initAllTags, tag) != -1;
     }
 
     //
     @Override
     public Intent getResult() {
         String remTagsString = UtilGeneral.joinStringList(", ", remTags);
-
-        StringBuilder allTagsPairString = new StringBuilder();
-        for (int i=0; i<allTagNames.size(); i++) {
-            if (i > 0) {
-                allTagsPairString.append(',');
-            }
-            allTagsPairString.append(allTagIds.get(i)).append(':').append(allTagNames.get(i));
-        }
-
+        SparseArray<String> allTags =
+                UtilGeneral.buildSparseStringArray(allTagIds, allTagNames);
         return new Intent()
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, FIELD_NAME)
                 .putExtra(EditActivity.EXTRA_NEW_DATA, remTagsString)
-                .putExtra(EditActivity.EXTRA_NEW_ALL_TAGS, allTagsPairString.toString());
+                .putExtra(EditActivity.EXTRA_NEW_ALL_TAGS, allTags.toString());
     }
 }
