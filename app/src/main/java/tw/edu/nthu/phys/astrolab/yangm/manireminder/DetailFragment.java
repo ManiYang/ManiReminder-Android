@@ -120,7 +120,6 @@ public class DetailFragment extends Fragment {
 
         // get all tags, situations, events
         allTags = UtilReminder.getAllTagsFromDb(db);
-        Log.v("DetailFragment", "### allTags: "+allTags.toString());
         allSituations = UtilReminder.getAllSituationsFromDb(db);
         allEvents = UtilReminder.getAllEventsFromDb(db);
 
@@ -375,12 +374,8 @@ public class DetailFragment extends Fragment {
         }
 
         if (needAllSitsEvents) {
-            String allSitNames = UtilGeneral.joinStringList(",",
-                        UtilGeneral.getValuesOfSparseStringArray(allSituations));
-            String allEventNames = UtilGeneral.joinStringList(",",
-                    UtilGeneral.getValuesOfSparseStringArray(allEvents));
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_SITUATIONS, allSitNames);
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_EVENTS, allEventNames);
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_SITUATIONS, allSituations.toString());
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_EVENTS, allEvents.toString());
         }
 
         startActivityForResult(intent, REQUEST_CODE_EDIT);
@@ -404,14 +399,12 @@ public class DetailFragment extends Fragment {
 
     private void updateDataAfterEditActivity(Intent intentNewData) {
         // Just update data in database. No need to update view, as the activity will soon be
-        // recreated.
-
+        // recreated
         String fieldName = intentNewData.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
         String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
         String newAllTagsDict =
                 intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //can be null
 
-        View view = getView();
         switch (fieldName) {
             case "tags": {
                 if (newAllTagsDict == null) {
@@ -419,7 +412,12 @@ public class DetailFragment extends Fragment {
                 }
 
                 allTags = UtilGeneral.parseAsSparseStringArray(newAllTagsDict);
-                saveAllTagsToDb(allTags, db);
+                boolean b = saveAllTagsToDb(allTags, db);
+                if (!b) {
+                    Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
+                            .show();
+                    return;
+                }
 
                 List<String> remTags = UtilGeneral.splitString(newData, ",");
                 List<Integer> remTagIds = getTagIds(remTags, allTags);
@@ -450,8 +448,6 @@ public class DetailFragment extends Fragment {
             values.put("name", allTags.valueAt(i));
             long check = db.insert(MainDbHelper.TABLE_TAGS, null, values);
             if (check == -1) {
-                Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
-                        .show();
                 return false;
             }
         }

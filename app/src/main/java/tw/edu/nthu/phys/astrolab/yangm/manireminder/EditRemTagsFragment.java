@@ -90,18 +90,6 @@ public class EditRemTagsFragment extends Fragment
         SparseArray<String> allTags = UtilGeneral.parseAsSparseStringArray(allTagsDict);
         allTagNames = UtilGeneral.getValuesOfSparseStringArray(allTags);
         allTagIds = UtilGeneral.getKeysOfSparseStringArray(allTags);
-//        List<String> allTagsPairs = UtilGeneral.splitString(allTagsDict, ",");
-//        allTagNames = new ArrayList<>();
-//        allTagIds = new ArrayList<>();
-//        try {
-//            for (int i = 0; i < allTagsPairs.size(); i++) {
-//                String[] tokens = allTagsPairs.get(i).split(":");
-//                allTagIds.add(Integer.parseInt(tokens[0].trim()));
-//                allTagNames.add(tokens[1]);
-//            }
-//        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-//            throw new RuntimeException("wrong format of allTagsString");
-//        }
 
         // populate reminder tags
         TextListAdapter adapter = new TextListAdapter(remTags, TextListAdapter.SINGLE_SELECTION);

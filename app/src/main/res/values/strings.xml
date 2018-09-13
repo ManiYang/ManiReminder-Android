@@ -29,8 +29,8 @@
     <string name="label_behavior_settings">Behavior</string>
     <string name="label_model">model: </string>
     <string name="label_repeat">repeat: </string>
-    <string name="label_instants">instants: </string>
-    <string name="label_periods">periods: </string>
+    <string name="label_instants">Instants: </string>
+    <string name="label_periods">Periods: </string>
     <string name="label_mode">Mode: </string>
     <string name="label_repeat_pattern">Repeat pattern: </string>
     <string name="label_repeat_every">repeat every </string>
@@ -48,6 +48,12 @@
     <string name="todo_repeatedly_during_periods">Todo Repeatedly during Periods</string>
     <string name="no_settings">(no settings)</string>
 
+    <string-array name="reminder_modes">
+        <item>None</item>
+        <item>Todo at Instants</item>
+        <item>Remind during Periods</item>
+        <item>Todo Repetitively during Periods</item>
+    </string-array>
 
     <string name="test_long_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
         eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis

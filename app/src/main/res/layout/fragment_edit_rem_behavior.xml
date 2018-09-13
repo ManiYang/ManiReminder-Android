@@ -8,7 +8,6 @@
     tools:context=".EditRemBehaviorFragment" >
 
 <LinearLayout
-    android:id="@+id/fragment_edit_rem_behavior"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical" >
@@ -27,7 +26,7 @@
 
         <Spinner
             android:id="@+id/spinner_mode"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </LinearLayout>
 
@@ -55,7 +54,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginStart="12dp">
+            android:layout_marginStart="12dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true" >
+
+            <!-- to remove auto focus on the EditText edit_repeat_every: -->
+            <requestFocus />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -67,7 +71,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ems="2"
-                android:gravity="center_horizontal"
+                android:gravity="start"
                 android:hint="1"
                 android:inputType="number"
                 android:textSize="16sp" />
@@ -94,7 +98,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ems="2"
-                android:gravity="center_horizontal"
+                android:gravity="start"
                 android:hint="0"
                 android:inputType="number"
                 android:textSize="16sp" />
@@ -122,13 +126,15 @@
         tools:text="Instants/Periods:" />
 
     <LinearLayout
+        android:id="@+id/container_instants_periods"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginStart="12dp">
+        android:layout_marginStart="12dp"
+        android:layout_marginBottom="6dp" >
 
         <LinearLayout
-            android:id="@+id/container_instants_periods_list"
+            android:id="@+id/instants_periods_list"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
@@ -161,7 +167,9 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- instant/period edit box -->
     <LinearLayout
+        android:id="@+id/container_edit_box"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -310,7 +318,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:ems="2"
-                        android:gravity="center_horizontal"
+                        android:gravity="start"
                         android:hint="1"
                         android:inputType="number"
                         android:textSize="16sp" />

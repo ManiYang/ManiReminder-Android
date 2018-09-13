@@ -97,6 +97,10 @@ public class ReminderDataBehavior {
                 repeatEveryMinutes = Integer.parseInt(matcher.group(1));
                 repeatOffsetMinutes = Integer.parseInt(matcher.group(2));
 
+                Log.v("ReminderDataBehavior",
+                        String.format("### repeatEveryMinutes=%d, repeatOffsetMinutes=%d",
+                                repeatEveryMinutes, repeatOffsetMinutes));
+
                 if (tokens[1].trim().isEmpty()) {
                     throw new RuntimeException();
                 }
@@ -104,6 +108,7 @@ public class ReminderDataBehavior {
                 periods = new Period[periodStrings.length];
                 if (isDisplayString) {
                     for (int i = 0; i < periods.length; i++) {
+                        Log.v("ReminderDataBehavior", "### periodString: "+periodStrings[i]);
                         periods[i] = new Period().setFromDisplayString(
                                 periodStrings[i].trim(), allSituations, allEvents);
                     }
@@ -113,6 +118,8 @@ public class ReminderDataBehavior {
                     }
                 }
                 remType = TYPE_TODO_REPETITIVE_IN_PERIOD;
+                Log.v("ReminderDataBehavior",
+                        "### successfully set as todo-repetitively-during-periods");
             } else {
                 String[] tokens = string.split(", ");
                 if (tokens[0].contains("-")) {
@@ -144,7 +151,7 @@ public class ReminderDataBehavior {
                 }
             }
         } catch (RuntimeException e) {
-            Log.v("ReminderDataBehavior", "string: "+string);
+            Log.v("ReminderDataBehavior", "### bad string: \""+string+"\"");
             throw new RuntimeException("Bad format of string");
         }
     }
@@ -448,8 +455,9 @@ public class ReminderDataBehavior {
                     throw new RuntimeException();
                 }
 
+
                 if (isDisplayString) {
-                    if (!substr.startsWith("[") || !substr.endsWith("[")) {
+                    if (!substr.startsWith("[") || !substr.endsWith("]")) {
                         throw new RuntimeException();
                     }
                     String name = substr.substring(1, substr.length()-1);
