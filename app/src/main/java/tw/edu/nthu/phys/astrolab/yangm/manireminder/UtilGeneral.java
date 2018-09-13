@@ -1,5 +1,6 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.util.Log;
 import android.util.SparseArray;
 
 import java.util.ArrayList;
@@ -118,9 +119,23 @@ public class UtilGeneral {
                 array.append(key, value);
             }
         } catch (RuntimeException e) {
+            Log.v("UtilGeneral", "### string=\""+string+"\"");
             throw new RuntimeException("Bad format of `string`");
         }
         return array;
+    }
+
+    public static String stringifySparseStringArray(SparseArray<String> array) {
+        StringBuilder builder = new StringBuilder();
+        builder.append('{');
+        for (int i=0; i<array.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(array.keyAt(i)).append('=').append(array.valueAt(i));
+        }
+        builder.append('}');
+        return builder.toString();
     }
 
     public static SparseArray<String> buildSparseStringArray(List<Integer> keys,

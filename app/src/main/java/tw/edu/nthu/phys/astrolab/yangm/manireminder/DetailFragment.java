@@ -370,12 +370,15 @@ public class DetailFragment extends Fragment {
                 .putExtra(EditActivity.EXTRA_INIT_DATA, initialData);
 
         if (needAllTags) {
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS, allTags.toString());
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_TAGS,
+                    UtilGeneral.stringifySparseStringArray(allTags));
         }
 
         if (needAllSitsEvents) {
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_SITUATIONS, allSituations.toString());
-            intent.putExtra(EditActivity.EXTRA_INIT_ALL_EVENTS, allEvents.toString());
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_SITUATIONS,
+                    UtilGeneral.stringifySparseStringArray(allSituations));
+            intent.putExtra(EditActivity.EXTRA_INIT_ALL_EVENTS,
+                    UtilGeneral.stringifySparseStringArray(allEvents));
         }
 
         startActivityForResult(intent, REQUEST_CODE_EDIT);

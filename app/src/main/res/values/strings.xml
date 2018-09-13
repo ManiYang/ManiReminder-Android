@@ -28,10 +28,10 @@
     <string name="hint_tag_to_add">tag to add</string>
     <string name="label_behavior_settings">Behavior</string>
     <string name="label_model">model: </string>
+    <string name="label_model_cap">Model: </string>
     <string name="label_repeat">repeat: </string>
     <string name="label_instants">Instants: </string>
     <string name="label_periods">Periods: </string>
-    <string name="label_mode">Mode: </string>
     <string name="label_repeat_pattern">Repeat pattern: </string>
     <string name="label_repeat_every">repeat every </string>
     <string name="label_min"> min</string>

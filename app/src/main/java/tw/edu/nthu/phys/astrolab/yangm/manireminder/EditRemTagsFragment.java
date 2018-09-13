@@ -225,6 +225,7 @@ public class EditRemTagsFragment extends Fragment
         return new Intent()
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, FIELD_NAME)
                 .putExtra(EditActivity.EXTRA_NEW_DATA, remTagsString)
-                .putExtra(EditActivity.EXTRA_NEW_ALL_TAGS, allTags.toString());
+                .putExtra(EditActivity.EXTRA_NEW_ALL_TAGS,
+                        UtilGeneral.stringifySparseStringArray(allTags));
     }
 }

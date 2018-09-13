@@ -15,17 +15,18 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:text="@string/label_mode"
+            android:layout_marginEnd="6dp"
+            android:text="@string/label_model_cap"
             android:textSize="16sp" />
 
-        <Spinner
-            android:id="@+id/spinner_mode"
+        <android.support.v7.widget.AppCompatSpinner
+            android:id="@+id/spinner_model"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </LinearLayout>
@@ -151,19 +152,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@mipmap/ic_add_black_24"
-                android:contentDescription="@string/add"/>
+                android:contentDescription="@string/add" />
             <ImageButton
                 android:id="@+id/button_edit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@mipmap/ic_edit_black_24"
-                android:contentDescription="@string/edit"/>
+                android:contentDescription="@string/edit" />
             <ImageButton
                 android:id="@+id/button_remove"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@mipmap/ic_remove_black_24"
-                android:contentDescription="@string/remove"/>
+                android:contentDescription="@string/remove" />
         </LinearLayout>
     </LinearLayout>
 
@@ -177,6 +178,15 @@
         android:layout_marginEnd="4dp"
         android:padding="4dp"
         android:background="@android:color/white">
+
+        <TextView
+            android:id="@+id/label_edit_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center_horizontal"
+            tools:text="edit" />
 
         <TextView
             android:id="@+id/label_start_instant"

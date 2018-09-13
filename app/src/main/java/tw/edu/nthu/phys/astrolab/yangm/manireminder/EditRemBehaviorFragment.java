@@ -6,8 +6,10 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -47,16 +49,30 @@ public class EditRemBehaviorFragment extends Fragment
         return fragment;
     }
 
+    private SpinnerListener spinnerListener = new SpinnerListener();
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_edit_rem_behavior, container, false);
+        View view = inflater.inflate(
+                R.layout.fragment_edit_rem_behavior, container, false);
 
         readBundle(getArguments());
         loadData(view, initRemBehaviorData, initAllSitsDict, initAllEventsDict);
 
+        Spinner spinnerModel = view.findViewById(R.id.spinner_model);
+        spinnerModel.setOnItemSelectedListener(spinnerListener);
+        spinnerModel.setOnTouchListener(spinnerListener);
 
+        view.findViewById(R.id.button_add).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_edit).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_remove).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_start_time).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_days_of_week).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_end_time).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_done).setOnClickListener(OnButtonClickListener);
+        view.findViewById(R.id.button_cancel).setOnClickListener(OnButtonClickListener);
 
         return view;
     }
@@ -90,13 +106,13 @@ public class EditRemBehaviorFragment extends Fragment
                 .setFromDisplayString(remBehaviourDisplayString, allSits, allEvents);
 
         // model //
-        Spinner spinnerMode = view.findViewById(R.id.spinner_mode);
+        Spinner spinnerModel = view.findViewById(R.id.spinner_model);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
-                R.array.reminder_modes, android.R.layout.simple_spinner_item);
+                R.array.reminder_modes, R.layout.text_list_item_plain);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerMode.setAdapter(adapter);
+        spinnerModel.setAdapter(adapter);
 
-        spinnerMode.setSelection(dataBehavior.getRemType());
+        spinnerModel.setSelection(dataBehavior.getRemType());
 
         // repeat pattern //
         if (dataBehavior.isTodoRepeatedlyInPeriod()) {
@@ -148,6 +164,7 @@ public class EditRemBehaviorFragment extends Fragment
                 TextView textView = (TextView) LayoutInflater.from(getContext())
                         .inflate(R.layout.text_list_item_plain_monospace, null);
                 textView.setText(item);
+                textView.setOnClickListener(onInstantPeriodListItemClick);
                 listContainer.addView(textView);
             }
 
@@ -160,9 +177,139 @@ public class EditRemBehaviorFragment extends Fragment
         view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
+    //
+    private class SpinnerListener
+            implements AdapterView.OnItemSelectedListener, View.OnTouchListener {
+        private boolean isUserSelect = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            isUserSelect = true;
+            return false;
+        }
+
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            if (isUserSelect) {
+                isUserSelect = false;
+                switch (parent.getId()) {
+                    case R.id.spinner_model:
+                        onSpinnerModeItemUserSelect(position);
+                        break;
+                }
+            }
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {}
+    }
+
+    private void onSpinnerModeItemUserSelect(int position) {
+        View fragmentView = getView();
+        switch (position) {
+            case 0: // no behavior setting
+                fragmentView.findViewById(R.id.container_repeat_pattern).setVisibility(View.GONE);
+                fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.GONE);
+                fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.GONE);
+                break;
+
+            case 1: // to-do at instants
+                fragmentView.findViewById(R.id.container_repeat_pattern).setVisibility(View.GONE);
+                fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.VISIBLE);
+                fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.VISIBLE);
+
+                ((TextView) fragmentView.findViewById(R.id.label_instants_or_periods))
+                        .setText(R.string.label_instants);
+                showEmptyInstantPeriodList();
+                break;
+
+            case 2: // reminder during periods
+                fragmentView.findViewById(R.id.container_repeat_pattern).setVisibility(View.GONE);
+                ((TextView) fragmentView.findViewById(R.id.label_instants_or_periods))
+                        .setText(R.string.label_periods);
+                showEmptyInstantPeriodList();
+                break;
+
+            case 3: // to-do repetitively during periods
+                fragmentView.findViewById(R.id.container_repeat_pattern).setVisibility(View.VISIBLE);
+                ((EditText) fragmentView.findViewById(R.id.edit_repeat_every)).setText("");
+                ((EditText) fragmentView.findViewById(R.id.edit_repeat_offset)).setText("");
+
+                ((TextView) fragmentView.findViewById(R.id.label_instants_or_periods))
+                        .setText(R.string.label_periods);
+                showEmptyInstantPeriodList();
+                break;
+        }
+        fragmentView.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
+    }
+
+    private void showEmptyInstantPeriodList() {
+        View fragmentView = getView();
+        fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.VISIBLE);
+        fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.VISIBLE);
+
+        LinearLayout list = fragmentView.findViewById(R.id.instants_periods_list);
+        list.removeAllViews();
+
+        fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
+        fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+    }
+
+    //
+    private View.OnClickListener onInstantPeriodListItemClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            View fragmentView = getView();
+
+            if (v.isSelected()) {
+                // deselect item
+                v.setSelected(false);
+                fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
+                fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+                fragmentView.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
+            } else {
+                // select item
+                deselectInstantsPeriodsList();
+                v.setSelected(true);
+                fragmentView.findViewById(R.id.button_edit).setVisibility(View.VISIBLE);
+                fragmentView.findViewById(R.id.button_remove).setVisibility(View.VISIBLE);
+            }
+        }
+    };
+
+    private void deselectInstantsPeriodsList() {
+        View fragmentView = getView();
+        LinearLayout list = fragmentView.findViewById(R.id.instants_periods_list);
+        for (int i=0; i<list.getChildCount(); i++) {
+            list.getChildAt(i).setSelected(false);
+        }
+        fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
+        fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+    }
+
+    //
+    private View.OnClickListener OnButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            View fragmentView = getView();
+            switch (v.getId()) {
+                case R.id.button_add:
+                    deselectInstantsPeriodsList();
+                    fragmentView.findViewById(R.id.container_edit_box).setVisibility(View.VISIBLE);
+
+                    boolean addInstant =
+                            ((TextView) fragmentView.findViewById(R.id.label_instants_or_periods))
+                                    .getText().toString().startsWith("Instants");
+                    ((TextView) fragmentView.findViewById(R.id.label_edit_box)).setText(
+                            addInstant ? "Add New Instant" : "Add New Period");
 
 
 
+
+                    break;
+            }
+        }
+    };
 
 
     //
