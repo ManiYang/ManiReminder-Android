@@ -4,6 +4,8 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseArray;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -289,13 +291,12 @@ public class ReminderDataBehavior {
 
     //// inner classes ////
 
-    /*  A Time can be
-           <hr>:<min>
-           <day-of-week>.<hr>:<min>  */
+    /*  A Time is  <days-of-week-selection>.<hr>:<min>  */
     public static class Time {
         private int hour; // can be >= 24
         private int minute;
-        private int dayOfWeek = -1; // 1-7;  -1: not set
+        private byte dayOfWeekSelection = -1; //binary 1111 1111
+        private String[] daySymbols = {"Su","M","T","W","R","F","Sa","Su"};
 
         public Time(int hour, int minute) {
             this.hour = hour;
@@ -308,27 +309,41 @@ public class ReminderDataBehavior {
             }
         }
 
-        public Time(int hour, int minute, int dayOfWeek) {
+        /* daysOfWeek[i] -- 0,7: Sun, 1: Mon, 2: Tue, ..., 6: Sat */
+        public Time(int hour, int minute, int[] daysOfWeek) {
             this(hour, minute);
-            if (dayOfWeek < 1 || dayOfWeek > 7) {
-                throw new RuntimeException("dayOfWeek should be 1 - 7.");
+            dayOfWeekSelection = 0;
+            for (int dw: daysOfWeek) {
+                if (dw < 0 || dw > 7) {
+                    throw new RuntimeException("dayOfWeek should be 0 - 7.");
+                }
+                if (dw == 0 || dw == 7)
+                    dayOfWeekSelection |= ((1 << 7) | 1);
+                else
+                    dayOfWeekSelection |= (1 << dw);
             }
-            this.dayOfWeek = dayOfWeek;
         }
 
         public Time(String displayString) {
             try {
                 String[] tokens = displayString.split(".");
 
-                String[] hrMin = tokens[tokens.length - 1].split(":");
+                if (tokens[0].equals("M~Su"))
+                    dayOfWeekSelection = -1;
+                else {
+                    dayOfWeekSelection = 0;
+                    for (int i=0; i<7; i++) {
+                        if (tokens[0].contains(daySymbols[i])) {
+                            dayOfWeekSelection |= (1 << i);
+                            if (i == 0)
+                                dayOfWeekSelection |= (1 << 7);
+                        }
+                    }
+                }
+
+                String[] hrMin = tokens[1].split(":");
                 hour = Integer.parseInt(hrMin[0]);
                 minute = Integer.parseInt(hrMin[1]);
-
-                if (tokens.length == 2) {
-                    dayOfWeek = UtilGeneral.getDayOfWeekInt(tokens[0], false);
-                    if (dayOfWeek == -1)
-                        throw new RuntimeException();
-                }
             } catch (RuntimeException e) {
                 throw new RuntimeException("Bad format of displayString.");
             }
@@ -338,7 +353,7 @@ public class ReminderDataBehavior {
         public Time(Time time) {
             hour = time.hour;
             minute = time.minute;
-            dayOfWeek = time.dayOfWeek;
+            dayOfWeekSelection = time.dayOfWeekSelection;
         }
 
         public boolean isNextDay() {
@@ -353,16 +368,35 @@ public class ReminderDataBehavior {
             return minute;
         }
 
-        public int getDayOfWeek() {
-            return dayOfWeek;
+        public List<Integer> getDaysOfWeek(boolean sundayIs0) {
+            List<Integer> list = new ArrayList<>();
+            if (sundayIs0 && hasDayOfWeek(0))
+                list.add(0);
+            for (int d=1; d<7; d++) {
+                if (hasDayOfWeek(d))
+                    list.add(d);
+            }
+            if (!sundayIs0 && hasDayOfWeek(7))
+                list.add(7);
+            return list;
+        }
+
+        public boolean hasDayOfWeek(int d) {
+            return (dayOfWeekSelection & (1 << d)) != 0;
         }
 
         public String getDisplayString() {
             StringBuilder builder = new StringBuilder();
-            if (dayOfWeek > 0) {
-                builder.append(UtilGeneral.DAYS_OF_WEEK[dayOfWeek]).append('.');
+
+            if (dayOfWeekSelection == -1)
+                builder.append("M~Su");
+            else {
+                for (int d=1; d<=7; d++) {
+                    if (hasDayOfWeek(d))
+                        builder.append(daySymbols[d]);
+                }
             }
-            builder.append(String.format(Locale.US, "%02d:%02d", hour, minute));
+            builder.append(String.format(Locale.US, ".%d:%02d", hour, minute));
             return builder.toString();
         }
     } // class Time
