@@ -18,6 +18,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 
 /**
@@ -35,6 +36,9 @@ public class EditRemBehaviorFragment extends Fragment
     private String initRemBehaviorData; //display string
     private String initAllSitsDict;
     private String initAllEventsDict;
+
+    private SparseArray<String> allSits;
+    private SparseArray<String> allEvents;
 
     public EditRemBehaviorFragment() {
         // Required empty public constructor
@@ -81,7 +85,11 @@ public class EditRemBehaviorFragment extends Fragment
         view.findViewById(R.id.button_done).setOnClickListener(OnButtonClickListener);
         view.findViewById(R.id.button_cancel).setOnClickListener(OnButtonClickListener);
 
+        //
         loadData(view, initRemBehaviorData, initAllSitsDict, initAllEventsDict);
+
+        allSits = UtilGeneral.parseAsSparseStringArray(initAllSitsDict);
+        allEvents = UtilGeneral.parseAsSparseStringArray(initAllEventsDict);
 
         return view;
     }
@@ -243,12 +251,12 @@ public class EditRemBehaviorFragment extends Fragment
         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
             switch (parent.getId()) {
                 case R.id.spinner_model:
-                    if (setOtherViews) {
+                    if (setOtherViews)
                         onSpinnerModelItemUserSelect(position);
-                    }
                     break;
                 case R.id.spinner_start_type:
-//                    onSpinnerStartTypeItemSelect(position, setOtherViews);
+                    if (setOtherViews)
+                        onSpinnerStartTypeItemUserSelect(position);
                     break;
                 case R.id.spinner_end_type:
 //                    onSpinnerEndTypeItemSelect(position, setOtherViews);
@@ -318,51 +326,37 @@ public class EditRemBehaviorFragment extends Fragment
 
         TextView labelSitEvent = view.findViewById(R.id.label_sit_or_event);
         Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
-        Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
+        //Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
 
         List<String> endTypes = new ArrayList<>();
         endTypes.add("duration");
         ArrayAdapter<String> adapterEndTypes = new ArrayAdapter<>(getContext(),
                 android.R.layout.simple_spinner_dropdown_item, endTypes);
 
-        switch (position) {
-            case 0: //situation start
-                labelSitEvent.setText(R.string.label_situation);
+        if (position == 3) {
+            ((Button) view.findViewById(R.id.button_start_time)).setText(R.string.label_set);
+            ((Button) view.findViewById(R.id.button_days_of_week)).setText(R.string.label_set);
+            adapterEndTypes.add("time");
+        } else if (position == 2) {
+            labelSitEvent.setText(R.string.label_event);
+            spinnerSitEvent.setAdapter(adapterEvents);
+            adapterEvents.notifyDataSetChanged();
+            spinnerSitEvent.setSelection(1);
+        } else {
+            labelSitEvent.setText(R.string.label_situation);
+            spinnerSitEvent.setAdapter(adapterSituations);
+            adapterSituations.notifyDataSetChanged();
+            spinnerSitEvent.setSelection(1);
 
-                spinnerSitEvent.setAdapter(adapterSituations);
-                adapterSituations.notifyDataSetChanged();
-                spinnerSitEvent.setSelection(1);
-
+            if (position == 0)
                 adapterEndTypes.add("situation end");
-                break;
-
-            case 1: //situation end
-                labelSitEvent.setText(R.string.label_situation);
-
-                spinnerSitEvent.setAdapter(adapterSituations);
-                adapterSituations.notifyDataSetChanged();
-                spinnerSitEvent.setSelection(1);
-                break;
-
-            case 2: //event
-                labelSitEvent.setText(R.string.label_event);
-                spinnerSitEvent.setAdapter(adapterEvents);
-                adapterEvents.notifyDataSetChanged();
-                spinnerSitEvent.setSelection(1);
-                break;
-
-            case 3: //time
-                ((Button) view.findViewById(R.id.button_start_time)).setText(R.string.label_set);
-                ((Button) view.findViewById(R.id.button_days_of_week)).setText(R.string.label_set);
-
-                adapterEndTypes.add("time");
-                break;
         }
 
         // end condition
-        spinnerEndType.setAdapter(adapterEndTypes);
-        adapterEndTypes.notifyDataSetChanged();
-        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
+        // TODO ...
+//        spinnerEndType.setAdapter(adapterEndTypes);
+//        adapterEndTypes.notifyDataSetChanged();
+//        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
     }
 
     private void onSpinnerEndTypeItemUserSelect(int position) {
@@ -393,6 +387,11 @@ public class EditRemBehaviorFragment extends Fragment
         @Override
         public void onClick(View v) {
             View fragmentView = getView();
+            boolean editBoxIsVisible = fragmentView.findViewById(R.id.container_edit_box)
+                                     .getVisibility() == View.VISIBLE;
+            if (editBoxIsVisible) {
+                return;
+            }
 
             if (v.isSelected()) {
                 // deselect item
@@ -426,36 +425,40 @@ public class EditRemBehaviorFragment extends Fragment
     private View.OnClickListener OnButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            View fragmentView = getView();
+            //View fragmentView = getView();
+
             switch (v.getId()) {
                 case R.id.button_add:
-                    showInstantPeriodEditBox(instantPeriodListSelectedText);
+                    deselectInstantsPeriodsList();
+                    showInstantPeriodEditBox("");
                     break;
                 case R.id.button_edit:
-
                     showInstantPeriodEditBox(instantPeriodListSelectedText);
                     break;
             }
         }
     };
 
-    private byte editBoxState; // 0:editing  1:adding
-
     private void showInstantPeriodEditBox(String data) {
-        boolean toAddNew = data.isEmpty();
-        editBoxState = toAddNew ? (byte)1 : 0;
+        // `data`: instant or period display string. It can be empty, in which case show an default
+        // editing box for adding new instant or period.
+        // Otherwise, load `data` to editing box.
 
-        if (toAddNew) {
-            deselectInstantsPeriodsList();
-        }
+        boolean showDefault = data.isEmpty();
 
         View view = getView();
+        int model = ((Spinner) view.findViewById(R.id.spinner_model)).getSelectedItemPosition();
 
+        // hide buttons
+        view.findViewById(R.id.button_add).setVisibility(View.GONE);
+        view.findViewById(R.id.button_remove).setVisibility(View.GONE);
+        view.findViewById(R.id.button_edit).setVisibility(View.GONE);
+
+        // show editing box
         view.findViewById(R.id.container_edit_box).setVisibility(View.VISIBLE);
-        int model = ((Spinner) view.findViewById(R.id.spinner_model))
-                .getSelectedItemPosition();
 
-        if (toAddNew) {
+        // editing-box title
+        if (showDefault) {
             ((TextView) view.findViewById(R.id.label_edit_box)).setText(
                     model == 1 ? "Add New Instant" : "Add New Period");
         } else {
@@ -463,26 +466,125 @@ public class EditRemBehaviorFragment extends Fragment
                     model == 1 ? "Edit Instant" : "Edit Period");
         }
 
-        // start instant
+        // start-instant label, end-condition label, & end-condition container
         if (model == 1) {
             view.findViewById(R.id.label_start_instant).setVisibility(View.GONE);
-        } else {
-            view.findViewById(R.id.label_start_instant).setVisibility(View.VISIBLE);
-        }
-
-
-        //
-        if (model == 1) {
             view.findViewById(R.id.label_end_condition).setVisibility(View.GONE);
             view.findViewById(R.id.container_end_cond).setVisibility(View.GONE);
         } else {
+            view.findViewById(R.id.label_start_instant).setVisibility(View.VISIBLE);
             view.findViewById(R.id.label_end_condition).setVisibility(View.VISIBLE);
             view.findViewById(R.id.container_end_cond).setVisibility(View.VISIBLE);
         }
 
+        //
+        setStartInstantType(showDefault ? "" : data, model);
+
+        // TODO: set end condition
 
     }
 
+    private void setStartInstantType(String data, int remModel) {
+        // Set start instant type according to `data`.
+        // `data` can be empty, in which case set to default.
+
+        View view = getView();
+
+        Spinner spinnerStartType = view.findViewById(R.id.spinner_start_type);
+        LinearLayout containerStartSitEvent = view.findViewById(R.id.container_start_sit_event);
+        TextView labelStartSitEvent = view.findViewById(R.id.label_sit_or_event);
+        LinearLayout containerStartTime = view.findViewById(R.id.container_start_time);
+        LinearLayout containerDaysOfWeek = view.findViewById(R.id.container_days_of_week);
+
+        //
+        ReminderDataBehavior.Period period = null;
+        if (!data.isEmpty() && (remModel == 2 || remModel == 3)) {
+            period = new ReminderDataBehavior.Period()
+                    .setFromDisplayString(data, allSits, allEvents);
+        }
+
+        if (!data.isEmpty()) {
+            ReminderDataBehavior.Instant startInstant;
+            if (remModel == 1)
+                startInstant = new ReminderDataBehavior.Instant()
+                        .setFromDisplayString(data, allSits, allEvents);
+            else
+                startInstant = period.getStartInstant();
+
+            ((SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener())
+                    .setOtherViews = false;
+
+            if (startInstant.isTime()) {
+                spinnerStartType.setSelection(3);
+                containerStartSitEvent.setVisibility(View.GONE);
+
+                containerStartTime.setVisibility(View.VISIBLE);
+                containerDaysOfWeek.setVisibility(View.VISIBLE);
+                String hrmin = String.format(Locale.US, "%d:%02d",
+                        startInstant.getTime().getHour(), startInstant.getTime().getMinute());
+                ((Button) view.findViewById(R.id.button_start_time)).setText(hrmin);
+                // todo: days-of-week
+
+            } else {
+                if (startInstant.isEvent()) {
+                    spinnerStartType.setSelection(2);
+                    labelStartSitEvent.setText(R.string.label_event);
+                    String eventName = allEvents.get(startInstant.getEventId());
+                    setSpinnerSitEventToEvents(eventName);
+                } else { // (startInstant is situation start or situation end)
+                    if (startInstant.isSituationStart())
+                        spinnerStartType.setSelection(0);
+                    else
+                        spinnerStartType.setSelection(1);
+                    labelStartSitEvent.setText(R.string.label_situation);
+                    String sitName = allSits.get(startInstant.getSituationId());
+                    setSpinnerSitEventToSits(sitName);
+                }
+                containerStartSitEvent.setVisibility(View.VISIBLE);
+                containerStartTime.setVisibility(View.GONE);
+                containerDaysOfWeek.setVisibility(View.GONE);
+            }
+
+            // todo: set end condition type items and selection
+
+
+        } else { // data is empty
+            spinnerStartType.setSelection(0);
+            // todo: set end condition type items and selection
+
+
+        }
+    }
+
+    private void setSpinnerSitEventToSits(String sitToSelect) {
+        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
+        spinnerSitEvent.setAdapter(adapterSituations);
+        adapterSituations.notifyDataSetChanged();
+
+        int pos = 1;
+        for (int p=0; p<adapterSituations.getCount(); p++) {
+            if (adapterSituations.getItem(p).equals(sitToSelect)) {
+                pos = p;
+                break;
+            }
+        }
+        spinnerSitEvent.setSelection(pos);
+    }
+
+    private void setSpinnerSitEventToEvents(String eventToSelect) {
+        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
+        spinnerSitEvent.setAdapter(adapterEvents);
+        adapterEvents.notifyDataSetChanged();
+
+        int pos = 1;
+        for (int p=0; p<adapterEvents.getCount(); p++) {
+            if (adapterEvents.getItem(p).equals(eventToSelect)) {
+                pos = p;
+                break;
+            }
+        }
+        spinnerSitEvent.setSelection(pos);
+    }
 
     //
     @Override

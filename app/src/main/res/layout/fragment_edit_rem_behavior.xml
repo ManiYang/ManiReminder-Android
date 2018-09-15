@@ -132,7 +132,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginStart="12dp"
-        android:layout_marginBottom="6dp" >
+        android:layout_marginBottom="6dp"
+        android:baselineAligned="false" >
 
         <LinearLayout
             android:id="@+id/instants_periods_list"
@@ -222,6 +223,7 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_margin="0dp"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -314,7 +316,7 @@
                 android:layout_height="wrap_content" />
 
             <Space
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 

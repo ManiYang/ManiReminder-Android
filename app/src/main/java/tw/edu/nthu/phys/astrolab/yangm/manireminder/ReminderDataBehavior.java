@@ -480,7 +480,10 @@ public class ReminderDataBehavior {
         public Instant(Instant instant) {
             this.type = instant.type;
             this.sitOrEventId = instant.sitOrEventId;
-            this.time = new Time(instant.time);
+            if (instant.isTime())
+                this.time = new Time(instant.time);
+            else
+                this.time = null;
         }
 
         //
@@ -691,7 +694,8 @@ public class ReminderDataBehavior {
                     throw new RuntimeException();
                 }
             } catch (RuntimeException e) {
-                throw new RuntimeException("Bad format of displayString");
+                Log.v("ReminderDataBehavior", "### bad string: "+string);
+                throw new RuntimeException("Bad format of string representation or displayString");
             }
         }
 
