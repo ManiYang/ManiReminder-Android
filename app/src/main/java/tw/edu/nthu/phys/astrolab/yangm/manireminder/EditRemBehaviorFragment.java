@@ -520,11 +520,11 @@ public class EditRemBehaviorFragment extends Fragment
 
                 containerStartTime.setVisibility(View.VISIBLE);
                 containerDaysOfWeek.setVisibility(View.VISIBLE);
-                String hrmin = String.format(Locale.US, "%d:%02d",
+                String hrMinStr = String.format(Locale.US, "%d:%02d",
                         startInstant.getTime().getHour(), startInstant.getTime().getMinute());
-                ((Button) view.findViewById(R.id.button_start_time)).setText(hrmin);
-                // todo: days-of-week
-
+                ((Button) view.findViewById(R.id.button_start_time)).setText(hrMinStr);
+                String daysOfWeekStr = startInstant.getTime().getDaysOfWeekDisplayString(", ");
+                ((Button) view.findViewById(R.id.button_days_of_week)).setText(daysOfWeekStr);
             } else {
                 if (startInstant.isEvent()) {
                     spinnerStartType.setSelection(2);

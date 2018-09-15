@@ -190,7 +190,8 @@ public class ReminderDataBehavior {
     /** Don't modify the returned object */
     public Period[] getPeriods() {
         if (remType != TYPE_REMINDER_IN_PERIOD && remType != TYPE_TODO_REPETITIVE_IN_PERIOD) {
-            throw new RuntimeException("this is neither reminder-in-period nor todo-repetitive-in-period");
+            throw new RuntimeException(
+                    "this is neither reminder-in-period nor todo-repetitive-in-period");
         }
         return periods;
     }
@@ -326,7 +327,7 @@ public class ReminderDataBehavior {
 
         public Time(String displayString) {
             try {
-                String[] tokens = displayString.split(".");
+                String[] tokens = displayString.split("\\.");
 
                 if (tokens[0].equals("M~Su"))
                     dayOfWeekSelection = -1;
@@ -345,6 +346,7 @@ public class ReminderDataBehavior {
                 hour = Integer.parseInt(hrMin[0]);
                 minute = Integer.parseInt(hrMin[1]);
             } catch (RuntimeException e) {
+                e.printStackTrace();
                 throw new RuntimeException("Bad format of displayString.");
             }
         }
@@ -399,7 +401,27 @@ public class ReminderDataBehavior {
             builder.append(String.format(Locale.US, ".%d:%02d", hour, minute));
             return builder.toString();
         }
+
+        public String getDaysOfWeekDisplayString(String sep) {
+            StringBuilder builder = new StringBuilder();
+            if (dayOfWeekSelection == -1)
+                builder.append("M ~ Su");
+            else {
+                boolean first = true;
+                for (int d=1; d<=7; d++) {
+                    if (hasDayOfWeek(d)) {
+                        if (!first) {
+                            builder.append(sep);
+                        }
+                        builder.append(daySymbols[d]);
+                        first = false;
+                    }
+                }
+            }
+            return builder.toString();
+        }
     } // class Time
+
 
     /*  An Instant can be
             sit<id>start
@@ -440,7 +462,8 @@ public class ReminderDataBehavior {
         }
 
         public Instant setFromStringRepresentation(String stringRepresentation) {
-            setFromString(stringRepresentation, false, null, null);
+            setFromString(stringRepresentation,
+                    false, null, null);
             return this;
         }
 
@@ -605,6 +628,7 @@ public class ReminderDataBehavior {
         }
     } // class Instant
 
+
     /*  A Period can be
             sit<id>start-sitEnd
             <Instant>-after<n>m
@@ -618,8 +642,7 @@ public class ReminderDataBehavior {
         private int endAfterMinutes = -1;
         // (not all combination are allowed)
 
-        public Period() {
-        }
+        public Period() {}
 
         public Period setAsSituationStartEnd(int situationId) {
             startInstant = new Instant().setAsSituationStart(situationId);
@@ -661,7 +684,8 @@ public class ReminderDataBehavior {
         }
 
         public Period setFromStringRepresentation(String stringRepresentation) {
-            setFromString(stringRepresentation, false, null, null);
+            setFromString(stringRepresentation,
+                    false, null, null);
             return this;
         }
 

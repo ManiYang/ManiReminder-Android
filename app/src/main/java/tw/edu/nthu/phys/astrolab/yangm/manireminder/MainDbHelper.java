@@ -55,6 +55,12 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("tags", "0");
             db.insert(TABLE_REMINDERS_BRIEF, null, values);
 
+            values = new ContentValues();
+            values.put("_id", 1);
+            values.put("title", "Testing Reminder 2");
+            values.put("tags", "1");
+            db.insert(TABLE_REMINDERS_BRIEF, null, values);
+
             // reminder detail
             db.execSQL("CREATE TABLE "+TABLE_REMINDERS_DETAIL+" ("
                     + "_id INTEGER PRIMARY KEY, "
@@ -63,6 +69,12 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("_id", 0);
             values.put("description", "This is a reminder for testing only.");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
+
+            values = new ContentValues();
+            values.put("_id", 1);
+            values.put("description", "Also for testing.");
+            db.insert(TABLE_REMINDERS_DETAIL, null, values);
+
 
             // reminder behavior
             db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BEHAVIOR+" ("
@@ -73,9 +85,16 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("_id", 0);
             values.put("type", 3);
             values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
-//            values.put("type", 0);
-//            values.put("behavior_settings", "");
             long check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
+            if (check == -1) {
+                throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
+            }
+
+            values = new ContentValues();
+            values.put("_id", 1);
+            values.put("type", 1);
+            values.put("behavior_settings", "sit0end, M~Su.9:00, W.13:00");
+            check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
             if (check == -1) {
                 throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
             }
