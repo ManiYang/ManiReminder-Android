@@ -70,7 +70,6 @@ public class EditActivity extends AppCompatActivity {
                 setFragment(fragment);
             }
         }
-
         Log.v("EditActivity", "=== create");
     }
 

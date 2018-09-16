@@ -2,7 +2,6 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -11,11 +10,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-public class DetailActivity extends AppCompatActivity
-        implements SimpleTextEditDialogFragment.Listener {
+public class DetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_REMINDER_ID = "reminder_id";
-    private int reminderId;
     private DetailFragment detailFragment;
 
     @Override
@@ -27,7 +24,7 @@ public class DetailActivity extends AppCompatActivity
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         //
-        reminderId = getIntent().getIntExtra(EXTRA_REMINDER_ID, -99);
+        int reminderId = getIntent().getIntExtra(EXTRA_REMINDER_ID, -99);
         detailFragment =
                 (DetailFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_detail);
         detailFragment.setReminderId(reminderId);
@@ -75,10 +72,4 @@ public class DetailActivity extends AppCompatActivity
                     }
                 }
             };
-
-    //
-    @Override
-    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
-        detailFragment.onDialogPositiveClicked(dialog.getTag(), newText);
-    }
 }

@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.text.InputType;
 import android.util.Log;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class DetailFragment extends Fragment {
+public class DetailFragment extends Fragment implements SimpleTextEditDialogFragment.Listener {
 
     private int reminderId = -9;
     private SQLiteDatabase db;
@@ -307,17 +308,19 @@ public class DetailFragment extends Fragment {
         SimpleTextEditDialogFragment dialogFragment = SimpleTextEditDialogFragment.newInstance(
                 "Edit "+fieldName+":", oldText, textInputType);
         dialogFragment.show(getFragmentManager(), "dialog_edit_"+fieldName);
+        dialogFragment.setTargetFragment(this, 1);
     }
 
-    public void onDialogPositiveClicked(String dialogFragmentTag, String newText) {
-        // (called by DetailActivity)
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
         // update both DB and view (activity will not resume)
 
         View view = getView();
-        if (view == null) { return; }
+        if (view == null)
+            return;
 
         boolean doneDbUpdate = false;
-        switch (dialogFragmentTag) {
+        switch (dialog.getTag()) {
             case "dialog_edit_title": {
                 // update title
                 ((TextView) view.findViewById(R.id.title)).setText(newText);

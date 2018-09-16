@@ -19,7 +19,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
 
     private String title = "";
     private String initText = "";
-    private int inputType = 1;
+    private int inputType = InputType.TYPE_CLASS_TEXT;
     private EditText editText;
     private Listener listener;
 
@@ -66,10 +66,10 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         try {
-            listener = (Listener) context;
+            listener = (Listener) getTargetFragment();
         } catch (ClassCastException e) {
-            throw new ClassCastException(
-                    context.toString()+" should implement SimpleTextEditDialogFragment.Listener");
+            throw new ClassCastException(getTargetFragment().toString()
+                    +" should implement SimpleTextEditDialogFragment.Listener");
         }
     }
 
