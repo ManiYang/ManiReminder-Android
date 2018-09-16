@@ -68,8 +68,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
         try {
             listener = (Listener) getTargetFragment();
         } catch (ClassCastException e) {
-            throw new ClassCastException(getTargetFragment().toString()
-                    +" should implement SimpleTextEditDialogFragment.Listener");
+            throw new ClassCastException("target fragment should implement Listener");
         }
     }
 

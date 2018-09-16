@@ -3,6 +3,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.util.SparseArray;
@@ -27,7 +28,7 @@ import java.util.Locale;
  * A simple {@link Fragment} subclass.
  */
 public class EditRemBehaviorFragment extends Fragment
-        implements EditActivity.EditResultHolder {
+        implements EditActivity.EditResultHolder, TimePickerDialogFragment.Listener {
 
     private static final String FIELD_NAME = "behavior";
     private static final String KEY_INIT_REM_BEHAVIOR_DATA = "init_rem_behavior_data";
@@ -553,15 +554,43 @@ public class EditRemBehaviorFragment extends Fragment
                     }
                     break;
 
-                case R.id.button_start_time:
-                    TimePickerDialogFragment dialog = TimePickerDialogFragment.newInstance(
-                            "Pick time", false);
-                    dialog.show(getFragmentManager(), "pick_start_time");
+                case R.id.button_start_time: {
+                    String hrMinStr = ((Button) fragmentView.findViewById(R.id.button_start_time))
+                            .getText().toString();
+                    int[] hrMin = parseHrMin(hrMinStr);
+                    TimePickerDialogFragment dialogFragment = TimePickerDialogFragment.newInstance(
+                            "Set start time", hrMin[0], hrMin[1], false);
+                    dialogFragment.show(getFragmentManager(), "pick_start_time");
+                    dialogFragment.setTargetFragment(EditRemBehaviorFragment.this, 1);
                     break;
-
+                }
+                case R.id.button_end_time: {
+                    String hrMinStr = ((Button) fragmentView.findViewById(R.id.button_end_time))
+                            .getText().toString();
+                    int[] hrMin = parseHrMin(hrMinStr);
+                    TimePickerDialogFragment dialogFragment = TimePickerDialogFragment.newInstance(
+                            "Set end time", hrMin[0], hrMin[1], true);
+                    dialogFragment.show(getFragmentManager(), "pick_end_time");
+                    dialogFragment.setTargetFragment(EditRemBehaviorFragment.this, 1);
+                    break;
+                }
             }
         }
     };
+
+    private int[] parseHrMin(String HrMinStr) {
+        // Parse HrMinStr as "<hr>:<min>". If failed, default to 12:00.
+        int[] hrMin = new int[2];
+        try {
+            String[] tokens = HrMinStr.split(":");
+            hrMin[0] = Integer.parseInt(tokens[0].trim());
+            hrMin[1] = Integer.parseInt(tokens[1].trim());
+        } catch (Exception e) {
+            hrMin[0] = 12;
+            hrMin[1] = 0;
+        }
+        return hrMin;
+    }
 
     private void actionRemoveInstantPeriod(View view, String itemText) {
         LinearLayout layout = view.findViewById(R.id.instants_periods_list);
@@ -742,6 +771,25 @@ public class EditRemBehaviorFragment extends Fragment
         view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
         view.findViewById(R.id.container_end_cond).setVisibility(View.GONE);
         view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
+    }
+
+    //
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog, int newHr, int newMin) {
+        View view = getView();
+        if (view == null)
+            return;
+
+        String HrMin = String.format(Locale.US, "%d:%02d", newHr, newMin);
+        switch (dialog.getTag()) {
+            case "pick_start_time":
+                ((Button) view.findViewById(R.id.button_start_time)).setText(HrMin);
+                break;
+            case "pick_end_time":
+                ((Button) view.findViewById(R.id.button_end_time)).setText(HrMin);
+                break;
+
+        }
     }
 
     //
