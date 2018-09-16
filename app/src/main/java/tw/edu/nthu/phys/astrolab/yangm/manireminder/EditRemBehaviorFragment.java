@@ -4,6 +4,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -95,17 +96,6 @@ public class EditRemBehaviorFragment extends Fragment
         hideEditBox(view);
 
         return view;
-    }
-
-    private void hideEditBox(View view) {
-        view.findViewById(R.id.label_start_instant).setVisibility(View.GONE);
-        view.findViewById(R.id.container_start_time).setVisibility(View.GONE);
-        view.findViewById(R.id.container_days_of_week).setVisibility(View.GONE);
-        view.findViewById(R.id.label_end_condition).setVisibility(View.GONE);
-        view.findViewById(R.id.container_endcondition_after).setVisibility(View.GONE);
-        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
-        view.findViewById(R.id.container_end_cond).setVisibility(View.GONE);
-        view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
     private void readBundle(Bundle bundle) {
@@ -203,7 +193,7 @@ public class EditRemBehaviorFragment extends Fragment
         }
     }
 
-    // spinners
+    // spinners //
     ArrayAdapter<String> adapterSituations; //for spinner_sit_or_event
     ArrayAdapter<String> adapterEvents; //for spinner_sit_or_event
 
@@ -326,6 +316,8 @@ public class EditRemBehaviorFragment extends Fragment
         if (view == null)
             return;
 
+        Log.v("EditRemBehaviorFragment", "### spinner start-type selected: "+position);
+
         if (position == 3) { // time
             view.findViewById(R.id.container_start_sit_event).setVisibility(View.GONE);
             view.findViewById(R.id.container_start_time).setVisibility(View.VISIBLE);
@@ -348,7 +340,7 @@ public class EditRemBehaviorFragment extends Fragment
             ((Button) view.findViewById(R.id.button_start_time)).setText(R.string.label_set);
             ((Button) view.findViewById(R.id.button_days_of_week)).setText(R.string.label_set);
             adapterEndTypes.add("time");
-        } else if (position == 2) {
+        } else if (position == 2) { // event
             labelSitEvent.setText(R.string.label_event);
             spinnerSitEvent.setAdapter(adapterEvents);
             adapterEvents.notifyDataSetChanged();
@@ -364,6 +356,7 @@ public class EditRemBehaviorFragment extends Fragment
 
         adapterEndTypes.notifyDataSetChanged();
         spinnerEndType.setSelection(0);
+        onSpinnerEndTypeItemUserSelect(0);
     }
 
     private void onSpinnerEndTypeItemUserSelect(int position) {
@@ -392,21 +385,37 @@ public class EditRemBehaviorFragment extends Fragment
         }
     }
 
-    private void showEmptyInstantPeriodList() {
-        View fragmentView = getView();
-        if (fragmentView == null)
-            return;
-        fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.VISIBLE);
-        fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.VISIBLE);
+    private void setSpinnerSitEventToSits(String sitToSelect) {
+        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
+        spinnerSitEvent.setAdapter(adapterSituations);
+        adapterSituations.notifyDataSetChanged();
 
-        LinearLayout list = fragmentView.findViewById(R.id.instants_periods_list);
-        list.removeAllViews();
-
-        fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
-        fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+        int pos = 1;
+        for (int p=0; p<adapterSituations.getCount(); p++) {
+            if (adapterSituations.getItem(p).equals(sitToSelect)) {
+                pos = p;
+                break;
+            }
+        }
+        spinnerSitEvent.setSelection(pos);
     }
 
-    // list of instants/periods
+    private void setSpinnerSitEventToEvents(String eventToSelect) {
+        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
+        spinnerSitEvent.setAdapter(adapterEvents);
+        adapterEvents.notifyDataSetChanged();
+
+        int pos = 1;
+        for (int p=0; p<adapterEvents.getCount(); p++) {
+            if (adapterEvents.getItem(p).equals(eventToSelect)) {
+                pos = p;
+                break;
+            }
+        }
+        spinnerSitEvent.setSelection(pos);
+    }
+
+    // list of instants/periods //
     private String instantPeriodListSelectedText = "";
 
     private View.OnClickListener onInstantPeriodListItemClick = new View.OnClickListener() {
@@ -450,9 +459,36 @@ public class EditRemBehaviorFragment extends Fragment
         }
         fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
         fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+
+        instantPeriodListSelectedText = "";
     }
 
-    // buttons
+    private void showEmptyInstantPeriodList() {
+        View fragmentView = getView();
+        if (fragmentView == null)
+            return;
+        fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.VISIBLE);
+        fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.VISIBLE);
+
+        LinearLayout list = fragmentView.findViewById(R.id.instants_periods_list);
+        list.removeAllViews();
+
+        fragmentView.findViewById(R.id.button_edit).setVisibility(View.GONE);
+        fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
+    }
+
+    private String getInstantPeriodListSelectedText(View view) {
+        LinearLayout layout = view.findViewById(R.id.instants_periods_list);
+        for (int i=0; i<layout.getChildCount(); i++) {
+            View child = layout.getChildAt(i);
+            if (child instanceof TextView && child.isSelected()) {
+                return ((TextView) child).getText().toString();
+            }
+        }
+        return "";
+    }
+
+    // buttons //
     private View.OnClickListener OnButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -468,19 +504,51 @@ public class EditRemBehaviorFragment extends Fragment
                 case R.id.button_edit:
                     showInstantPeriodEditBox(instantPeriodListSelectedText);
                     break;
+                case R.id.button_remove:
+                    actionRemoveInstantPeriod(fragmentView, instantPeriodListSelectedText);
+                    deselectInstantsPeriodsList();
+                    break;
 
                 case R.id.button_done:
-                    // todo: save editing box data
-                    // no break
                 case R.id.button_cancel:
+                    if (v.getId() == R.id.button_done) {
+                        // todo: save editing box data
+
+                    }
+
                     hideEditBox(fragmentView);
-                    fragmentView.findViewById(R.id.button_add).setVisibility(View.VISIBLE);
                     fragmentView.findViewById(R.id.spinner_model).setEnabled(true);
+                    fragmentView.findViewById(R.id.button_add).setVisibility(View.VISIBLE);
+
+                    // update instantPeriodListSelectedText
+                    instantPeriodListSelectedText = getInstantPeriodListSelectedText(fragmentView);
+                    if (!instantPeriodListSelectedText.isEmpty()) {
+                        fragmentView.findViewById(R.id.button_edit).setVisibility(View.VISIBLE);
+                        fragmentView.findViewById(R.id.button_remove).setVisibility(View.VISIBLE);
+                    }
                     break;
             }
         }
     };
 
+    private void actionRemoveInstantPeriod(View view, String itemText) {
+        LinearLayout layout = view.findViewById(R.id.instants_periods_list);
+        View viewToRemove = null;
+        for (int i=0; i<layout.getChildCount(); i++) {
+            View child = layout.getChildAt(i);
+            if (child instanceof  TextView) {
+                if (((TextView) child).getText().toString().equals(itemText)) {
+                    viewToRemove = child;
+                    break;
+                }
+            }
+        }
+        if (viewToRemove != null) {
+            layout.removeView(viewToRemove);
+        }
+    }
+
+    // editing box //
     private void showInstantPeriodEditBox(String data) {
         // `data`: instant or period display string. It can be empty, in which case show an default
         // editing box for adding new instant or period.
@@ -551,8 +619,14 @@ public class EditRemBehaviorFragment extends Fragment
                     .setFromDisplayString(data, allSits, allEvents);
         }
 
+        SpinnerOnItemSelectListener listener =
+                (SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener();
+        if (listener != null)
+            listener.setOtherViews = false;
+
         if (data.isEmpty()) {
             spinnerStartType.setSelection(0);
+            onSpinnerStartTypeItemUserSelect(0);
         }
         else { //(data is not empty)
             ReminderDataBehavior.Instant startInstant;
@@ -564,11 +638,6 @@ public class EditRemBehaviorFragment extends Fragment
                     throw new RuntimeException("`period` is null");
                 startInstant = period.getStartInstant();
             }
-
-            SpinnerOnItemSelectListener listener =
-                    (SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener();
-            if (listener != null)
-                listener.setOtherViews = false;
 
             if (startInstant.isTime()) {
                 spinnerStartType.setSelection(3);
@@ -643,34 +712,15 @@ public class EditRemBehaviorFragment extends Fragment
         }
     }
 
-    private void setSpinnerSitEventToSits(String sitToSelect) {
-        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
-        spinnerSitEvent.setAdapter(adapterSituations);
-        adapterSituations.notifyDataSetChanged();
-
-        int pos = 1;
-        for (int p=0; p<adapterSituations.getCount(); p++) {
-            if (adapterSituations.getItem(p).equals(sitToSelect)) {
-                pos = p;
-                break;
-            }
-        }
-        spinnerSitEvent.setSelection(pos);
-    }
-
-    private void setSpinnerSitEventToEvents(String eventToSelect) {
-        Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
-        spinnerSitEvent.setAdapter(adapterEvents);
-        adapterEvents.notifyDataSetChanged();
-
-        int pos = 1;
-        for (int p=0; p<adapterEvents.getCount(); p++) {
-            if (adapterEvents.getItem(p).equals(eventToSelect)) {
-                pos = p;
-                break;
-            }
-        }
-        spinnerSitEvent.setSelection(pos);
+    private void hideEditBox(View view) {
+        view.findViewById(R.id.label_start_instant).setVisibility(View.GONE);
+        view.findViewById(R.id.container_start_time).setVisibility(View.GONE);
+        view.findViewById(R.id.container_days_of_week).setVisibility(View.GONE);
+        view.findViewById(R.id.label_end_condition).setVisibility(View.GONE);
+        view.findViewById(R.id.container_endcondition_after).setVisibility(View.GONE);
+        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
+        view.findViewById(R.id.container_end_cond).setVisibility(View.GONE);
+        view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
     //
