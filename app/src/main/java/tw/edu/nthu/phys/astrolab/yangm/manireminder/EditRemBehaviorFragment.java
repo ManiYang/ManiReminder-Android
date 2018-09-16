@@ -537,7 +537,7 @@ public class EditRemBehaviorFragment extends Fragment
                 case R.id.button_done:
                 case R.id.button_cancel:
                     if (v.getId() == R.id.button_done) {
-                        // todo: save editing box data
+                        // todo: validate and save editing box data
 
                     }
 
@@ -552,6 +552,13 @@ public class EditRemBehaviorFragment extends Fragment
                         fragmentView.findViewById(R.id.button_remove).setVisibility(View.VISIBLE);
                     }
                     break;
+
+                case R.id.button_start_time:
+                    TimePickerDialogFragment dialog = TimePickerDialogFragment.newInstance(
+                            "Pick time", false);
+                    dialog.show(getFragmentManager(), "pick_start_time");
+                    break;
+
             }
         }
     };
@@ -605,7 +612,7 @@ public class EditRemBehaviorFragment extends Fragment
                     model == 1 ? "Edit Instant" : "Edit Period");
         }
 
-        // start-instant label, end-condition label, & end-condition container
+        // show/hide start-instant label, end-condition label, & end-condition container
         if (model == 1) {
             view.findViewById(R.id.label_start_instant).setVisibility(View.GONE);
             view.findViewById(R.id.label_end_condition).setVisibility(View.GONE);
@@ -621,7 +628,6 @@ public class EditRemBehaviorFragment extends Fragment
     }
 
     private void setEditBoxContents(String data, int remModel) {
-        // Set start instant type according to `data`.
         // `data` can be empty, in which case set to default.
 
         View view = getView();

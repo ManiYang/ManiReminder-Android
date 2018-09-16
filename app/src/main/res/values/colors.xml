@@ -8,5 +8,6 @@
     <color name="colorPrimaryDark">#623062</color>
     <color name="colorAccent">#3FBBBB</color>
 
-    <color name="selectedItemBack">#99CCFF</color>
+    <color name="selectedItemBack">#DDEECC</color>
+    <color name="editRegionBack">#E8F0E8</color>
 </resources>

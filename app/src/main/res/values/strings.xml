@@ -45,6 +45,7 @@
     <string name="label_situation">Situation: </string>
     <string name="label_event">Event: </string>
     <string name="label_set">set</string>
+    <string name="label_next_day">Next Day</string>
 
     <string name="todo_at_instants">Todo at Instants</string>
     <string name="remind_during_periods">Remind during Periods</string>

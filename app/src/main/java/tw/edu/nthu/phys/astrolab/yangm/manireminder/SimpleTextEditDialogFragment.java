@@ -58,7 +58,8 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
                 .setView(customView)
                 .setPositiveButton(R.string.ok, onButtonClickListener)
                 .setNegativeButton(R.string.cancel, onButtonClickListener);
-        return dialogBuilder.create();
+        AlertDialog dialog = dialogBuilder.create();
+        return dialog;
     }
 
     @Override
@@ -88,10 +89,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
             switch (which) {
                 case AlertDialog.BUTTON_POSITIVE:
                     String newText = editText.getText().toString();
-                    if (!newText.equals(initText)) {
-                        listener.onDialogPositiveClick(
-                                SimpleTextEditDialogFragment.this, newText);
-                    }
+                    listener.onDialogPositiveClick(SimpleTextEditDialogFragment.this, newText);
                     break;
                 case AlertDialog.BUTTON_NEGATIVE:
                     break;

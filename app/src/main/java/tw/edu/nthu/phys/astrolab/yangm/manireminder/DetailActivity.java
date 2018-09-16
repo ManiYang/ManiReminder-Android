@@ -7,7 +7,6 @@ import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -32,7 +31,7 @@ public class DetailActivity extends AppCompatActivity
         detailFragment =
                 (DetailFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_detail);
         detailFragment.setReminderId(reminderId);
-        Log.v("DetailActivity", "### reminder ID: "+Integer.toString(reminderId));
+        //Log.v("DetailActivity", "### reminder ID: "+Integer.toString(reminderId));
     }
 
     // menu

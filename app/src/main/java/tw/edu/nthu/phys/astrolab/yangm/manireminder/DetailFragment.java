@@ -68,12 +68,13 @@ public class DetailFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onResume() {
+        Log.v("DetailFragment", "=== resume");
+        super.onResume();
 
-        Log.v("DetailFragment", "### Reminder ID: " + Integer.toString(reminderId));
+        //Log.v("DetailFragment", "### Reminder ID: " + Integer.toString(reminderId));
         if (reminderId < 0) {
-            throw new RuntimeException("### reminderId < 0");
+            throw new RuntimeException("reminderId < 0");
         }
         loadReminderData();
     }
@@ -310,6 +311,8 @@ public class DetailFragment extends Fragment {
 
     public void onDialogPositiveClicked(String dialogFragmentTag, String newText) {
         // (called by DetailActivity)
+        // update both DB and view (activity will not resume)
+
         View view = getView();
         if (view == null) { return; }
 
@@ -386,6 +389,8 @@ public class DetailFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.v("DetailFragment", "=== onActivityResult");
+
         switch (requestCode) {
             case REQUEST_CODE_EDIT:
                 if (resultCode == EditActivity.RESULT_CODE_OK) {
@@ -402,7 +407,7 @@ public class DetailFragment extends Fragment {
 
     private void updateDataAfterEditActivity(Intent intentNewData) {
         // Just update data in database. No need to update view, as the activity will soon be
-        // recreated
+        // resumed.
         String fieldName = intentNewData.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
         String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
         String newAllTagsDict =
