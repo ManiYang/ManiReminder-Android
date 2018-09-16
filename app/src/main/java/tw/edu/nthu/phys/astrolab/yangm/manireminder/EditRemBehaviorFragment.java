@@ -28,7 +28,8 @@ import java.util.Locale;
  * A simple {@link Fragment} subclass.
  */
 public class EditRemBehaviorFragment extends Fragment
-        implements EditActivity.EditResultHolder, TimePickerDialogFragment.Listener {
+        implements EditActivity.EditResultHolder, TimePickerDialogFragment.Listener,
+                   DaysPickerDialogFragment.Listener {
 
     private static final String FIELD_NAME = "behavior";
     private static final String KEY_INIT_REM_BEHAVIOR_DATA = "init_rem_behavior_data";
@@ -574,6 +575,15 @@ public class EditRemBehaviorFragment extends Fragment
                     dialogFragment.setTargetFragment(EditRemBehaviorFragment.this, 1);
                     break;
                 }
+                case R.id.button_days_of_week: {
+                    String selectionStr = ((Button) fragmentView.findViewById(R.id.button_days_of_week))
+                            .getText().toString();
+                    boolean[] daysSelection = parseDaysOfWeekSelection(selectionStr);
+                    DaysPickerDialogFragment dialogFragment = DaysPickerDialogFragment.newInstance(
+                            "Select days of week", daysSelection);
+                    dialogFragment.show(getFragmentManager(), "select_days_of_week");
+                    dialogFragment.setTargetFragment(EditRemBehaviorFragment.this, 1);
+                }
             }
         }
     };
@@ -590,6 +600,26 @@ public class EditRemBehaviorFragment extends Fragment
             hrMin[1] = 0;
         }
         return hrMin;
+    }
+
+    private boolean[] parseDaysOfWeekSelection(String selectionStr) {
+        boolean[] sel = new boolean[7];
+
+        if (selectionStr.isEmpty())
+            return sel;
+
+        if (selectionStr.equals("M ~ Su")) {
+            for (int i=0; i<7; i++)
+                sel[i] = true;
+            return sel;
+        }
+
+        final String[] daySymbols = ReminderDataBehavior.Time.DAY_SYMBOLS;
+        for (int i=0; i<7; i++) {
+            if (selectionStr.contains(daySymbols[i]))
+                sel[i] = true;
+        }
+        return sel;
     }
 
     private void actionRemoveInstantPeriod(View view, String itemText) {
@@ -788,8 +818,39 @@ public class EditRemBehaviorFragment extends Fragment
             case "pick_end_time":
                 ((Button) view.findViewById(R.id.button_end_time)).setText(HrMin);
                 break;
-
         }
+    }
+
+    @Override
+    public void onDaysPickerDialogPositiveClick(DialogFragment dialog, boolean[] newSelection) {
+        View view = getView();
+        if (view == null)
+            return;
+
+        String selectionStr;
+        if (newSelection[0] & newSelection[1] & newSelection[2] & newSelection[3]
+                & newSelection[4] & newSelection[5] & newSelection[6]) {
+            selectionStr = "M ~ Su";
+        } else {
+            final String[] daySymbols = ReminderDataBehavior.Time.DAY_SYMBOLS;
+            StringBuilder builder = new StringBuilder();
+            boolean first = true;
+            for (int i = 1; i <= 7; i++) {
+                int d = (i == 7) ? 0 : i;
+                if (newSelection[d]) {
+                    if (!first)
+                        builder.append(", ");
+                    builder.append(daySymbols[d]);
+                    first = false;
+                }
+            }
+            selectionStr = builder.toString();
+
+            if (selectionStr.isEmpty())
+                selectionStr = "none";
+        }
+
+        ((Button) view.findViewById(R.id.button_days_of_week)).setText(selectionStr);
     }
 
     //

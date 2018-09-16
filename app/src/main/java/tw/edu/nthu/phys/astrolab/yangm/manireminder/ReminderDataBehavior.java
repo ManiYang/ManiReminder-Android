@@ -297,7 +297,7 @@ public class ReminderDataBehavior {
         private int hour; // can be >= 24
         private int minute;
         private byte dayOfWeekSelection = -1; //binary 1111 1111
-        private String[] daySymbols = {"Su","M","T","W","R","F","Sa","Su"};
+        public static final String[] DAY_SYMBOLS = {"Su","M","T","W","R","F","Sa","Su"};
 
         public Time(int hour, int minute) {
             this.hour = hour;
@@ -334,7 +334,7 @@ public class ReminderDataBehavior {
                 else {
                     dayOfWeekSelection = 0;
                     for (int i=0; i<7; i++) {
-                        if (tokens[0].contains(daySymbols[i])) {
+                        if (tokens[0].contains(DAY_SYMBOLS[i])) {
                             dayOfWeekSelection |= (1 << i);
                             if (i == 0)
                                 dayOfWeekSelection |= (1 << 7);
@@ -395,7 +395,7 @@ public class ReminderDataBehavior {
             else {
                 for (int d=1; d<=7; d++) {
                     if (hasDayOfWeek(d))
-                        builder.append(daySymbols[d]);
+                        builder.append(DAY_SYMBOLS[d]);
                 }
             }
             builder.append(String.format(Locale.US, ".%d:%02d", hour, minute));
@@ -413,7 +413,7 @@ public class ReminderDataBehavior {
                         if (!first) {
                             builder.append(sep);
                         }
-                        builder.append(daySymbols[d]);
+                        builder.append(DAY_SYMBOLS[d]);
                         first = false;
                     }
                 }
