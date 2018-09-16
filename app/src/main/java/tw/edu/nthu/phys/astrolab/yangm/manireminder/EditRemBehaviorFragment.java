@@ -7,6 +7,7 @@ import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -68,14 +69,11 @@ public class EditRemBehaviorFragment extends Fragment
         readBundle(getArguments());
 
         setSpinnersItems(view);
-        ((Spinner) view.findViewById(R.id.spinner_model))
-                .setOnItemSelectedListener(new SpinnerOnItemSelectListener());
-        ((Spinner) view.findViewById(R.id.spinner_start_type))
-                .setOnItemSelectedListener(new SpinnerOnItemSelectListener());
-        ((Spinner) view.findViewById(R.id.spinner_sit_or_event))
-                .setOnItemSelectedListener(new SpinnerOnItemSelectListener());
-        ((Spinner) view.findViewById(R.id.spinner_end_type))
-                .setOnItemSelectedListener(new SpinnerOnItemSelectListener());
+
+        setSpinnerListeners((Spinner) view.findViewById(R.id.spinner_model));
+        setSpinnerListeners((Spinner) view.findViewById(R.id.spinner_start_type));
+        setSpinnerListeners((Spinner) view.findViewById(R.id.spinner_sit_or_event));
+        setSpinnerListeners((Spinner) view.findViewById(R.id.spinner_end_type));
 
         view.findViewById(R.id.button_add).setOnClickListener(OnButtonClickListener);
         view.findViewById(R.id.button_edit).setOnClickListener(OnButtonClickListener);
@@ -128,10 +126,6 @@ public class EditRemBehaviorFragment extends Fragment
 
         // model //
         Spinner spinnerModel = view.findViewById(R.id.spinner_model);
-        SpinnerOnItemSelectListener listener =
-                (SpinnerOnItemSelectListener) spinnerModel.getOnItemSelectedListener();
-        if (listener != null)
-            listener.setOtherViews = false;
         spinnerModel.setSelection(dataBehavior.getRemType());
 
         // repeat pattern //
@@ -196,6 +190,7 @@ public class EditRemBehaviorFragment extends Fragment
     // spinners //
     ArrayAdapter<String> adapterSituations; //for spinner_sit_or_event
     ArrayAdapter<String> adapterEvents; //for spinner_sit_or_event
+    SpinnerOnItemSelectListener spinnerOnItemSelectListener = new SpinnerOnItemSelectListener();
 
     private void setSpinnersItems(View view) {
         // spinner_model
@@ -244,32 +239,52 @@ public class EditRemBehaviorFragment extends Fragment
                 android.R.layout.simple_spinner_dropdown_item, allEvents);
     }
 
-    private class SpinnerOnItemSelectListener implements AdapterView.OnItemSelectedListener {
-        private boolean setOtherViews = true;
+    private class SpinnerOnItemSelectListener
+            implements AdapterView.OnItemSelectedListener, View.OnTouchListener {
+
+        /* Detect user selection by onTouch(), which won't be called if spinner selection is done
+           by program.
+           Method onSpinnerXXXItemUserSelect() will be called here if the selection is by user.
+           However, it can be called explicitly whenever & wherever necessary.
+        */
+
+        private boolean byUser = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            byUser = true;
+            return false;
+        }
 
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            switch (parent.getId()) {
-                case R.id.spinner_model:
-                    if (setOtherViews)
+            if (byUser) {
+                switch (parent.getId()) {
+                    case R.id.spinner_model:
                         onSpinnerModelItemUserSelect(position);
-                    break;
-                case R.id.spinner_start_type:
-                    if (setOtherViews)
+                        break;
+                    case R.id.spinner_start_type:
                         onSpinnerStartTypeItemUserSelect(position);
-                    break;
-                case R.id.spinner_end_type:
-                    if (setOtherViews)
+                        break;
+                    case R.id.spinner_end_type:
                         onSpinnerEndTypeItemUserSelect(position);
-                    break;
+                        break;
+                }
             }
-            setOtherViews = true;
+            byUser = false;
         }
 
         @Override
         public void onNothingSelected(AdapterView<?> parent) {}
     }
 
+    private void setSpinnerListeners(Spinner spinner) {
+        spinner.setOnItemSelectedListener(spinnerOnItemSelectListener);
+        spinner.setOnTouchListener(spinnerOnItemSelectListener);
+    }
+
+    /** According to `position`, setup the related views and set empty EditText's and default
+     *  selection of spinners */
     private void onSpinnerModelItemUserSelect(int position) {
         View fragmentView = getView();
         if (fragmentView == null)
@@ -308,9 +323,10 @@ public class EditRemBehaviorFragment extends Fragment
                 showEmptyInstantPeriodList();
                 break;
         }
-        fragmentView.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
+    /** According to `position`, setup the related views and set empty EditText's and default
+     *  selection of spinners */
     private void onSpinnerStartTypeItemUserSelect(int position) {
         View view = getView();
         if (view == null)
@@ -329,7 +345,6 @@ public class EditRemBehaviorFragment extends Fragment
         }
 
         TextView labelSitEvent = view.findViewById(R.id.label_sit_or_event);
-        Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
         Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
 
         ArrayAdapter<String> adapterEndTypes = (ArrayAdapter<String>) spinnerEndType.getAdapter();
@@ -342,14 +357,10 @@ public class EditRemBehaviorFragment extends Fragment
             adapterEndTypes.add("time");
         } else if (position == 2) { // event
             labelSitEvent.setText(R.string.label_event);
-            spinnerSitEvent.setAdapter(adapterEvents);
-            adapterEvents.notifyDataSetChanged();
-            spinnerSitEvent.setSelection(1);
+            setSpinnerSitEventToEvents(1);
         } else {
             labelSitEvent.setText(R.string.label_situation);
-            spinnerSitEvent.setAdapter(adapterSituations);
-            adapterSituations.notifyDataSetChanged();
-            spinnerSitEvent.setSelection(1);
+            setSpinnerSitEventToSits(1);
             if (position == 0)
                 adapterEndTypes.add("situation end");
         }
@@ -359,6 +370,8 @@ public class EditRemBehaviorFragment extends Fragment
         onSpinnerEndTypeItemUserSelect(0);
     }
 
+    /** According to `position`, setup the related views and set empty EditText's and default
+     *  selection of spinners */
     private void onSpinnerEndTypeItemUserSelect(int position) {
         View view = getView();
         if (view == null)
@@ -385,11 +398,17 @@ public class EditRemBehaviorFragment extends Fragment
         }
     }
 
-    private void setSpinnerSitEventToSits(String sitToSelect) {
+    private void setSpinnerSitEventToSits(int selectPos) {
         Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
         spinnerSitEvent.setAdapter(adapterSituations);
         adapterSituations.notifyDataSetChanged();
 
+        if (selectPos < 0 || selectPos >= adapterSituations.getCount())
+            throw new RuntimeException(String.format("bad selectPost (%d)", selectPos));
+        spinnerSitEvent.setSelection(selectPos);
+    }
+
+    private void setSpinnerSitEventToSits(String sitToSelect) {
         int pos = 1;
         for (int p=0; p<adapterSituations.getCount(); p++) {
             if (adapterSituations.getItem(p).equals(sitToSelect)) {
@@ -397,14 +416,20 @@ public class EditRemBehaviorFragment extends Fragment
                 break;
             }
         }
-        spinnerSitEvent.setSelection(pos);
+        setSpinnerSitEventToSits(pos);
     }
 
-    private void setSpinnerSitEventToEvents(String eventToSelect) {
+    private void setSpinnerSitEventToEvents(int selectPos) {
         Spinner spinnerSitEvent = getView().findViewById(R.id.spinner_sit_or_event);
         spinnerSitEvent.setAdapter(adapterEvents);
         adapterEvents.notifyDataSetChanged();
 
+        if (selectPos < 0 || selectPos >= adapterEvents.getCount())
+            throw new RuntimeException(String.format("bad selectPos (%d)", selectPos));
+        spinnerSitEvent.setSelection(selectPos);
+    }
+
+    private void setSpinnerSitEventToEvents(String eventToSelect) {
         int pos = 1;
         for (int p=0; p<adapterEvents.getCount(); p++) {
             if (adapterEvents.getItem(p).equals(eventToSelect)) {
@@ -412,7 +437,7 @@ public class EditRemBehaviorFragment extends Fragment
                 break;
             }
         }
-        spinnerSitEvent.setSelection(pos);
+        setSpinnerSitEventToEvents(pos);
     }
 
     // list of instants/periods //
@@ -619,11 +644,6 @@ public class EditRemBehaviorFragment extends Fragment
                     .setFromDisplayString(data, allSits, allEvents);
         }
 
-        SpinnerOnItemSelectListener listener =
-                (SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener();
-        if (listener != null)
-            listener.setOtherViews = false;
-
         if (data.isEmpty()) {
             spinnerStartType.setSelection(0);
             onSpinnerStartTypeItemUserSelect(0);
@@ -671,11 +691,6 @@ public class EditRemBehaviorFragment extends Fragment
             }
 
             if (remModel == 2 || remModel == 3) {
-                listener = (SpinnerOnItemSelectListener) spinnerEndType.getOnItemSelectedListener();
-                if (listener != null) {
-                    listener.setOtherViews = false;
-                }
-
                 // set end-condition-type items
                 ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinnerEndType.getAdapter();
                 adapter.clear();
