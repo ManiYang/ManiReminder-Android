@@ -91,59 +91,21 @@ public class EditRemBehaviorFragment extends Fragment
         allSits = UtilGeneral.parseAsSparseStringArray(initAllSitsDict);
         allEvents = UtilGeneral.parseAsSparseStringArray(initAllEventsDict);
 
+        //
+        hideEditBox(view);
+
         return view;
     }
 
-    ArrayAdapter<String> adapterSituations; //for spinner_sit_or_event
-    ArrayAdapter<String> adapterEvents; //for spinner_sit_or_event
-
-    private void setSpinnersItems(View view) {
-        // spinner_model
-        {
-            Spinner spinnerModel = view.findViewById(R.id.spinner_model);
-            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
-                    R.array.reminder_modes, R.layout.text_list_item_plain);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerModel.setAdapter(adapter);
-        }
-
-        // spinner_start_type
-        {
-            List<String> items = new ArrayList<>();
-            items.add("situation start");
-            items.add("situation end");
-            items.add("event");
-            items.add("time");
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
-                    android.R.layout.simple_spinner_dropdown_item, items);
-            ((Spinner) view.findViewById(R.id.spinner_start_type)).setAdapter(adapter);
-        }
-
-        // spinner_end_type
-        List<String> endTypes = new ArrayList<>();
-        endTypes.add("duration");
-        ArrayAdapter<String> adapterEndTypes = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, endTypes);
-        ((Spinner) view.findViewById(R.id.spinner_end_type)).setAdapter(adapterEndTypes);
-
-        // for spinner_sit_or_event
-        List<String> allSits = UtilGeneral.getValuesOfSparseStringArray(
-                UtilGeneral.parseAsSparseStringArray(initAllSitsDict));
-        if (allSits.isEmpty()) {
-            allSits.add(NONE_INDICATOR);
-        }
-        allSits.add(0, "New Situation...");
-        adapterSituations = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, allSits);
-
-        List<String> allEvents = UtilGeneral.getValuesOfSparseStringArray(
-                UtilGeneral.parseAsSparseStringArray(initAllEventsDict));
-        if (allEvents.isEmpty()) {
-            allEvents.add(NONE_INDICATOR);
-        }
-        allEvents.add(0, "New Event...");
-        adapterEvents = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, allEvents);
+    private void hideEditBox(View view) {
+        view.findViewById(R.id.label_start_instant).setVisibility(View.GONE);
+        view.findViewById(R.id.container_start_time).setVisibility(View.GONE);
+        view.findViewById(R.id.container_days_of_week).setVisibility(View.GONE);
+        view.findViewById(R.id.label_end_condition).setVisibility(View.GONE);
+        view.findViewById(R.id.container_endcondition_after).setVisibility(View.GONE);
+        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
+        view.findViewById(R.id.container_end_cond).setVisibility(View.GONE);
+        view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
     private void readBundle(Bundle bundle) {
@@ -176,18 +138,19 @@ public class EditRemBehaviorFragment extends Fragment
 
         // model //
         Spinner spinnerModel = view.findViewById(R.id.spinner_model);
-        ((SpinnerOnItemSelectListener) spinnerModel.getOnItemSelectedListener()).setOtherViews
-                = false;
+        SpinnerOnItemSelectListener listener =
+                (SpinnerOnItemSelectListener) spinnerModel.getOnItemSelectedListener();
+        if (listener != null)
+            listener.setOtherViews = false;
         spinnerModel.setSelection(dataBehavior.getRemType());
 
         // repeat pattern //
         if (dataBehavior.isTodoRepeatedlyInPeriod()) {
             view.findViewById(R.id.container_repeat_pattern).setVisibility(View.VISIBLE);
-            ((EditText) view.findViewById(R.id.edit_repeat_every))
-                    .setText(Integer.toString(dataBehavior.getRepeatEveryMinutes()));
-            ((EditText) view.findViewById(R.id.edit_repeat_offset))
-                    .setText(Integer.toString(dataBehavior.getRepeatOffsetMinutes()));
-
+            ((EditText) view.findViewById(R.id.edit_repeat_every)).setText(
+                    String.format(Locale.US, "%d", dataBehavior.getRepeatEveryMinutes()));
+            ((EditText) view.findViewById(R.id.edit_repeat_offset)).setText(
+                    String.format(Locale.US, "%d", dataBehavior.getRepeatOffsetMinutes()));
         } else {
             view.findViewById(R.id.container_repeat_pattern).setVisibility(View.GONE);
         }
@@ -238,12 +201,59 @@ public class EditRemBehaviorFragment extends Fragment
             view.findViewById(R.id.button_remove).setVisibility(View.GONE);
             view.findViewById(R.id.button_edit).setVisibility(View.GONE);
         }
-
-        //
-        view.findViewById(R.id.container_edit_box).setVisibility(View.GONE);
     }
 
-    //
+    // spinners
+    ArrayAdapter<String> adapterSituations; //for spinner_sit_or_event
+    ArrayAdapter<String> adapterEvents; //for spinner_sit_or_event
+
+    private void setSpinnersItems(View view) {
+        // spinner_model
+        {
+            Spinner spinnerModel = view.findViewById(R.id.spinner_model);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                    R.array.reminder_modes, R.layout.text_list_item_plain);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerModel.setAdapter(adapter);
+        }
+
+        // spinner_start_type
+        List<String> items = new ArrayList<>();
+        items.add("situation start");
+        items.add("situation end");
+        items.add("event");
+        items.add("time");
+        ((Spinner) view.findViewById(R.id.spinner_start_type)).setAdapter(
+                new ArrayAdapter<>(getContext(),
+                        android.R.layout.simple_spinner_dropdown_item, items));
+
+        // spinner_end_type
+        List<String> endTypes = new ArrayList<>();
+        endTypes.add("duration");
+        ((Spinner) view.findViewById(R.id.spinner_end_type)).setAdapter(
+                new ArrayAdapter<>(getContext(),
+                        android.R.layout.simple_spinner_dropdown_item, endTypes));
+
+        // for spinner_sit_or_event
+        List<String> allSits = UtilGeneral.getValuesOfSparseStringArray(
+                UtilGeneral.parseAsSparseStringArray(initAllSitsDict));
+        if (allSits.isEmpty()) {
+            allSits.add(NONE_INDICATOR);
+        }
+        allSits.add(0, "New Situation...");
+        adapterSituations = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_dropdown_item, allSits);
+
+        List<String> allEvents = UtilGeneral.getValuesOfSparseStringArray(
+                UtilGeneral.parseAsSparseStringArray(initAllEventsDict));
+        if (allEvents.isEmpty()) {
+            allEvents.add(NONE_INDICATOR);
+        }
+        allEvents.add(0, "New Event...");
+        adapterEvents = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_dropdown_item, allEvents);
+    }
+
     private class SpinnerOnItemSelectListener implements AdapterView.OnItemSelectedListener {
         private boolean setOtherViews = true;
 
@@ -259,12 +269,10 @@ public class EditRemBehaviorFragment extends Fragment
                         onSpinnerStartTypeItemUserSelect(position);
                     break;
                 case R.id.spinner_end_type:
-//                    onSpinnerEndTypeItemSelect(position, setOtherViews);
+                    if (setOtherViews)
+                        onSpinnerEndTypeItemUserSelect(position);
                     break;
-
             }
-
-            //
             setOtherViews = true;
         }
 
@@ -274,6 +282,8 @@ public class EditRemBehaviorFragment extends Fragment
 
     private void onSpinnerModelItemUserSelect(int position) {
         View fragmentView = getView();
+        if (fragmentView == null)
+            return;
         switch (position) {
             case 0: // no behavior setting
                 fragmentView.findViewById(R.id.container_repeat_pattern).setVisibility(View.GONE);
@@ -313,12 +323,14 @@ public class EditRemBehaviorFragment extends Fragment
 
     private void onSpinnerStartTypeItemUserSelect(int position) {
         View view = getView();
+        if (view == null)
+            return;
 
-        if (position == 3) {
+        if (position == 3) { // time
             view.findViewById(R.id.container_start_sit_event).setVisibility(View.GONE);
             view.findViewById(R.id.container_start_time).setVisibility(View.VISIBLE);
             view.findViewById(R.id.container_days_of_week).setVisibility(View.VISIBLE);
-        } else {
+        } else { // situation start/end or event
             view.findViewById(R.id.container_start_sit_event).setVisibility(View.VISIBLE);
             view.findViewById(R.id.container_start_time).setVisibility(View.GONE);
             view.findViewById(R.id.container_days_of_week).setVisibility(View.GONE);
@@ -326,14 +338,13 @@ public class EditRemBehaviorFragment extends Fragment
 
         TextView labelSitEvent = view.findViewById(R.id.label_sit_or_event);
         Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
-        //Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
+        Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
 
-        List<String> endTypes = new ArrayList<>();
-        endTypes.add("duration");
-        ArrayAdapter<String> adapterEndTypes = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, endTypes);
+        ArrayAdapter<String> adapterEndTypes = (ArrayAdapter<String>) spinnerEndType.getAdapter();
+        adapterEndTypes.clear();
+        adapterEndTypes.add("duration");
 
-        if (position == 3) {
+        if (position == 3) { // time
             ((Button) view.findViewById(R.id.button_start_time)).setText(R.string.label_set);
             ((Button) view.findViewById(R.id.button_days_of_week)).setText(R.string.label_set);
             adapterEndTypes.add("time");
@@ -347,29 +358,44 @@ public class EditRemBehaviorFragment extends Fragment
             spinnerSitEvent.setAdapter(adapterSituations);
             adapterSituations.notifyDataSetChanged();
             spinnerSitEvent.setSelection(1);
-
             if (position == 0)
                 adapterEndTypes.add("situation end");
         }
 
-        // end condition
-        // TODO ...
-//        spinnerEndType.setAdapter(adapterEndTypes);
-//        adapterEndTypes.notifyDataSetChanged();
-//        view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
+        adapterEndTypes.notifyDataSetChanged();
+        spinnerEndType.setSelection(0);
     }
 
     private void onSpinnerEndTypeItemUserSelect(int position) {
+        View view = getView();
+        if (view == null)
+            return;
         switch (position) {
-            case 0: //duration
+            case 0: // duration
+                view.findViewById(R.id.container_endcondition_after).setVisibility(View.VISIBLE);
+                ((EditText) view.findViewById(R.id.edit_after_minutes)).setText("");
+                view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
                 break;
-            case 1: //situation end or time
+
+            case 1: // situation end or time
+                view.findViewById(R.id.container_endcondition_after).setVisibility(View.GONE);
+
+                String item = (String) ((Spinner) view.findViewById(R.id.spinner_end_type))
+                        .getItemAtPosition(position);
+                if (item.startsWith("time")) {
+                    view.findViewById(R.id.container_end_time).setVisibility(View.VISIBLE);
+                    ((Button) view.findViewById(R.id.button_end_time)).setText(R.string.label_set);
+                } else {
+                    view.findViewById(R.id.container_end_time).setVisibility(View.GONE);
+                }
                 break;
         }
     }
 
     private void showEmptyInstantPeriodList() {
         View fragmentView = getView();
+        if (fragmentView == null)
+            return;
         fragmentView.findViewById(R.id.label_instants_or_periods).setVisibility(View.VISIBLE);
         fragmentView.findViewById(R.id.container_instants_periods).setVisibility(View.VISIBLE);
 
@@ -380,13 +406,16 @@ public class EditRemBehaviorFragment extends Fragment
         fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
     }
 
-    //
+    // list of instants/periods
     private String instantPeriodListSelectedText = "";
 
     private View.OnClickListener onInstantPeriodListItemClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             View fragmentView = getView();
+            if (fragmentView == null)
+                return;
+
             boolean editBoxIsVisible = fragmentView.findViewById(R.id.container_edit_box)
                                      .getVisibility() == View.VISIBLE;
             if (editBoxIsVisible) {
@@ -413,6 +442,8 @@ public class EditRemBehaviorFragment extends Fragment
 
     private void deselectInstantsPeriodsList() {
         View fragmentView = getView();
+        if (fragmentView == null)
+            return;
         LinearLayout list = fragmentView.findViewById(R.id.instants_periods_list);
         for (int i=0; i<list.getChildCount(); i++) {
             list.getChildAt(i).setSelected(false);
@@ -421,11 +452,13 @@ public class EditRemBehaviorFragment extends Fragment
         fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
     }
 
-    //
+    // buttons
     private View.OnClickListener OnButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //View fragmentView = getView();
+            View fragmentView = getView();
+            if (fragmentView == null)
+                return;
 
             switch (v.getId()) {
                 case R.id.button_add:
@@ -434,6 +467,15 @@ public class EditRemBehaviorFragment extends Fragment
                     break;
                 case R.id.button_edit:
                     showInstantPeriodEditBox(instantPeriodListSelectedText);
+                    break;
+
+                case R.id.button_done:
+                    // todo: save editing box data
+                    // no break
+                case R.id.button_cancel:
+                    hideEditBox(fragmentView);
+                    fragmentView.findViewById(R.id.button_add).setVisibility(View.VISIBLE);
+                    fragmentView.findViewById(R.id.spinner_model).setEnabled(true);
                     break;
             }
         }
@@ -444,15 +486,19 @@ public class EditRemBehaviorFragment extends Fragment
         // editing box for adding new instant or period.
         // Otherwise, load `data` to editing box.
 
-        boolean showDefault = data.isEmpty();
-
         View view = getView();
+        if (view == null) {
+            return;
+        }
+
+        boolean showDefault = data.isEmpty();
         int model = ((Spinner) view.findViewById(R.id.spinner_model)).getSelectedItemPosition();
 
-        // hide buttons
+        // hide buttons and disable model spinner
         view.findViewById(R.id.button_add).setVisibility(View.GONE);
         view.findViewById(R.id.button_remove).setVisibility(View.GONE);
         view.findViewById(R.id.button_edit).setVisibility(View.GONE);
+        view.findViewById(R.id.spinner_model).setEnabled(false);
 
         // show editing box
         view.findViewById(R.id.container_edit_box).setVisibility(View.VISIBLE);
@@ -478,23 +524,25 @@ public class EditRemBehaviorFragment extends Fragment
         }
 
         //
-        setStartInstantType(showDefault ? "" : data, model);
-
-        // TODO: set end condition
-
+        setEditBoxContents(showDefault ? "" : data, model);
     }
 
-    private void setStartInstantType(String data, int remModel) {
+    private void setEditBoxContents(String data, int remModel) {
         // Set start instant type according to `data`.
         // `data` can be empty, in which case set to default.
 
         View view = getView();
+        if (view == null)
+            return;
 
         Spinner spinnerStartType = view.findViewById(R.id.spinner_start_type);
         LinearLayout containerStartSitEvent = view.findViewById(R.id.container_start_sit_event);
         TextView labelStartSitEvent = view.findViewById(R.id.label_sit_or_event);
         LinearLayout containerStartTime = view.findViewById(R.id.container_start_time);
         LinearLayout containerDaysOfWeek = view.findViewById(R.id.container_days_of_week);
+        Spinner spinnerEndType = view.findViewById(R.id.spinner_end_type);
+        LinearLayout containerEndCondAfter = view.findViewById(R.id.container_endcondition_after);
+        LinearLayout containerEndTime = view.findViewById(R.id.container_end_time);
 
         //
         ReminderDataBehavior.Period period = null;
@@ -503,16 +551,24 @@ public class EditRemBehaviorFragment extends Fragment
                     .setFromDisplayString(data, allSits, allEvents);
         }
 
-        if (!data.isEmpty()) {
+        if (data.isEmpty()) {
+            spinnerStartType.setSelection(0);
+        }
+        else { //(data is not empty)
             ReminderDataBehavior.Instant startInstant;
             if (remModel == 1)
                 startInstant = new ReminderDataBehavior.Instant()
                         .setFromDisplayString(data, allSits, allEvents);
-            else
+            else {
+                if (period == null)
+                    throw new RuntimeException("`period` is null");
                 startInstant = period.getStartInstant();
+            }
 
-            ((SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener())
-                    .setOtherViews = false;
+            SpinnerOnItemSelectListener listener =
+                    (SpinnerOnItemSelectListener) spinnerStartType.getOnItemSelectedListener();
+            if (listener != null)
+                listener.setOtherViews = false;
 
             if (startInstant.isTime()) {
                 spinnerStartType.setSelection(3);
@@ -545,14 +601,45 @@ public class EditRemBehaviorFragment extends Fragment
                 containerDaysOfWeek.setVisibility(View.GONE);
             }
 
-            // todo: set end condition type items and selection
+            if (remModel == 2 || remModel == 3) {
+                listener = (SpinnerOnItemSelectListener) spinnerEndType.getOnItemSelectedListener();
+                if (listener != null) {
+                    listener.setOtherViews = false;
+                }
 
+                // set end-condition-type items
+                ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinnerEndType.getAdapter();
+                adapter.clear();
+                adapter.add("duration");
+                if (startInstant.isTime())
+                    adapter.add("time");
+                else if (!startInstant.isEvent())
+                    adapter.add("situation end");
+                adapter.notifyDataSetChanged();
 
-        } else { // data is empty
-            spinnerStartType.setSelection(0);
-            // todo: set end condition type items and selection
+                //
+                if (period.isEndingAfterDuration()) {
+                    spinnerEndType.setSelection(0);
+                    containerEndCondAfter.setVisibility(View.VISIBLE);
+                    containerEndTime.setVisibility(View.GONE);
 
+                    int duration = period.getDurationMinutes();
+                    ((EditText) view.findViewById(R.id.edit_after_minutes)).setText(
+                            String.format(Locale.US, "%d", duration));
+                } else {
+                    spinnerEndType.setSelection(1);
+                    containerEndCondAfter.setVisibility(View.GONE);
+                    if (period.isTimeRange()) {
+                        containerEndTime.setVisibility(View.VISIBLE);
 
+                        int[] hrMin = period.getEndHrMin();
+                        ((Button) view.findViewById(R.id.button_end_time)).setText(
+                                String.format(Locale.US, "%d:%02d", hrMin[0], hrMin[1]));
+                    } else {
+                        containerEndTime.setVisibility(View.GONE);
+                    }
+                }
+            }
         }
     }
 

@@ -160,12 +160,13 @@
                 android:layout_height="wrap_content"
                 android:src="@mipmap/ic_edit_black_24"
                 android:contentDescription="@string/edit" />
+
             <ImageButton
                 android:id="@+id/button_remove"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@mipmap/ic_remove_black_24"
-                android:contentDescription="@string/remove" />
+                android:contentDescription="@string/remove"
+                android:src="@mipmap/ic_remove_black_24" />
         </LinearLayout>
     </LinearLayout>
 
@@ -326,6 +327,7 @@
                 android:orientation="vertical">
 
                 <LinearLayout
+                    android:id="@+id/container_endcondition_after"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -394,7 +396,7 @@
                 android:id="@+id/button_done"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="4dp"
+                android:layout_marginStart="4dp"
                 android:text="@string/done"/>
         </LinearLayout>
     </LinearLayout>
