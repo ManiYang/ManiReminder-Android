@@ -38,7 +38,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
     }
 
     public interface Listener {
-        void onDialogPositiveClick(DialogFragment dialog, String newText);
+        void onDialogClick(DialogFragment dialog, boolean positive, String newText);
     }
 
     //
@@ -58,8 +58,7 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
                 .setView(customView)
                 .setPositiveButton(R.string.ok, onButtonClickListener)
                 .setNegativeButton(R.string.cancel, onButtonClickListener);
-        AlertDialog dialog = dialogBuilder.create();
-        return dialog;
+        return dialogBuilder.create();
     }
 
     @Override
@@ -85,12 +84,15 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
             = new DialogInterface.OnClickListener() {
         @Override
         public void onClick(DialogInterface dialog, int which) {
+            String newText = editText.getText().toString();
             switch (which) {
                 case AlertDialog.BUTTON_POSITIVE:
-                    String newText = editText.getText().toString();
-                    listener.onDialogPositiveClick(SimpleTextEditDialogFragment.this, newText);
+                    listener.onDialogClick(
+                            SimpleTextEditDialogFragment.this, true, newText);
                     break;
                 case AlertDialog.BUTTON_NEGATIVE:
+                    listener.onDialogClick(
+                            SimpleTextEditDialogFragment.this, false, newText);
                     break;
             }
         }

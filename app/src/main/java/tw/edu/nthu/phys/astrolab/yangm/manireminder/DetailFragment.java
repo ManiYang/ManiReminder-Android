@@ -312,8 +312,11 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
+    public void onDialogClick(DialogFragment dialog, boolean positive, String newText) {
         // update both DB and view (activity will not resume)
+
+        if (!positive)
+            return;
 
         View view = getView();
         if (view == null)

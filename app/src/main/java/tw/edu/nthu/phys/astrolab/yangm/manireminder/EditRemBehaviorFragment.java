@@ -3,10 +3,11 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.text.InputType;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -46,6 +47,8 @@ public class EditRemBehaviorFragment extends Fragment
 
     private SparseArray<String> allSits;
     private SparseArray<String> allEvents;
+    private int spinnerSitEventSelectedPos; //keep record when spinner selection is set, except when
+                                            //selected position is 0 (adding new sit./event).
 
     public EditRemBehaviorFragment() {
         // Required empty public constructor
@@ -179,11 +182,7 @@ public class EditRemBehaviorFragment extends Fragment
 
             listContainer.removeAllViews();
             for (String item: listItems) {
-                TextView textView = (TextView) LayoutInflater.from(getContext())
-                        .inflate(R.layout.text_list_item_plain_monospace, null);
-                textView.setText(item);
-                textView.setOnClickListener(onInstantPeriodListItemClick);
-                listContainer.addView(textView);
+                addItemToInstantPeriodList(view, item);
             }
 
             // buttons
@@ -277,7 +276,7 @@ public class EditRemBehaviorFragment extends Fragment
                         onSpinnerEndTypeItemUserSelect(position);
                         break;
                     case R.id.spinner_sit_or_event:
-                        onSpinnerEventSitItemUserSelect(position);
+                        onSpinnerSitEventItemUserSelect(position);
                         break;
                 }
             }
@@ -341,8 +340,6 @@ public class EditRemBehaviorFragment extends Fragment
         View view = getView();
         if (view == null)
             return;
-
-        Log.v("EditRemBehaviorFragment", "### spinner start-type selected: "+position);
 
         if (position == 3) { // time
             view.findViewById(R.id.container_start_sit_event).setVisibility(View.GONE);
@@ -408,11 +405,13 @@ public class EditRemBehaviorFragment extends Fragment
         }
     }
 
-    private void onSpinnerEventSitItemUserSelect(int position) {
-        // deal with new event/situation
-        if (position != 0)
+    private void onSpinnerSitEventItemUserSelect(int position) {
+        if (position != 0) {
+            spinnerSitEventSelectedPos = position;
             return;
+        }
 
+        // deal with "add new situation/event"
         View view = getView();
         if (view == null)
             return;
@@ -443,6 +442,7 @@ public class EditRemBehaviorFragment extends Fragment
         if (selectPos < 0 || selectPos >= adapterSituations.getCount())
             throw new RuntimeException(String.format("bad selectPost (%d)", selectPos));
         spinnerSitEvent.setSelection(selectPos);
+        spinnerSitEventSelectedPos = selectPos;
     }
 
     private void setSpinnerSitEventToSits(String sitToSelect) {
@@ -464,6 +464,7 @@ public class EditRemBehaviorFragment extends Fragment
         if (selectPos < 0 || selectPos >= adapterEvents.getCount())
             throw new RuntimeException(String.format("bad selectPos (%d)", selectPos));
         spinnerSitEvent.setSelection(selectPos);
+        spinnerSitEventSelectedPos = selectPos;
     }
 
     private void setSpinnerSitEventToEvents(String eventToSelect) {
@@ -511,6 +512,15 @@ public class EditRemBehaviorFragment extends Fragment
         }
     };
 
+    private TextView addItemToInstantPeriodList(View fragmentView, String item) {
+        TextView textView = (TextView) LayoutInflater.from(getContext())
+                .inflate(R.layout.text_list_item_plain_monospace, null);
+        textView.setText(item);
+        textView.setOnClickListener(onInstantPeriodListItemClick);
+        ((LinearLayout) fragmentView.findViewById(R.id.instants_periods_list)).addView(textView);
+        return textView;
+    }
+
     private void deselectInstantsPeriodsList() {
         View fragmentView = getView();
         if (fragmentView == null)
@@ -539,15 +549,25 @@ public class EditRemBehaviorFragment extends Fragment
         fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
     }
 
-    private String getInstantPeriodListSelectedText(View view) {
+    private TextView getInstantPeriodListSelectedView(View view) {
+        // Returns null if not found.
         LinearLayout layout = view.findViewById(R.id.instants_periods_list);
         for (int i=0; i<layout.getChildCount(); i++) {
             View child = layout.getChildAt(i);
             if (child instanceof TextView && child.isSelected()) {
-                return ((TextView) child).getText().toString();
+                return (TextView) child;
             }
         }
-        return "";
+        return null;
+    }
+
+    private String getInstantPeriodListSelectedText(View view) {
+        // Returns "" if not found.
+        TextView textView = getInstantPeriodListSelectedView(view);
+        if (textView != null)
+            return textView.getText().toString();
+        else
+            return "";
     }
 
     // buttons //
@@ -572,12 +592,11 @@ public class EditRemBehaviorFragment extends Fragment
                     break;
 
                 case R.id.button_done:
+                    if (!validateEditBoxData(fragmentView))
+                        return;
+                    saveEditBoxData(fragmentView);
+                    // (no break)
                 case R.id.button_cancel:
-                    if (v.getId() == R.id.button_done) {
-                        // todo: validate and save editing box data
-
-                    }
-
                     hideEditBox(fragmentView);
                     fragmentView.findViewById(R.id.spinner_model).setEnabled(true);
                     fragmentView.findViewById(R.id.button_add).setVisibility(View.VISIBLE);
@@ -623,6 +642,152 @@ public class EditRemBehaviorFragment extends Fragment
         }
     };
 
+    private boolean validateEditBoxData(View view) {
+        // Returns false if input data is invalid.
+
+        // validate data
+        Button buttonStartTime = view.findViewById(R.id.button_start_time);
+        if (buttonStartTime.isShown()) {
+            if (buttonStartTime.getText().toString().equalsIgnoreCase("set")) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage("Please set (start) time.")
+                        .setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        Button buttonDaysOfWeek = view.findViewById(R.id.button_days_of_week);
+        if (buttonDaysOfWeek.isShown()) {
+            String text = buttonDaysOfWeek.getText().toString();
+            String errMsg = null;
+            if (text.equalsIgnoreCase("set"))
+                errMsg = "Please select days of week.";
+            else if (text.equalsIgnoreCase("none"))
+                errMsg = "Days of week cannot be empty.";
+
+            if (errMsg != null) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(errMsg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        EditText editAfterMinutes = view.findViewById(R.id.edit_after_minutes);
+        if (editAfterMinutes.isShown()) {
+            String text = editAfterMinutes.getText().toString().trim();
+            String errMsg = null;
+            if (text.isEmpty())
+                errMsg = "Please set duration (after ? minutes) of end condition.";
+            else if (text.matches("0+"))
+                errMsg = "Duration of end condition must be > 0.";
+
+            if (errMsg != null) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(errMsg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        Button buttonEndTime = view.findViewById(R.id.button_end_time);
+        if (buttonEndTime.isShown()) {
+            String text = buttonEndTime.getText().toString();
+            String errMsg = null;
+            if (text.equalsIgnoreCase("set"))
+                errMsg = "Please set time for end condition.";
+            else {
+                int endHr = Integer.parseInt(text.split(":")[0]);
+                int endMin = Integer.parseInt(text.split(":")[1]);
+                String startTimeText = buttonStartTime.getText().toString();
+                int startHr = Integer.parseInt(startTimeText.split(":")[0]);
+                int startMin = Integer.parseInt(startTimeText.split(":")[1]);
+                if ((endHr - startHr)*60 + endMin - startMin <= 0)
+                    errMsg = "End time must be later than start time.";
+            }
+
+            if (errMsg != null) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(errMsg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private String packEditBoxData(View view) {
+        // Returns display string.
+
+        int model = ((Spinner) view.findViewById(R.id.spinner_model)).getSelectedItemPosition();
+        if (model == 0)
+            return "";
+
+        // get (start) instant
+        ReminderDataBehavior.Instant instant = new ReminderDataBehavior.Instant();
+        int startType = ((Spinner) view.findViewById(R.id.spinner_start_type))
+                .getSelectedItemPosition();
+        if (startType == 3) {
+            String daysStr = ((Button) view.findViewById(R.id.button_days_of_week)).getText()
+                    .toString().replace(" ", "");
+            String hrMin = ((Button) view.findViewById(R.id.button_start_time)).getText()
+                    .toString();
+            instant.setAsTime(new ReminderDataBehavior.Time(daysStr+"."+hrMin));
+        } else {
+            int pos = ((Spinner) view.findViewById(R.id.spinner_sit_or_event))
+                    .getSelectedItemPosition();
+            if (startType == 2) {
+                int eventId = UtilGeneral.searchSparseStringArrayByValue(
+                        allEvents, adapterEvents.getItem(pos));
+                instant.setAsEvent(eventId);
+            } else {
+                int sitId = UtilGeneral.searchSparseStringArrayByValue(
+                        allSits, adapterSituations.getItem(pos));
+                if (startType == 0)
+                    instant.setAsSituationStart(sitId);
+                else
+                    instant.setAsSituationEnd(sitId);
+            }
+        }
+
+        // get display string
+        String displayStr = "";
+        boolean endTypeIsDuration = ((Spinner) view.findViewById(R.id.spinner_end_type))
+                .getSelectedItemPosition() == 0;
+        if (model == 1) {
+            displayStr = instant.getDisplayString(allSits, allEvents);
+        } else if (model == 2 || model == 3) {
+            ReminderDataBehavior.Period period = new ReminderDataBehavior.Period();
+            if (endTypeIsDuration) {
+                int duration = Integer.parseInt(
+                        ((EditText) view.findViewById(R.id.edit_after_minutes)).getText().toString());
+                period.setWithDuration(instant, duration);
+            } else {
+                if (instant.isSituationStart()) {
+                    period.setAsSituationStartEnd(instant.getSituationId());
+                } else if (instant.isTime()) {
+                    String[] hrMin = ((Button) view.findViewById(R.id.button_end_time))
+                            .getText().toString().split(":");
+                    int endHr = Integer.parseInt(hrMin[0]);
+                    int endMin = Integer.parseInt(hrMin[1]);
+                    period.setAsTimeRange(instant.getTime(), endHr, endMin);
+                }
+            }
+            displayStr = period.getDisplayString(allSits, allEvents);
+        }
+        return displayStr;
+    }
+
+    private void saveEditBoxData(View view) {
+        String displayStr = packEditBoxData(view);
+
+        TextView selectedListItem = getInstantPeriodListSelectedView(view);
+        if (selectedListItem == null) { // adding new item
+            TextView textView = addItemToInstantPeriodList(view, displayStr);
+            textView.setSelected(true);
+        } else { // editing selected item
+            selectedListItem.setText(displayStr);
+        }
+    }
+
     private int[] parseHrMin(String HrMinStr) {
         // Parse HrMinStr as "<hr>:<min>". If failed, default to 12:00.
         int[] hrMin = new int[2];
@@ -640,7 +805,7 @@ public class EditRemBehaviorFragment extends Fragment
     private boolean[] parseDaysOfWeekSelection(String selectionStr) {
         boolean[] sel = new boolean[7];
 
-        if (selectionStr.isEmpty())
+        if (selectionStr.isEmpty() || selectionStr.equals("none"))
             return sel;
 
         if (selectionStr.equals("M ~ Su")) {
@@ -748,7 +913,7 @@ public class EditRemBehaviorFragment extends Fragment
             spinnerStartType.setSelection(0);
             onSpinnerStartTypeItemUserSelect(0);
         }
-        else { //(data is not empty)
+        else { //(`data` is not empty)
             ReminderDataBehavior.Instant startInstant;
             if (remModel == 1)
                 startInstant = new ReminderDataBehavior.Instant()
@@ -889,116 +1054,93 @@ public class EditRemBehaviorFragment extends Fragment
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
+    public void onDialogClick(DialogFragment dialog, boolean positive, String newText) {
         View view = getView();
         if (view == null)
             return;
 
-        if (dialog.getTag().equals("new_situation_or_event")) {
-            boolean isEvent; //false: situation
-            int startInstantType =
-                    ((Spinner) view.findViewById(R.id.spinner_start_type)).getSelectedItemPosition();
-            if (startInstantType == 0 || startInstantType == 1) { // situation start/end
-                isEvent = false;
+        switch (dialog.getTag()) {
+            case "new_situation_or_event":
+                if (positive) {
+                    int startInstantType = ((Spinner) view.findViewById(R.id.spinner_start_type))
+                                    .getSelectedItemPosition();
+                    if (startInstantType == 3)
+                        throw new RuntimeException("start instant type is Time");
 
-            } else if (startInstantType == 2) { // event
-                isEvent = true;
-            } else {
-                throw new RuntimeException("start instant type is Time");
-            }
-
-            //
-            Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
-
-            // check if `newText` already exists in allSits/allEvents
-            newText = newText.trim();
-            int pos = -1;
-            if (!isEvent) {
-                for (int p = 0; p < adapterSituations.getCount(); p++) {
-                    if (adapterSituations.getItem(p).equals(newText)) {
-                        pos = p;
-                        break;
-                    }
-                }
-            } else {
-                for (int p = 0; p < adapterEvents.getCount(); p++) {
-                    if (adapterEvents.getItem(p).equals(newText)) {
-                        pos = p;
-                        break;
-                    }
-                }
-            }
-
-            if (pos != -1) { // already exists
-                Toast.makeText(getContext(),(isEvent ? "Event" : "Situation")+" already exists",
-                        Toast.LENGTH_SHORT).show();
-                spinnerSitEvent.setSelection(pos);
-            } else { // new situation or event
-                if (newText.contains(",")) {
-                    newText = newText.replace(',', '.');
-                    Toast.makeText(getContext(), "commas ',' replaced by '.'", Toast.LENGTH_LONG)
-                            .show();
-                }
-
-                // 1. add to allSits/allEvents, adapterSituations/adapterEvents
-                // 2. spinner selects new situation/event
-                int newId;
-                if (!isEvent && allSits.size() == 0) {
-                    newId = 0;
-                    allSits.append(newId, newText);
-
-                    adapterSituations.remove(NONE_INDICATOR);
-                    adapterSituations.add(newText);
-                    adapterSituations.notifyDataSetChanged();
-                    spinnerSitEvent.setSelection(1);
-
-                } else if (isEvent && allEvents.size() == 0) {
-                    newId = 0;
-                    allEvents.append(newId, newText);
-
-                    adapterEvents.remove(NONE_INDICATOR);
-                    adapterEvents.add(newText);
-                    adapterEvents.notifyDataSetChanged();
-                    spinnerSitEvent.setSelection(1);
-                } else if (!isEvent) {
-                    newId = Collections.max(UtilGeneral.getKeysOfSparseStringArray(allSits)) + 1;
-                    allSits.append(newId, newText);
-
-                    int posInsert = -1;
-                    for (int p=1; p<adapterSituations.getCount(); p++) {
-                        if (newText.compareTo(adapterSituations.getItem(p)) < 0) {
-                            posInsert = p;
-                            break;
+                    newText = newText.trim();
+                    if (newText.isEmpty()) { // empty situation/event input
+                        Toast.makeText(getContext(), "Empty input ignored", Toast.LENGTH_SHORT)
+                                .show();
+                        restoreSpinnerSitEventSelection(view);
+                    } else {
+                        int pos = searchAdapter(
+                                startInstantType == 2 ? adapterEvents : adapterSituations, newText);
+                        if (pos != -1) { // situation/event already exists
+                            Toast.makeText(getContext(),
+                                    (startInstantType == 2 ? "Event" : "Situation")
+                                            + " already exists", Toast.LENGTH_SHORT).show();
+                            ((Spinner) view.findViewById(R.id.spinner_sit_or_event)).setSelection(pos);
+                        } else { // new situation/event
+                            addNewSituationOrEvent(view, startInstantType != 2, newText);
                         }
                     }
-                    if (posInsert == -1)
-                        adapterSituations.add(newText);
-                    else
-                        adapterSituations.insert(newText, posInsert);
-                    adapterSituations.notifyDataSetChanged();
-                    spinnerSitEvent.setSelection(
-                            (posInsert == -1) ? (adapterSituations.getCount() - 1) : posInsert);
-                } else {
-                    newId = Collections.max(UtilGeneral.getKeysOfSparseStringArray(allEvents)) + 1;
-                    allEvents.append(newId, newText);
-
-                    int posInsert = -1;
-                    for (int p=1; p<adapterEvents.getCount(); p++) {
-                        if (newText.compareTo(adapterEvents.getItem(p)) < 0) {
-                            posInsert = p;
-                            break;
-                        }
-                    }
-                    if (posInsert == -1)
-                        adapterEvents.add(newText);
-                    else
-                        adapterEvents.insert(newText, posInsert);
-                    adapterEvents.notifyDataSetChanged();
-                    spinnerSitEvent.setSelection(
-                            (posInsert == -1) ? (adapterEvents.getCount() - 1) : posInsert);
+                } else { // user canceled dialog
+                    restoreSpinnerSitEventSelection(view);
                 }
+                break;
+        }
+    }
+
+    private void addNewSituationOrEvent(@NonNull View view, boolean isSituation, String newSitEvent) {
+        if (newSitEvent.contains(",")) {
+            newSitEvent = newSitEvent.replace(',', '.');
+            Toast.makeText(getContext(), "commas ',' replaced by '.'", Toast.LENGTH_LONG)
+                    .show();
+        }
+
+        SparseArray<String> allSitOrEvents = isSituation ? allSits : allEvents;
+        ArrayAdapter<String> adapter = isSituation ? adapterSituations : adapterEvents;
+        Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
+
+        // 1. add to allSits/allEvents
+        int newId = (allSitOrEvents.size() == 0) ? 0 :
+                Collections.max(UtilGeneral.getKeysOfSparseStringArray(allSitOrEvents)) + 1;
+        allSitOrEvents.append(newId, newSitEvent);
+
+        // 2. add to adapterSituations/adapterEvents
+        if (allSitOrEvents.size() == 0) {
+            adapter.remove(NONE_INDICATOR);
+        }
+        int posInsert = -1;
+        for (int p=1; p<adapter.getCount(); p++) {
+            if (newSitEvent.compareTo(adapter.getItem(p)) < 0) {
+                posInsert = p;
+                break;
             }
         }
+        if (posInsert == -1)
+            adapter.add(newSitEvent);
+        else
+            adapter.insert(newSitEvent, posInsert);
+        adapter.notifyDataSetChanged();
+
+        // 2. spinner selects new situation/event
+        int selectPos = (posInsert == -1) ? (adapter.getCount() - 1) : posInsert;
+        spinnerSitEvent.setSelection(selectPos);
+        spinnerSitEventSelectedPos = selectPos;
+    }
+
+    private void restoreSpinnerSitEventSelection(View view) {
+        ((Spinner) view.findViewById(R.id.spinner_sit_or_event)).setSelection(spinnerSitEventSelectedPos);
+    }
+
+    private int searchAdapter(ArrayAdapter<String> adapter, String text) {
+        // Returns -1 if not found.
+        for (int p = 0; p < adapter.getCount(); p++) {
+            if (adapter.getItem(p).equals(text))
+                return p;
+        }
+        return -1;
     }
 
     //
