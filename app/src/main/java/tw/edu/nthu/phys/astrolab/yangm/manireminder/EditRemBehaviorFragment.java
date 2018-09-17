@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.text.InputType;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -18,8 +19,10 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,7 +32,7 @@ import java.util.Locale;
  */
 public class EditRemBehaviorFragment extends Fragment
         implements EditActivity.EditResultHolder, TimePickerDialogFragment.Listener,
-                   DaysPickerDialogFragment.Listener {
+                   DaysPickerDialogFragment.Listener, SimpleTextEditDialogFragment.Listener {
 
     private static final String FIELD_NAME = "behavior";
     private static final String KEY_INIT_REM_BEHAVIOR_DATA = "init_rem_behavior_data";
@@ -222,23 +225,25 @@ public class EditRemBehaviorFragment extends Fragment
                         android.R.layout.simple_spinner_dropdown_item, endTypes));
 
         // for spinner_sit_or_event
-        List<String> allSits = UtilGeneral.getValuesOfSparseStringArray(
+        List<String> allSitsList = UtilGeneral.getValuesOfSparseStringArray(
                 UtilGeneral.parseAsSparseStringArray(initAllSitsDict));
-        if (allSits.isEmpty()) {
-            allSits.add(NONE_INDICATOR);
+        Collections.sort(allSitsList);
+        if (allSitsList.isEmpty()) {
+            allSitsList.add(NONE_INDICATOR);
         }
-        allSits.add(0, "New Situation...");
+        allSitsList.add(0, "New Situation...");
         adapterSituations = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, allSits);
+                android.R.layout.simple_spinner_dropdown_item, allSitsList);
 
-        List<String> allEvents = UtilGeneral.getValuesOfSparseStringArray(
+        List<String> allEventsList = UtilGeneral.getValuesOfSparseStringArray(
                 UtilGeneral.parseAsSparseStringArray(initAllEventsDict));
-        if (allEvents.isEmpty()) {
-            allEvents.add(NONE_INDICATOR);
+        Collections.sort(allEventsList);
+        if (allEventsList.isEmpty()) {
+            allEventsList.add(NONE_INDICATOR);
         }
-        allEvents.add(0, "New Event...");
+        allEventsList.add(0, "New Event...");
         adapterEvents = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item, allEvents);
+                android.R.layout.simple_spinner_dropdown_item, allEventsList);
     }
 
     private class SpinnerOnItemSelectListener
@@ -270,6 +275,9 @@ public class EditRemBehaviorFragment extends Fragment
                         break;
                     case R.id.spinner_end_type:
                         onSpinnerEndTypeItemUserSelect(position);
+                        break;
+                    case R.id.spinner_sit_or_event:
+                        onSpinnerEventSitItemUserSelect(position);
                         break;
                 }
             }
@@ -398,6 +406,33 @@ public class EditRemBehaviorFragment extends Fragment
                 }
                 break;
         }
+    }
+
+    private void onSpinnerEventSitItemUserSelect(int position) {
+        // deal with new event/situation
+        if (position != 0)
+            return;
+
+        View view = getView();
+        if (view == null)
+            return;
+
+        boolean isEvent; //false: situation
+        int startInstantType =
+                ((Spinner) view.findViewById(R.id.spinner_start_type)).getSelectedItemPosition();
+        if (startInstantType == 0 || startInstantType == 1) { // situation start/end
+            isEvent = false;
+
+        } else if (startInstantType == 2) { // event
+            isEvent = true;
+        } else {
+            throw new RuntimeException("start instant type is Time");
+        }
+
+        SimpleTextEditDialogFragment dialogFragment = SimpleTextEditDialogFragment.newInstance(
+                isEvent ? "New event" : "New situation", "", InputType.TYPE_CLASS_TEXT);
+        dialogFragment.show(getFragmentManager(), "new_situation_or_event");
+        dialogFragment.setTargetFragment(this, 1);
     }
 
     private void setSpinnerSitEventToSits(int selectPos) {
@@ -851,6 +886,119 @@ public class EditRemBehaviorFragment extends Fragment
         }
 
         ((Button) view.findViewById(R.id.button_days_of_week)).setText(selectionStr);
+    }
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog, String newText) {
+        View view = getView();
+        if (view == null)
+            return;
+
+        if (dialog.getTag().equals("new_situation_or_event")) {
+            boolean isEvent; //false: situation
+            int startInstantType =
+                    ((Spinner) view.findViewById(R.id.spinner_start_type)).getSelectedItemPosition();
+            if (startInstantType == 0 || startInstantType == 1) { // situation start/end
+                isEvent = false;
+
+            } else if (startInstantType == 2) { // event
+                isEvent = true;
+            } else {
+                throw new RuntimeException("start instant type is Time");
+            }
+
+            //
+            Spinner spinnerSitEvent = view.findViewById(R.id.spinner_sit_or_event);
+
+            // check if `newText` already exists in allSits/allEvents
+            newText = newText.trim();
+            int pos = -1;
+            if (!isEvent) {
+                for (int p = 0; p < adapterSituations.getCount(); p++) {
+                    if (adapterSituations.getItem(p).equals(newText)) {
+                        pos = p;
+                        break;
+                    }
+                }
+            } else {
+                for (int p = 0; p < adapterEvents.getCount(); p++) {
+                    if (adapterEvents.getItem(p).equals(newText)) {
+                        pos = p;
+                        break;
+                    }
+                }
+            }
+
+            if (pos != -1) { // already exists
+                Toast.makeText(getContext(),(isEvent ? "Event" : "Situation")+" already exists",
+                        Toast.LENGTH_SHORT).show();
+                spinnerSitEvent.setSelection(pos);
+            } else { // new situation or event
+                if (newText.contains(",")) {
+                    newText = newText.replace(',', '.');
+                    Toast.makeText(getContext(), "commas ',' replaced by '.'", Toast.LENGTH_LONG)
+                            .show();
+                }
+
+                // 1. add to allSits/allEvents, adapterSituations/adapterEvents
+                // 2. spinner selects new situation/event
+                int newId;
+                if (!isEvent && allSits.size() == 0) {
+                    newId = 0;
+                    allSits.append(newId, newText);
+
+                    adapterSituations.remove(NONE_INDICATOR);
+                    adapterSituations.add(newText);
+                    adapterSituations.notifyDataSetChanged();
+                    spinnerSitEvent.setSelection(1);
+
+                } else if (isEvent && allEvents.size() == 0) {
+                    newId = 0;
+                    allEvents.append(newId, newText);
+
+                    adapterEvents.remove(NONE_INDICATOR);
+                    adapterEvents.add(newText);
+                    adapterEvents.notifyDataSetChanged();
+                    spinnerSitEvent.setSelection(1);
+                } else if (!isEvent) {
+                    newId = Collections.max(UtilGeneral.getKeysOfSparseStringArray(allSits)) + 1;
+                    allSits.append(newId, newText);
+
+                    int posInsert = -1;
+                    for (int p=1; p<adapterSituations.getCount(); p++) {
+                        if (newText.compareTo(adapterSituations.getItem(p)) < 0) {
+                            posInsert = p;
+                            break;
+                        }
+                    }
+                    if (posInsert == -1)
+                        adapterSituations.add(newText);
+                    else
+                        adapterSituations.insert(newText, posInsert);
+                    adapterSituations.notifyDataSetChanged();
+                    spinnerSitEvent.setSelection(
+                            (posInsert == -1) ? (adapterSituations.getCount() - 1) : posInsert);
+                } else {
+                    newId = Collections.max(UtilGeneral.getKeysOfSparseStringArray(allEvents)) + 1;
+                    allEvents.append(newId, newText);
+
+                    int posInsert = -1;
+                    for (int p=1; p<adapterEvents.getCount(); p++) {
+                        if (newText.compareTo(adapterEvents.getItem(p)) < 0) {
+                            posInsert = p;
+                            break;
+                        }
+                    }
+                    if (posInsert == -1)
+                        adapterEvents.add(newText);
+                    else
+                        adapterEvents.insert(newText, posInsert);
+                    adapterEvents.notifyDataSetChanged();
+                    spinnerSitEvent.setSelection(
+                            (posInsert == -1) ? (adapterEvents.getCount() - 1) : posInsert);
+                }
+            }
+        }
     }
 
     //

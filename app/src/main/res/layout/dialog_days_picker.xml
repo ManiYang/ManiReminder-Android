@@ -2,7 +2,6 @@
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -10,31 +9,29 @@
         android:id="@+id/checkBox6"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Sat"
+        android:text="@string/Sat"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox5"
         app:layout_constraintTop_toBottomOf="@+id/checkBox5" />
 
     <CheckBox
         android:id="@+id/checkBox7"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Sun"
+        android:text="@string/Sun"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox6"
         app:layout_constraintTop_toBottomOf="@+id/checkBox6" />
 
     <CheckBox
         android:id="@+id/checkBox1"
-        android:layout_width="wrap_content"
+        android:layout_width="64dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:text="Mon"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/Mon"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -43,11 +40,10 @@
         android:id="@+id/checkBox2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Tue"
+        android:text="@string/Tue"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox1"
         app:layout_constraintTop_toBottomOf="@+id/checkBox1" />
 
     <Button
@@ -56,7 +52,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
-        android:text="None"
+        android:text="@string/none_days"
         app:layout_constraintStart_toEndOf="@+id/checkBox1"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -64,33 +60,30 @@
         android:id="@+id/checkBox4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Thu"
+        android:text="@string/Thu"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox3"
         app:layout_constraintTop_toBottomOf="@+id/checkBox3" />
 
     <CheckBox
         android:id="@+id/checkBox3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Wed"
+        android:text="@string/Wed"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox2"
         app:layout_constraintTop_toBottomOf="@+id/checkBox2" />
 
     <CheckBox
         android:id="@+id/checkBox5"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Fri"
+        android:text="@string/Fri"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/checkBox4"
         app:layout_constraintTop_toBottomOf="@+id/checkBox4" />
 
     <Button
@@ -98,7 +91,7 @@
         android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Weekdays"
+        android:text="@string/weekdays"
         app:layout_constraintStart_toStartOf="@+id/button_none"
         app:layout_constraintTop_toBottomOf="@+id/button_none" />
 
@@ -107,7 +100,7 @@
         android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Weekend"
+        android:text="@string/weekend"
         app:layout_constraintStart_toStartOf="@+id/button_weekdays"
         app:layout_constraintTop_toBottomOf="@+id/button_weekdays" />
 
@@ -116,7 +109,7 @@
         android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="All Days"
+        android:text="@string/all_days"
         app:layout_constraintStart_toStartOf="@+id/button_weekend"
         app:layout_constraintTop_toBottomOf="@+id/button_weekend" />
 </android.support.constraint.ConstraintLayout>

@@ -20,6 +20,18 @@
     <string name="add">Add</string>
     <string name="edit">Edit</string>
 
+    <string name="Mon">Mon</string>
+    <string name="Tue">Tue</string>
+    <string name="Wed">Wed</string>
+    <string name="Thu">Thu</string>
+    <string name="Fri">Fri</string>
+    <string name="Sat">Sat</string>
+    <string name="Sun">Sun</string>
+    <string name="none_days">None</string>
+    <string name="weekdays">Weekdays</string>
+    <string name="weekend">Weekend</string>
+    <string name="all_days">All Days</string>
+
     <string name="label_tag_to_add">Tag to add:</string>
     <string name="label_all_tags">All tags:</string>
     <string name="label_reminder_tags">Reminder tags:</string>
