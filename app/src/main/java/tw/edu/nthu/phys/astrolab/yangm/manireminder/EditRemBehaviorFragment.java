@@ -549,6 +549,15 @@ public class EditRemBehaviorFragment extends Fragment
         fragmentView.findViewById(R.id.button_remove).setVisibility(View.GONE);
     }
 
+    private String[] getInstantPeriodListItems(View view) {
+        LinearLayout list = view.findViewById(R.id.instants_periods_list);
+        String[] items = new String[list.getChildCount()];
+        for (int i=0; i<items.length; i++) {
+            items[i] = ((TextView) list.getChildAt(i)).getText().toString();
+        }
+        return items;
+    }
+
     private TextView getInstantPeriodListSelectedView(View view) {
         // Returns null if not found.
         LinearLayout layout = view.findViewById(R.id.instants_periods_list);
@@ -1143,14 +1152,111 @@ public class EditRemBehaviorFragment extends Fragment
         return -1;
     }
 
-    //
+    // interface EditActivity.EditResultHolder
+    @Override
+    public boolean validateData() {
+        View view = getView();
+        if (view == null)
+            return true;
+
+        //
+        EditText editRepeatEvery = view.findViewById(R.id.edit_repeat_every);
+        if (editRepeatEvery.isShown()) {
+            String text = editRepeatEvery.getText().toString().trim();
+            String msg = null;
+            if (text.isEmpty())
+                msg = "Please set repeat period (repeat every ? min) for repeat pattern.";
+            else {
+                if (Integer.parseInt(text) <= 0)
+                    msg = "Repeat period (repeat every ? min) should be > 0.";
+            }
+
+            if (msg != null) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(msg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        //
+        EditText editRepeatOffset = view.findViewById(R.id.edit_repeat_offset);
+        if (editRepeatOffset.isShown()) {
+            if (editRepeatOffset.getText().toString().trim().isEmpty()) {
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage("Please set offset for repeat pattern.")
+                        .setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        //
+        int model = ((Spinner) view.findViewById(R.id.spinner_model)).getSelectedItemPosition();
+        LinearLayout list = view.findViewById(R.id.instants_periods_list);
+        if (model != 0) {
+            if (list.getChildCount() == 0) {
+                String msg = (model == 1) ?
+                        "Please set at least one instant." : "Please set at least one period.";
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(msg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        //
+        if (model != 0) {
+            String[] instantsPeriods = getInstantPeriodListItems(view);
+            if (UtilGeneral.hasDuplicatedElement(instantsPeriods)) {
+                String msg = "Please remove duplicated " + ((model == 1) ? "instant." : "period.");
+                new AlertDialog.Builder(getContext()).setTitle("Invalid settings")
+                        .setMessage(msg).setNeutralButton("OK", null).show();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+
     @Override
     public Intent getResult() {
-        // TODO....
-        String newBehaviorData = "";
-        String newAllSitsDict = "";
-        String newAllEventsDict = "";
+        View view = getView();
+        if (view == null)
+            throw new RuntimeException("`view` is null");
 
+        //
+        int model = ((Spinner) view.findViewById(R.id.spinner_model)).getSelectedItemPosition();
+        LinearLayout list = view.findViewById(R.id.instants_periods_list);
+
+        ReminderDataBehavior behavior = new ReminderDataBehavior(); //default to no behavior setting
+        if (model != 0) {
+            String[] displayStrings = getInstantPeriodListItems(view);
+            switch (model) {
+                case 1:
+                    behavior.setAsTodoAtInstants(displayStrings, allSits, allEvents);
+                    break;
+                case 2:
+                    behavior.setAsReminderInPeriod(displayStrings, allSits, allEvents);
+                    break;
+                case 3:
+                    int repeatEvery = Integer.parseInt(
+                            ((EditText) view.findViewById(R.id.edit_repeat_every))
+                                    .getText().toString().trim());
+                    int repeatOffset = Integer.parseInt(
+                            ((EditText) view.findViewById(R.id.edit_repeat_offset))
+                                    .getText().toString().trim());
+                    behavior.setAsTodoRepeatedlyInPeriod(displayStrings, repeatEvery, repeatOffset,
+                            allSits, allEvents);
+                    break;
+            }
+        }
+        String newBehaviorData = behavior.getStringRepresentation();
+
+        //
+        String newAllSitsDict = UtilGeneral.stringifySparseStringArray(allSits);
+        String newAllEventsDict = UtilGeneral.stringifySparseStringArray(allEvents);
+
+        //
         return new Intent()
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, FIELD_NAME)
                 .putExtra(EditActivity.EXTRA_NEW_DATA, newBehaviorData)

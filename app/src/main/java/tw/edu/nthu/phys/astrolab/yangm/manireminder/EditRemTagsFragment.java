@@ -216,7 +216,12 @@ public class EditRemTagsFragment extends Fragment
         return UtilGeneral.searchSparseStringArrayByValue(initAllTags, tag) != -1;
     }
 
-    //
+    // interface EditActivity.EditResultHolder
+    @Override
+    public boolean validateData() {
+        return true;
+    }
+
     @Override
     public Intent getResult() {
         String remTagsString = UtilGeneral.joinStringList(", ", remTags);

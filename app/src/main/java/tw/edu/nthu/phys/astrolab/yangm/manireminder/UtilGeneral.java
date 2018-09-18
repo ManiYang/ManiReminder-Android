@@ -69,6 +69,16 @@ public class UtilGeneral {
         return builder.toString();
     }
 
+    public static boolean hasDuplicatedElement(String[] array) {
+        for (int i=0; i<array.length; i++) {
+            String s = array[i];
+            for (int j=i+1; j<array.length; j++) {
+                if(s.equals(array[j]))
+                    return true;
+            }
+        }
+        return false;
+    }
 
 
     /**

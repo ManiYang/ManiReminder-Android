@@ -5,13 +5,14 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 public class EditActivity extends AppCompatActivity {
 
+    public static final String EXTRA_REMINDER_TITLE = "reminder_title";
     public static final String EXTRA_FIELD_NAME = "field_name";
     public static final String EXTRA_INIT_DATA = "init_data";
     public static final String EXTRA_NEW_DATA = "new_data";
@@ -27,6 +28,7 @@ public class EditActivity extends AppCompatActivity {
     EditResultHolder editResultHolder;
 
     public interface EditResultHolder {
+        boolean validateData();
         Intent getResult();
     }
 
@@ -40,6 +42,7 @@ public class EditActivity extends AppCompatActivity {
 
         // get data from intent
         Intent intent = getIntent();
+        String remTitle = intent.getStringExtra(EXTRA_REMINDER_TITLE);
         fieldName = intent.getStringExtra(EXTRA_FIELD_NAME);
         String initData = intent.getStringExtra(EXTRA_INIT_DATA);
         String initAllTags = intent.getStringExtra(EXTRA_INIT_ALL_TAGS); // may be null
@@ -49,6 +52,7 @@ public class EditActivity extends AppCompatActivity {
         //
         setTitle("Editing "+fieldName);
         setResult(RESULT_CODE_CANCELED);
+        ((TextView) findViewById(R.id.reminder_title)).setText(remTitle);
 
         // set the fragment designated to fieldName
         // the fragment must implement interface EditResultHolder
@@ -70,13 +74,6 @@ public class EditActivity extends AppCompatActivity {
                 setFragment(fragment);
             }
         }
-        Log.v("EditActivity", "=== create");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.v("EditActivity", "=== destroy");
     }
 
     void setFragment(Fragment fragment) {
@@ -103,9 +100,11 @@ public class EditActivity extends AppCompatActivity {
         Intent intentResult;
         switch (item.getItemId()) {
             case R.id.action_done:
-                intentResult = editResultHolder.getResult();
-                setResult(RESULT_CODE_OK, intentResult);
-                finish();
+                if (editResultHolder.validateData()) {
+                    intentResult = editResultHolder.getResult();
+                    setResult(RESULT_CODE_OK, intentResult);
+                    finish();
+                }
                 return true;
 
             case R.id.action_cancel:

@@ -374,7 +374,13 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
     private void startEditActivity(String fieldName, String initialData,
                                    boolean needAllTags, boolean needAllSitsEvents) {
+        View view = getView();
+        if (view == null)
+            return;
+        String remTitle = ((TextView) view.findViewById(R.id.title)).getText().toString();
+
         Intent intent = new Intent(getContext(), EditActivity.class)
+                .putExtra(EditActivity.EXTRA_REMINDER_TITLE, remTitle)
                 .putExtra(EditActivity.EXTRA_FIELD_NAME, fieldName)
                 .putExtra(EditActivity.EXTRA_INIT_DATA, initialData);
 
@@ -417,7 +423,11 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         String fieldName = intentNewData.getStringExtra(EditActivity.EXTRA_FIELD_NAME);
         String newData = intentNewData.getStringExtra(EditActivity.EXTRA_NEW_DATA);
         String newAllTagsDict =
-                intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //can be null
+                intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_TAGS); //may be null
+        String newAllSitsDict =
+                intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_SITUATIONS); //may be null
+        String newAllEventsDict =
+                intentNewData.getStringExtra(EditActivity.EXTRA_NEW_ALL_EVENTS); //may be null
 
         switch (fieldName) {
             case "tags": {
@@ -447,15 +457,37 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 break;
             }
             case "behavior": {
-                // TODO...
-                Toast.makeText(getContext(), "to update behavior data...", Toast.LENGTH_SHORT).show();
+                if (newAllSitsDict == null || newAllEventsDict == null) {
+                    throw new RuntimeException("new all-situations and all-events should be given");
+                }
 
+                allSituations = UtilGeneral.parseAsSparseStringArray(newAllSitsDict);
+                allEvents = UtilGeneral.parseAsSparseStringArray(newAllEventsDict);
+                boolean b = saveAllSituationsEventsToDb(allSituations, allEvents, db);
+                if (!b) {
+                    Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
+                            .show();
+                    return;
+                }
+
+                ReminderDataBehavior behavior = new ReminderDataBehavior()
+                        .setFromStringRepresentation(newData);
+                ContentValues values = new ContentValues();
+                values.put("type", behavior.getRemType());
+                values.put("behavior_settings", newData);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, values,
+                        "_id = ?", new String[] {Integer.toString(reminderId)});
+                if (check != 1) {
+                    Toast.makeText(getContext(), "Could not update database", Toast.LENGTH_LONG)
+                            .show();
+                }
+                break;
             }
         }
     }
 
     private boolean saveAllTagsToDb(SparseArray<String> allTags, SQLiteDatabase db) {
-        db.delete(MainDbHelper.TABLE_TAGS, null, null);
+        db.delete(MainDbHelper.TABLE_TAGS, null, null); //delete all records
         for (int i=0; i<allTags.size(); i++) {
             ContentValues values = new ContentValues();
             values.put("_id", allTags.keyAt(i));
@@ -465,6 +497,31 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 return false;
             }
         }
+        return true;
+    }
+
+    private boolean saveAllSituationsEventsToDb(
+            SparseArray<String> allSits, SparseArray<String> allEvents, SQLiteDatabase db) {
+        db.delete(MainDbHelper.TABLE_SITUATIONS, null, null);
+        for (int i=0; i<allSits.size(); i++) {
+            ContentValues values = new ContentValues();
+            values.put("_id", allSits.keyAt(i));
+            values.put("name", allSits.valueAt(i));
+            long check = db.insert(MainDbHelper.TABLE_SITUATIONS, null, values);
+            if (check == -1)
+                return false;
+        }
+
+        db.delete(MainDbHelper.TABLE_EVENTS, null, null);
+        for (int i=0; i<allEvents.size(); i++) {
+            ContentValues values = new ContentValues();
+            values.put("_id", allEvents.keyAt(i));
+            values.put("name", allEvents.valueAt(i));
+            long check = db.insert(MainDbHelper.TABLE_EVENTS, null, values);
+            if (check == -1)
+                return false;
+        }
+
         return true;
     }
 

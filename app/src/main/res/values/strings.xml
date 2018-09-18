@@ -19,6 +19,11 @@
     <string name="remove">Remove</string>
     <string name="add">Add</string>
     <string name="edit">Edit</string>
+    <string name="stop">Stop</string>
+    <string name="situations">Situations</string>
+    <string name="events">Events</string>
+    <string name="both">Both</string>
+    <string name="start">Start</string>
 
     <string name="Mon">Mon</string>
     <string name="Tue">Tue</string>
@@ -58,6 +63,7 @@
     <string name="label_event">Event: </string>
     <string name="label_set">set</string>
     <string name="label_next_day">Next Day</string>
+    <string name="label_started_situations">Started situations:</string>
 
     <string name="todo_at_instants">Todo at Instants</string>
     <string name="remind_during_periods">Remind during Periods</string>

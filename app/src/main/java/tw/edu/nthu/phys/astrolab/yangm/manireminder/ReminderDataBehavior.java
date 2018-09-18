@@ -29,6 +29,9 @@ public class ReminderDataBehavior {
     }
 
     public ReminderDataBehavior setAsTodoAtInstants(Instant[] instants) {
+        if (instants.length == 0)
+            throw new RuntimeException("`instants` is empty");
+
         this.remType = TYPE_TODO_AT_INSTANTS;
         this.instants = instants;
         this.periods = null;
@@ -37,7 +40,25 @@ public class ReminderDataBehavior {
         return this;
     }
 
+    public ReminderDataBehavior setAsTodoAtInstants(String[] instantsDisplayStrings,
+                                                    SparseArray<String> allSituations,
+                                                    SparseArray<String> allEvents) {
+        if (instantsDisplayStrings.length == 0)
+            throw new RuntimeException("instantsDisplayStrings is empty");
+
+        Instant[] instants = new Instant[instantsDisplayStrings.length];
+        for (int i=0; i<instants.length; i++) {
+            instants[i] = new Instant().setFromDisplayString(
+                    instantsDisplayStrings[i], allSituations, allEvents);
+        }
+        setAsTodoAtInstants(instants);
+        return this;
+    }
+
     public ReminderDataBehavior setAsReminderInPeriod(Period[] periods) {
+        if (periods.length == 0)
+            throw new RuntimeException("`periods` is empty");
+
         this.remType = TYPE_REMINDER_IN_PERIOD;
         this.instants = null;
         this.periods = periods; //will take the union
@@ -46,19 +67,58 @@ public class ReminderDataBehavior {
         return this;
     }
 
+    public ReminderDataBehavior setAsReminderInPeriod(String[] periodsDisplayStrings,
+                                                      SparseArray<String> allSituations,
+                                                      SparseArray<String> allEvents) {
+        if (periodsDisplayStrings.length == 0)
+            throw new RuntimeException("periodsDisplayStrings is empty");
+
+        Period[] periods = new Period[periodsDisplayStrings.length];
+        for (int i=0; i<periods.length; i++) {
+            periods[i] = new Period().setFromDisplayString(
+                    periodsDisplayStrings[i], allSituations, allEvents);
+        }
+        setAsReminderInPeriod(periods);
+        return this;
+    }
+
     public ReminderDataBehavior setAsTodoRepeatedlyInPeriod(
             Period[] periods, int repeatEveryMinutes, int repeatOffsetMinutes) {
+        if (periods.length == 0)
+            throw new RuntimeException("`periods` is empty");
         if (repeatEveryMinutes <= 0) {
             throw new RuntimeException("repeatEveryMinutes should be > 0");
         }
         if (repeatOffsetMinutes < 0) {
             throw new RuntimeException("repeatOffsetMinutes should be >= 0");
         }
+
         this.remType = TYPE_TODO_REPETITIVE_IN_PERIOD;
         this.instants = null;
         this.periods = periods;
         this.repeatEveryMinutes = repeatEveryMinutes;
         this.repeatOffsetMinutes = repeatOffsetMinutes;
+        return this;
+    }
+
+    public ReminderDataBehavior setAsTodoRepeatedlyInPeriod(
+            String[] periodsDisplayStrings, int repeatEveryMinutes, int repeatOffsetMinutes,
+            SparseArray<String> allSituations, SparseArray<String> allEvents) {
+        if (periodsDisplayStrings.length == 0)
+            throw new RuntimeException("periodsDisplayStrings is empty");
+        if (repeatEveryMinutes <= 0) {
+            throw new RuntimeException("repeatEveryMinutes should be > 0");
+        }
+        if (repeatOffsetMinutes < 0) {
+            throw new RuntimeException("repeatOffsetMinutes should be >= 0");
+        }
+
+        Period[] periods = new Period[periodsDisplayStrings.length];
+        for (int i=0; i<periods.length; i++) {
+            periods[i] = new Period().setFromDisplayString(
+                    periodsDisplayStrings[i], allSituations, allEvents);
+        }
+        setAsTodoRepeatedlyInPeriod(periods, repeatEveryMinutes, repeatOffsetMinutes);
         return this;
     }
 
