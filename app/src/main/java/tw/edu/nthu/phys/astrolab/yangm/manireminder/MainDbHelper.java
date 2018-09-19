@@ -5,7 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +12,7 @@ import java.util.List;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -21,6 +20,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
     public static final String TABLE_TAGS = "tags";
     public static final String TABLE_SITUATIONS = "situations";
     public static final String TABLE_EVENTS = "events";
+    public static final String TABLE_HISTORY = "history";
 
 
     public MainDbHelper(Context context) {
@@ -29,23 +29,23 @@ public class MainDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        Log.v("MainDbHelper", "### creating DB");
+        //Log.v("MainDbHelper", "### creating DB");
         updateDb(db, 0, DATABASE_VERSION);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        Log.v("MainDbHelper", "### updating DB");
+        //Log.v("MainDbHelper", "### updating DB");
         updateDb(db, oldVersion, newVersion);
     }
 
     //
     private void updateDb(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 1) {
-            Log.v("MainDbHelper", "### creating tables (1)");
+            //Log.v("MainDbHelper", "### creating tables (1)");
 
             // reminder brief
-            db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BRIEF+" ("
+            db.execSQL("CREATE TABLE " + TABLE_REMINDERS_BRIEF + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "title TEXT, "
                     + "tags TEXT );");
@@ -62,7 +62,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.insert(TABLE_REMINDERS_BRIEF, null, values);
 
             // reminder detail
-            db.execSQL("CREATE TABLE "+TABLE_REMINDERS_DETAIL+" ("
+            db.execSQL("CREATE TABLE " + TABLE_REMINDERS_DETAIL + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "description TEXT );");
             values = new ContentValues();
@@ -77,7 +77,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
 
 
             // reminder behavior
-            db.execSQL("CREATE TABLE "+TABLE_REMINDERS_BEHAVIOR+" ("
+            db.execSQL("CREATE TABLE " + TABLE_REMINDERS_BEHAVIOR + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "type INTEGER, "
                     + "behavior_settings TEXT );");
@@ -87,7 +87,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
             long check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_REMINDERS_BEHAVIOR);
             }
 
             values = new ContentValues();
@@ -96,11 +96,11 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("behavior_settings", "sit0end, M~Su.9:00, W.13:00");
             check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table "+TABLE_REMINDERS_BEHAVIOR);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_REMINDERS_BEHAVIOR);
             }
 
             // tags
-            db.execSQL("CREATE TABLE "+TABLE_TAGS+" ("
+            db.execSQL("CREATE TABLE " + TABLE_TAGS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
             values = new ContentValues();
@@ -113,7 +113,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.insert(TABLE_TAGS, null, values);
 
             // situations
-            db.execSQL("CREATE TABLE "+TABLE_SITUATIONS+" ("
+            db.execSQL("CREATE TABLE " + TABLE_SITUATIONS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
             values = new ContentValues();
@@ -121,11 +121,11 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("name", "Situation0");
             check = db.insert(TABLE_SITUATIONS, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table "+TABLE_SITUATIONS);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_SITUATIONS);
             }
 
             // events
-            db.execSQL("CREATE TABLE "+TABLE_EVENTS+" ("
+            db.execSQL("CREATE TABLE " + TABLE_EVENTS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "name TEXT );");
             values = new ContentValues();
@@ -133,8 +133,18 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("name", "Event0");
             check = db.insert(TABLE_EVENTS, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table "+TABLE_EVENTS);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_EVENTS);
             }
+        }
+
+        if (oldVersion < 2) {
+            // history
+            db.execSQL("CREATE TABLE " + TABLE_HISTORY + " ("
+                    + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "date TEXT, "
+                    + "time TEXT, "
+                    + "type INTEGER, "
+                    + "sit_event_id INTEGER);");
         }
     }
 

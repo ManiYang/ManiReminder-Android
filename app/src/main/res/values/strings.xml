@@ -24,6 +24,8 @@
     <string name="events">Events</string>
     <string name="both">Both</string>
     <string name="start">Start</string>
+    <string name="board">Board</string>
+    <string name="situations_and_events">Situations &amp; Events</string>
 
     <string name="Mon">Mon</string>
     <string name="Tue">Tue</string>
