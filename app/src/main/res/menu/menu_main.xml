@@ -8,4 +8,10 @@
         android:title="@string/view_all_reminders"
         android:orderInCategory="1"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_view_history"
+        android:title="@string/view_history"
+        android:orderInCategory="2"
+        app:showAsAction="never" />
 </menu>

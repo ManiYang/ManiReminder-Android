@@ -122,8 +122,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
         // get all tags, situations, events
         allTags = UtilReminder.getAllTagsFromDb(db);
-        allSituations = UtilReminder.getAllSituationsFromDb(db);
-        allEvents = UtilReminder.getAllEventsFromDb(db);
+        allSituations = UtilStorage.getAllSituations(getContext());
+        allEvents = UtilStorage.getAllEvents(getContext());
 
         // get and load brief data
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,

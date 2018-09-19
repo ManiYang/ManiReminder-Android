@@ -14,13 +14,12 @@ import java.util.List;
 public class TextListAdapter
         extends RecyclerView.Adapter<TextListAdapter.ViewHolder> {
 
-    public static final int NO_SELECTION = 0; //Can set NoSelectionOnClickListener.
+    public static final int NO_SELECTION = 0; //Can set NoSelectionOn(Long)ClickListener.
     public static final int SINGLE_SELECTION = 1; //Item can be selected and deselected, but at most
                                                   //one item is selected at any time.
                                                   //Can set SingleSelectedListener and
                                                   //SingleDeselectedListener.
     public static final int MULTIPLE_SELECTION = 2; //Item can be selected and deselected.
-
 
     private int selectionMode;
     private List<String> texts; //reference to data
@@ -30,12 +29,16 @@ public class TextListAdapter
     private SingleSelectionListener singleSelectionListener;
     private SingleDeselectionListener singleDeselectionListener;
     private NoSelectionOnClickListener noSelectionOnClickListener;
+    private NoSelectionOnLongClickListener noSelectionOnLongClickListener;
 
     public TextListAdapter(List<String> textsRef, int selectionMode) {
         this.texts = textsRef;
         this.selectionMode = selectionMode;
         isPositionSelected = new ArrayList<>(Collections.nCopies(texts.size(), false));
     }
+
+    // Do not call notifyItemInserted(...), notifyItemRemoved(...), notifyItemRangeChanged(...), or
+    // notifyDataSetChanged(). Rather, call the following methods on data update.
 
     /** call this when items are appended */
     public void itemsAppended() {
@@ -62,6 +65,13 @@ public class TextListAdapter
         notifyItemRangeChanged(position, texts.size() - position);
     }
 
+    /** call this when all items are removed */
+    public void dataCleared() {
+        singleSelectedPosition = -1;
+        isPositionSelected.clear();
+        notifyDataSetChanged();
+    }
+
     public interface SingleSelectionListener {
         void onSingleSelection(String selectedText);
     }
@@ -72,6 +82,10 @@ public class TextListAdapter
 
     public interface NoSelectionOnClickListener {
         void onClick(String clickedText);
+    }
+
+    public interface NoSelectionOnLongClickListener {
+        void onLongClick(String clickedText);
     }
 
     /** set item selection/deselection listeners for single-selection mode */
@@ -85,6 +99,12 @@ public class TextListAdapter
     /** set item click listener for no-selection mode */
     public void setNoSelectionOnClickListener(NoSelectionOnClickListener noSelectionOnClickListener) {
         this.noSelectionOnClickListener = noSelectionOnClickListener;
+    }
+
+    /** set item long-click listener for no-selection mode */
+    public void setNoSelectionOnLongClickListener(
+            NoSelectionOnLongClickListener noSelectionOnLongClickListener) {
+        this.noSelectionOnLongClickListener = noSelectionOnLongClickListener;
     }
 
     /** get selected texts */
@@ -148,6 +168,17 @@ public class TextListAdapter
                     }
                 }
             });
+            holder.textView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (noSelectionOnLongClickListener != null) {
+                        noSelectionOnLongClickListener.onLongClick(texts.get(position));
+                        return true;
+                    }
+                    return false;
+                }
+            });
+
         } else if (selectionMode == SINGLE_SELECTION) {
             holder.textView.setOnClickListener(new View.OnClickListener() {
                 @Override

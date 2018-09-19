@@ -1159,6 +1159,12 @@ public class EditRemBehaviorFragment extends Fragment
         if (view == null)
             return true;
 
+        if (view.findViewById(R.id.container_edit_box).isShown()) {
+            Toast.makeText(getContext(), "Please finish editing first.", Toast.LENGTH_SHORT)
+                    .show();
+            return false;
+        }
+
         //
         EditText editRepeatEvery = view.findViewById(R.id.edit_repeat_every);
         if (editRepeatEvery.isShown()) {
@@ -1215,8 +1221,6 @@ public class EditRemBehaviorFragment extends Fragment
 
         return true;
     }
-
-
 
     @Override
     public Intent getResult() {

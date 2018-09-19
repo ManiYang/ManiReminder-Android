@@ -28,14 +28,6 @@
             android:minHeight="45dp"
             android:padding="4dp" />
 
-        <ImageButton
-            android:id="@+id/button_stop_situation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:src="@mipmap/ic_stop_black_24"
-            android:contentDescription="@string/stop"/>
-
     </LinearLayout>
 
     <View
@@ -47,6 +39,7 @@
         android:background="?android:attr/listDivider" />
 
     <RadioGroup
+        android:id="@+id/radioGroup_sits_events"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -79,40 +72,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="horizontal"
-        android:baselineAligned="false">
+        android:baselineAligned="false"
+        android:layout_marginBottom="54dp">
 
         <ListView
-            android:id="@+id/listview"
+            android:id="@+id/list_all_sits_events"
             android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="match_parent" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_weight="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:background="@drawable/shape_rect_border_white_back" />
 
-            <ImageButton
-                android:id="@+id/button_start"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@mipmap/ic_play_arrow_black_24"
-                android:contentDescription="@string/start"/>
-
-            <!--
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"/> -->
-
-            <ImageButton
-                android:id="@+id/button_edit"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription="@string/edit"
-                android:src="@mipmap/ic_edit_black_24" />
-        </LinearLayout>
     </LinearLayout>
-
-
 </LinearLayout>

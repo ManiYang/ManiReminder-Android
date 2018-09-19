@@ -47,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_view_all_reminders:
                 startActivity(new Intent(this, ListActivity.class));
                 return true;
+            case R.id.action_view_history:
+                // .......
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
