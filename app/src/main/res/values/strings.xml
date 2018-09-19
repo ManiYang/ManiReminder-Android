@@ -2,7 +2,7 @@
     <string name="app_name">ManiReminder</string>
 
     <string name="view_all_reminders">View All Reminders</string>
-    <string name="view_history">View History</string>
+    <string name="view_history">Situations &amp; Events History</string>
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
 

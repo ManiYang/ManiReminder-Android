@@ -178,6 +178,7 @@ public class SituationsEventsFragment extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
+    //
     private void onListAllSitsEventsItemLongClick(int position) {
         View view = getView();
         if (view == null)
@@ -207,6 +208,17 @@ public class SituationsEventsFragment extends Fragment {
         }
     }
 
+    private void onStartedSitsItemLongClick(String clickedText) {
+        View view = getView();
+        if (view == null)
+            return;
+
+        Calendar clickTime = Calendar.getInstance();
+
+        int index = startedSitNames.indexOf(clickedText);
+        userStopSituation(index, clickTime, view);
+    }
+
     //
     private void userStartSituation(int sitId, Calendar at, View view) {
         if (startedSitIds.contains(sitId)) {
@@ -225,7 +237,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.writeStartedSituations(getContext(), startedSitIds);
 
         // add to history
-
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_START, sitId);
 
         // more...
 
@@ -236,6 +248,7 @@ public class SituationsEventsFragment extends Fragment {
         Toast.makeText(getContext(), "Event triggered", Toast.LENGTH_SHORT).show();
 
         // add to history
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_EVENT, eventId);
 
 
         // more...
@@ -243,17 +256,10 @@ public class SituationsEventsFragment extends Fragment {
 
     }
 
-    //
-    private void onStartedSitsItemLongClick(String clickedText) {
-        View view = getView();
-        if (view == null)
-            return;
-
+    private void userStopSituation(int startedSitIndex, Calendar at, View view) {
         // remove started situations
-        int index = startedSitNames.indexOf(clickedText);
-
-        int sitId = startedSitIds.remove(index);
-        startedSitNames.remove(index);
+        int sitId = startedSitIds.remove(startedSitIndex);
+        startedSitNames.remove(startedSitIndex);
 
         TextListAdapter adapter = (TextListAdapter)
                 ((RecyclerView) view.findViewById(R.id.recycler_started_situations)).getAdapter();
@@ -262,6 +268,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.writeStartedSituations(getContext(), startedSitIds);
 
         // add to history (situation end)
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_END, sitId);
 
 
         // more...

@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ListActivity.class));
                 return true;
             case R.id.action_view_history:
-                // .......
+                startActivity(new Intent(this, HistoryViewActivity.class));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

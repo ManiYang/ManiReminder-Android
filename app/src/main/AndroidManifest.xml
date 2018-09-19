@@ -24,9 +24,14 @@
             android:name=".DetailActivity"
             android:label="Reminder Details"
             android:parentActivityName=".ListActivity" />
-        <activity android:name=".EditActivity"
+        <activity
+            android:name=".EditActivity"
             android:label="Editing"
             android:parentActivityName=".DetailActivity" />
+        <activity
+            android:name=".HistoryViewActivity"
+            android:label="@string/view_history"
+            android:parentActivityName=".MainActivity" />
     </application>
 
 </manifest>

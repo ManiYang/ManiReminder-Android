@@ -1,5 +1,6 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -9,15 +10,18 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.SparseArray;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class UtilStorage {
 
     public static final String PREFERENCE_FILE =
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
-
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
+
+    public static final int MAX_RECORDS_IN_HISTORY = 500;
 
     //
     public static List<Integer> getStartedSituations(Context context) {
@@ -93,5 +97,51 @@ public class UtilStorage {
         }
         cursor.close();
         return allEvents;
+    }
+
+    //
+    public static final int TYPE_SIT_START = 0;
+    public static final int TYPE_SIT_END = 1;
+    public static final int TYPE_EVENT = 2;
+
+    public static void addToHistory(Context context,
+                                    Calendar at, int historyRecordType, int sitOrEventId) {
+        if (historyRecordType < 0 || historyRecordType > 2)
+            throw new RuntimeException("bad historyRcordType");
+
+        String dateStr = new SimpleDateFormat("yyyy-MM-dd").format(at.getTime());
+        String timeStr = new SimpleDateFormat("HH:mm:ss").format(at.getTime());
+
+        ContentValues values = new ContentValues();
+        values.put("date", dateStr);
+        values.put("time", timeStr);
+        values.put("type", historyRecordType);
+        values.put("sit_event_id", sitOrEventId);
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            Toast.makeText(context, "Database unavailable", Toast.LENGTH_LONG).show();
+            return;
+        }
+        db.insert(MainDbHelper.TABLE_HISTORY, null, values);
+
+        // when number of records exceeds MAX_RECORDS_IN_HISTORY
+        Cursor cursor = db.query(MainDbHelper.TABLE_HISTORY, new String[] {"COUNT(*)", "MIN(_id)"},
+                null, null, null, null, null);
+        if (cursor.moveToFirst()) {
+            int rowCount = cursor.getInt(0);
+            int minId = cursor.getInt(1);
+            cursor.close();
+
+            if (rowCount > MAX_RECORDS_IN_HISTORY) {
+                db.delete(MainDbHelper.TABLE_HISTORY, "_id < ?",
+                        new String[] {String.valueOf(minId + rowCount - MAX_RECORDS_IN_HISTORY)});
+            }
+        } else {
+            cursor.close();
+        }
     }
 }
