@@ -20,6 +20,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -226,6 +227,10 @@ public class SituationsEventsFragment extends Fragment {
             return;
         }
 
+        // determine which induced situations (not yet started) to start once `sitId` is started
+        Set<Integer> inducedSitsToStart =
+                getInducedSituationsToStart(sitId); //uses current (original) startedSitIds
+
         // add to started situations
         startedSitIds.add(sitId);
         startedSitNames.add(allSits.get(sitId));
@@ -239,7 +244,8 @@ public class SituationsEventsFragment extends Fragment {
         // add to history
         UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_START, sitId);
 
-        // more...
+        // todo: start situations in inducedSitsToStart.....
+
 
 
     }
@@ -251,7 +257,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_EVENT, eventId);
 
 
-        // more...
+        // todo: trigger event `eventId`........
 
 
     }
@@ -270,7 +276,23 @@ public class SituationsEventsFragment extends Fragment {
         // add to history (situation end)
         UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_END, sitId);
 
+        //
+        Set<Integer> inducedSitsToStop
+                = getInducedSituationsToStart(sitId); //uses current (updated) startedSitIds
+        // todo: stop situations in inducedSitsToStop....
 
-        // more...
+
+    }
+
+    //
+    /** Determines which induced situations (not already started) will be started if `sitIdToStart`
+     *  gets started. */
+    private Set<Integer> getInducedSituationsToStart(int sitIdToStart) {
+        Set<Integer> inducedSitsCand = UtilReminder.getInducedSituations(sitIdToStart, allSits);
+        for (int startedId: startedSitIds) {
+            Set<Integer> sitsAlreadyStarted = UtilReminder.getInducedSituations(startedId, allSits);
+            inducedSitsCand.removeAll(sitsAlreadyStarted);
+        }
+        return inducedSitsCand;
     }
 }

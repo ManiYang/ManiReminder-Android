@@ -4,6 +4,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.SparseArray;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class UtilReminder {
 
     /**
@@ -64,4 +67,27 @@ public class UtilReminder {
         }
         return builder.toString();
     }
+
+    public static Set<Integer> getInducedSituations(int sitId, SparseArray<String> allSits) {
+        // including `sitId` itself
+
+        String sitName = allSits.get(sitId);
+        String[] tokens = sitName.split(":");
+
+        Set<Integer> result = new HashSet<>();
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<tokens.length-1; i++) {
+            if (i > 0)
+                builder.append(':');
+            builder.append(tokens[i]);
+
+            String name = builder.toString();
+            int id = UtilGeneral.searchSparseStringArrayByValue(allSits, name);
+            if (id != -1)
+                result.add(id);
+        }
+        result.add(sitId);
+        return result;
+    }
+
 }
