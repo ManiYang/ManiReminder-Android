@@ -1106,6 +1106,9 @@ public class EditRemBehaviorFragment extends Fragment
             Toast.makeText(getContext(), "commas ',' replaced by '.'", Toast.LENGTH_LONG)
                     .show();
         }
+        if (isSituation) {
+            newSitEvent = newSitEvent.replaceAll(" *: *", ":");
+        }
 
         SparseArray<String> allSitOrEvents = isSituation ? allSits : allEvents;
         ArrayAdapter<String> adapter = isSituation ? adapterSituations : adapterEvents;

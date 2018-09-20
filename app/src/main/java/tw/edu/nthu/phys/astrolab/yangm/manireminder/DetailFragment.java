@@ -472,9 +472,19 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
                 ReminderDataBehavior behavior = new ReminderDataBehavior()
                         .setFromStringRepresentation(newData);
+                String involvedSitsStr = ","
+                        + UtilGeneral.joinIntegerList(",", behavior.getInvolvedSituationIds())
+                        + ",";
+                String involvedEventsStr = ","
+                        + UtilGeneral.joinIntegerList(",", behavior.getInvolvedEventIds())
+                        + ",";
+                boolean involvesTimeInStartInst = behavior.involvesTimeInStartInstant();
                 ContentValues values = new ContentValues();
                 values.put("type", behavior.getRemType());
                 values.put("behavior_settings", newData);
+                values.put("involved_sits", involvedSitsStr);
+                values.put("involved_events", involvedEventsStr);
+                values.put("involve_time_in_start_instant", involvesTimeInStartInst ? 1 : 0);
                 int check = db.update(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, values,
                         "_id = ?", new String[] {Integer.toString(reminderId)});
                 if (check != 1) {

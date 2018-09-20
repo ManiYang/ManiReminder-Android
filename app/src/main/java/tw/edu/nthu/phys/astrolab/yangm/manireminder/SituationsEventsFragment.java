@@ -259,7 +259,6 @@ public class SituationsEventsFragment extends Fragment {
 
         // todo: trigger event `eventId`........
 
-
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {

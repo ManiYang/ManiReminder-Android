@@ -348,6 +348,54 @@ public class ReminderDataBehavior {
         }
     }
 
+    public List<Integer> getInvolvedSituationIds() {
+        List<Integer> ids = new ArrayList<>();
+        if (remType == 1) {
+            for (Instant instant: instants) {
+                if (instant.isSituationStart() || instant.isSituationEnd())
+                    ids.add(instant.getSituationId());
+            }
+        } else if (remType == 2 || remType == 3) {
+            for (Period period: periods) {
+                Instant startInst = period.getStartInstant();
+                if (startInst.isSituationStart() || startInst.isSituationEnd())
+                    ids.add(startInst.getSituationId());
+            }
+        }
+        return ids;
+    }
+
+    public List<Integer> getInvolvedEventIds() {
+        List<Integer> ids = new ArrayList<>();
+        if (remType == 1) {
+            for (Instant instant: instants) {
+                if (instant.isEvent())
+                    ids.add(instant.getEventId());
+            }
+        } else if (remType == 2 || remType == 3) {
+            for (Period period : periods) {
+                Instant startInst = period.getStartInstant();
+                if (startInst.isEvent())
+                    ids.add(startInst.getEventId());
+            }
+        }
+        return ids;
+    }
+
+    public boolean involvesTimeInStartInstant() {
+        if (remType == 1) {
+            for (Instant instant: instants) {
+                if (instant.isTime())
+                    return true;
+            }
+        } else if (remType == 2 || remType == 3) {
+            for (Period period : periods) {
+                if (period.getStartInstant().isTime())
+                    return true;
+            }
+        }
+        return false;
+    }
 
 
     //// inner classes ////

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
     //
     private void updateDb(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 1) {
-            //Log.v("MainDbHelper", "### creating tables (1)");
+            Log.v("MainDbHelper", "### creating tables (1)");
 
             // reminder brief
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_BRIEF + " ("
@@ -80,11 +81,17 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_BEHAVIOR + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "type INTEGER, "
-                    + "behavior_settings TEXT );");
+                    + "behavior_settings TEXT, "
+                    + "involved_sits TEXT, "
+                    + "involved_events TEXT, "
+                    + "involve_time_in_start_instant INTEGER );");
             values = new ContentValues();
             values.put("_id", 0);
             values.put("type", 3);
             values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
+            values.put("involved_sits", "0");
+            values.put("involved_events", "0");
+            values.put("involve_time_in_start_instant", 0);
             long check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
             if (check == -1) {
                 throw new RuntimeException("failed to insert a row to table " + TABLE_REMINDERS_BEHAVIOR);
@@ -94,6 +101,9 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("_id", 1);
             values.put("type", 1);
             values.put("behavior_settings", "sit0end, M~Su.9:00, W.13:00");
+            values.put("involved_sits", "0");
+            values.put("involved_events", "");
+            values.put("involve_time_in_start_instant", 1);
             check = db.insert(TABLE_REMINDERS_BEHAVIOR, null, values);
             if (check == -1) {
                 throw new RuntimeException("failed to insert a row to table " + TABLE_REMINDERS_BEHAVIOR);
