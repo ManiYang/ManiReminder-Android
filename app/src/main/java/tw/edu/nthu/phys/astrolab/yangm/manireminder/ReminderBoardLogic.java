@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteException;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,8 +16,6 @@ public class ReminderBoardLogic {
 
     private Context context;
     private SQLiteDatabase db;
-    private Set<Integer> remindersToOpen = new HashSet<>();
-    private Set<Integer> remindersToClose = new HashSet<>();
 
     public ReminderBoardLogic(Context context) {
         try {
@@ -32,16 +31,19 @@ public class ReminderBoardLogic {
         if (sitIds.isEmpty())
             return;
 
+        Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
+
+        Set<Integer> remindersToOpen = new HashSet<>();
+
+
+        /// deal with model-1 reminders, and find model-2,3 reminders
         List<Integer> model23RemIds = new ArrayList<>();
         List<ReminderDataBehavior> model23RemBehaviors = new ArrayList<>();
-
-        Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
-        ReminderDataBehavior behavior = null;
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) { //for each reminder
             int remId = cursor.getInt(0);
             int model = cursor.getInt(1);
-            behavior = new ReminderDataBehavior()
+            ReminderDataBehavior behavior = new ReminderDataBehavior()
                     .setFromStringRepresentation(cursor.getString(2));
 
             if (model == 0) //(should not happen, though)
@@ -59,27 +61,79 @@ public class ReminderBoardLogic {
                     remindersToOpen.add(remId);
                 }
             } else {
-                // record model-2,3 reminders
+                // model-2,3 reminders
                 model23RemIds.add(remId);
                 model23RemBehaviors.add(behavior);
             }
         }
         cursor.close();
 
-        // deal with model-2,3 reminders
+        /// deal with model-2,3 reminders, and find reminders whose list of started periods gets updated
         if (model23RemIds.isEmpty())
             return;
 
         List<Integer[]> model23RemStartedPeriods =
                 UtilStorage.getRemindersStartedPeriods(context, model23RemIds);
 
-        //...........
+        List<Integer> remIdsToUpdateStartedPeriods = new ArrayList<>();
+        List<Integer[]> remsNewStartedPeriods = new ArrayList<>();
+        for (int i=0; i<model23RemIds.size(); i++) {
+            int id = model23RemIds.get(i);
+            Integer[] startedPeriods = model23RemStartedPeriods.get(i);
+            ReminderDataBehavior behavior = model23RemBehaviors.get(i);
+            Set<Integer> periodsToStart = getPeriodsToStartOnSitsStart(behavior.getPeriods(), sitIds);
 
+            if (startedPeriods.length == 0 && !periodsToStart.isEmpty()) {
+                if (behavior.getRemType() == 2) { // remind during periods
+                    // open reminder
+                    remindersToOpen.add(id);
+                } else if (behavior.getRemType() == 3) { // to-do repetitively during periods
+                    // todo: start repeating reminder
+
+                }
+
+
+
+
+            }
+
+            // todo: schedule actions for newly started periods whose end condition is not situation end
+
+
+
+            // reminders which need updating started periods
+            if (!periodsToStart.isEmpty()) { //can be more strict................
+
+                Set<Integer> newStartedPeriods = new HashSet<>(Arrays.asList(startedPeriods));
+                newStartedPeriods.addAll(periodsToStart);
+
+                remIdsToUpdateStartedPeriods.add(id);
+                remsNewStartedPeriods.add(newStartedPeriods.toArray(new Integer[0]));
+            }
+        }
+
+        /// update started periods of reminders
+        UtilStorage.updateRemindersStartedPeriods(
+                context, remIdsToUpdateStartedPeriods, remsNewStartedPeriods);
+    }
+
+    /** returns {i: periods[i] gets started when all of `sitIds` start} */
+    private Set<Integer> getPeriodsToStartOnSitsStart(ReminderDataBehavior.Period[] periods,
+                                                      Set<Integer> sitIds) {
+        Set<Integer> periodsToStart = new HashSet<>();
+        for (int i=0; i<periods.length; i++) {
+            ReminderDataBehavior.Instant instant = periods[i].getStartInstant();
+            if (instant.isSituationStart() && sitIds.contains(instant.getSituationId()))
+                periodsToStart.add(i);
+        }
+        return periodsToStart;
     }
 
     public void stopSituations(Set<Integer> sitIds) {
         if (sitIds.isEmpty())
             return;
+
+        Set<Integer> remindersToOpen = new HashSet<>();
 
         Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
         ReminderDataBehavior behavior = null;
@@ -115,6 +169,7 @@ public class ReminderBoardLogic {
     }
 
     public void triggerEvent(int eventId) {
+        Set<Integer> remindersToOpen = new HashSet<>();
         Cursor cursor = readRemBehaviorInvolvingEvent(eventId); //(rem-id, model, behavior)
         ReminderDataBehavior behavior = null;
         cursor.moveToPosition(-1);
@@ -147,7 +202,26 @@ public class ReminderBoardLogic {
         cursor.close();
     }
 
-    public void commit() {
+    public void actionsByTime() {
+
+    }
+
+    /*
+    public void openModel13RemindersByTime(Set<Integer> remIds) {
+
+    }
+
+    public void startReminderPeriodsByTime(List<Integer> remIds, List<Integer> periodIndexes) {
+
+    }
+
+    public void stopReminderPeriodsByTime(List<Integer> remIds, List<Integer> periodIndexes) {
+
+    }
+*/
+
+    ////
+    private void updateBoard(Set<Integer> remindersToOpen, Set<Integer> remindersToClose) {
         //[temp]
         //String text = UtilGeneral.joinIntegerList(",", new ArrayList<>(remindersToOpen));
         //Toast.makeText(context, "reminders to open: "+text, Toast.LENGTH_LONG).show();
@@ -157,7 +231,6 @@ public class ReminderBoardLogic {
 
     }
 
-    ////
     /**
      * @return cursor containing columns (reminder-id, model, behavior-settings), or null if sitIds
      *         is empty

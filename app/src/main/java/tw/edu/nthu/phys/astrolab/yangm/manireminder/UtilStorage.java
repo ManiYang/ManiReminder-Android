@@ -22,7 +22,7 @@ public class UtilStorage {
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
 
-    public static final int MAX_RECORDS_IN_HISTORY = 500;
+    public static final int MAX_RECORDS_IN_HISTORY = 300;
 
     //
     public static List<Integer> getStartedSituations(Context context) {
@@ -195,7 +195,8 @@ public class UtilStorage {
 
     public static void updateRemindersStartedPeriods(
             Context context, List<Integer> remIds, List<Integer[]> startedPeriods) {
-        List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
+        if (remIds.isEmpty())
+            return;
 
         SQLiteDatabase db;
         try {
@@ -205,6 +206,7 @@ public class UtilStorage {
             throw new RuntimeException("database unavailable");
         }
 
+        List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
         for (int i=0; i<remIds.size(); i++) {
             int id = remIds.get(i);
 
