@@ -244,10 +244,9 @@ public class SituationsEventsFragment extends Fragment {
         // add to history
         UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_START, sitId);
 
-        // todo: start situations in inducedSitsToStart.....
-
-
-
+        // start situations in inducedSitsToStart
+        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
+        boardLogic.startSituations(inducedSitsToStart);
     }
 
     private void userTriggerEvent(int eventId, Calendar at) {
@@ -268,7 +267,7 @@ public class SituationsEventsFragment extends Fragment {
 
         TextListAdapter adapter = (TextListAdapter)
                 ((RecyclerView) view.findViewById(R.id.recycler_started_situations)).getAdapter();
-        adapter.notifyDataSetChanged();
+        adapter.itemRemoved(startedSitIndex);
 
         UtilStorage.writeStartedSituations(getContext(), startedSitIds);
 

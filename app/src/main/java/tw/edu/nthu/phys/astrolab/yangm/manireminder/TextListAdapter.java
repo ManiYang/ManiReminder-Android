@@ -43,7 +43,9 @@ public class TextListAdapter
     /** call this when items are appended */
     public void itemsAppended() {
         if (texts.size() <= isPositionSelected.size()) {
-            throw new AssertionError("texts.size() <= isPositionSelected.size()");
+            throw new RuntimeException(String.format(
+                    "texts.size() (%d) <= isPositionSelected.size() (%d)",
+                    texts.size(), isPositionSelected.size()));
         }
 
         for (int p=isPositionSelected.size(); p<texts.size(); p++) {
@@ -67,6 +69,8 @@ public class TextListAdapter
 
     /** call this when all items are removed */
     public void dataCleared() {
+        if (! texts.isEmpty())
+            throw new RuntimeException("`texts` is not empty");
         singleSelectedPosition = -1;
         isPositionSelected.clear();
         notifyDataSetChanged();
