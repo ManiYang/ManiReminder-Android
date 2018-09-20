@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -143,5 +144,108 @@ public class UtilStorage {
         } else {
             cursor.close();
         }
+    }
+
+    //
+    public static List<Integer[]> getRemindersStartedPeriods(Context context,
+                                                             List<Integer> remIds) {
+        List<Integer[]> remsStartedPeriods = new ArrayList<>();
+        if (remIds.isEmpty()) {
+            return remsStartedPeriods;
+        }
+        for (int i=0; i<remIds.size(); i++) {
+            remsStartedPeriods.add(null);
+        }
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getReadableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+
+        Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null,
+                "_id IN ?",
+                new String[] {"(" + UtilGeneral.joinIntegerList(", ", remIds) + ")"},
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            int id = cursor.getInt(0);
+
+            String startedPeriodsStr = cursor.getString(1);
+            Integer[] startedPeriods =
+                    UtilGeneral.splitStringAsIntegerList(startedPeriodsStr, ",")
+                            .toArray(new Integer[0]);
+
+            int index = remIds.indexOf(id);
+            if (index != -1) {
+                remsStartedPeriods.set(index, startedPeriods);
+            }
+        }
+        cursor.close();
+
+        for (int i=0; i<remIds.size(); i++) {
+            if (remsStartedPeriods.get(i) == null) {
+                remsStartedPeriods.set(i, new Integer[] {});
+            }
+        }
+        return remsStartedPeriods;
+    }
+
+    public static void updateRemindersStartedPeriods(
+            Context context, List<Integer> remIds, List<Integer[]> startedPeriods) {
+        List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+
+        for (int i=0; i<remIds.size(); i++) {
+            int id = remIds.get(i);
+
+            Integer[] periods = startedPeriods.get(i);
+            String startedPeriodsStr =
+                    UtilGeneral.joinIntegerList(",", Arrays.asList(periods));
+
+            if (idsExist.contains(id)) {
+                // update record
+                ContentValues values = new ContentValues();
+                values.put("started_periods", startedPeriodsStr);
+                db.update(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, values,
+                        "_id = ?", new String[] {String.valueOf(id)});
+            } else {
+                // insert record
+                ContentValues values = new ContentValues();
+                values.put("_id", id);
+                values.put("started_periods", startedPeriodsStr);
+                db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null, values);
+            }
+        }
+    }
+
+    //
+    public static List<Integer> getIdsInTable(Context context, String table) {
+        List<Integer> ids = new ArrayList<>();
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getReadableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+        Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            ids.add(cursor.getInt(0));
+        }
+        cursor.close();
+        return ids;
     }
 }

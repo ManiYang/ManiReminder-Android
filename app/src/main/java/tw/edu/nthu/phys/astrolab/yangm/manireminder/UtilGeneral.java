@@ -37,11 +37,27 @@ public class UtilGeneral {
      */
     public static ArrayList<String> splitString(String s, String regex) {
         ArrayList<String> list = new ArrayList<>();
+        if (s.trim().isEmpty())
+            return list;
         String[] split = s.split(regex);
         for (String token: split) {
-            String tokenTrim = token.trim();
-            if (!tokenTrim.isEmpty()) {
-                list.add(tokenTrim);
+            token = token.trim();
+            if (!token.isEmpty()) {
+                list.add(token);
+            }
+        }
+        return list;
+    }
+
+    public static ArrayList<Integer> splitStringAsIntegerList(String s, String regex) {
+        ArrayList<Integer> list = new ArrayList<>();
+        if (s.trim().isEmpty())
+            return list;
+        String[] tokens = s.split(regex);
+        for (String token: tokens) {
+            token = token.trim();
+            if (!token.isEmpty()) {
+                list.add(Integer.parseInt(token));
             }
         }
         return list;

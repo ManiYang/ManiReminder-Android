@@ -7,13 +7,16 @@ import android.database.sqlite.SQLiteException;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class ReminderBoardLogic {
 
-    private SQLiteDatabase db;
     private Context context;
+    private SQLiteDatabase db;
+    private Set<Integer> remindersToOpen = new HashSet<>();
+    private Set<Integer> remindersToClose = new HashSet<>();
 
     public ReminderBoardLogic(Context context) {
         try {
@@ -29,26 +32,127 @@ public class ReminderBoardLogic {
         if (sitIds.isEmpty())
             return;
 
+        List<Integer> model23RemIds = new ArrayList<>();
+        List<ReminderDataBehavior> model23RemBehaviors = new ArrayList<>();
+
         Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
-
-        // [temp]
+        ReminderDataBehavior behavior = null;
         cursor.moveToPosition(-1);
-        List<Integer> remIds = new ArrayList<>();
-        while (cursor.moveToNext()) {
-            remIds.add(cursor.getInt(0));
-        }
-        String remIdsStr = UtilGeneral.joinIntegerList(",", remIds);
-        Toast.makeText(context, "involved reminders: "+remIdsStr, Toast.LENGTH_LONG).show();
+        while (cursor.moveToNext()) { //for each reminder
+            int remId = cursor.getInt(0);
+            int model = cursor.getInt(1);
+            behavior = new ReminderDataBehavior()
+                    .setFromStringRepresentation(cursor.getString(2));
 
+            if (model == 0) //(should not happen, though)
+                continue;
+            if (model == 1) { //to-do at instants
+                boolean triggerReminder = false;
+                ReminderDataBehavior.Instant[] instants = behavior.getInstants();
+                for (ReminderDataBehavior.Instant instant: instants) {
+                    if (instant.isSituationStart() && sitIds.contains(instant.getSituationId())) {
+                        triggerReminder = true;
+                        break;
+                    }
+                }
+                if (triggerReminder) {
+                    remindersToOpen.add(remId);
+                }
+            } else {
+                // record model-2,3 reminders
+                model23RemIds.add(remId);
+                model23RemBehaviors.add(behavior);
+            }
+        }
+        cursor.close();
+
+        // deal with model-2,3 reminders
+        if (model23RemIds.isEmpty())
+            return;
+
+        List<Integer[]> model23RemStartedPeriods =
+                UtilStorage.getRemindersStartedPeriods(context, model23RemIds);
+
+        //...........
 
     }
 
     public void stopSituations(Set<Integer> sitIds) {
+        if (sitIds.isEmpty())
+            return;
+
+        Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
+        ReminderDataBehavior behavior = null;
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) { //for each reminder
+            int remId = cursor.getInt(0);
+            int model = cursor.getInt(1);
+            behavior = new ReminderDataBehavior()
+                    .setFromStringRepresentation(cursor.getString(2));
+
+            if (model == 0) //(should not happen, though)
+                continue;
+            if (model == 1) { //to-do at instants
+                boolean triggerReminder = false;
+                ReminderDataBehavior.Instant[] instants = behavior.getInstants();
+                for (ReminderDataBehavior.Instant instant: instants) {
+                    if (instant.isSituationEnd() && sitIds.contains(instant.getSituationId())) {
+                        triggerReminder = true;
+                        break;
+                    }
+                }
+                if (triggerReminder) {
+                    remindersToOpen.add(remId);
+                }
+            } else {
+                //...........
 
 
+
+            }
+        }
+        cursor.close();
     }
 
     public void triggerEvent(int eventId) {
+        Cursor cursor = readRemBehaviorInvolvingEvent(eventId); //(rem-id, model, behavior)
+        ReminderDataBehavior behavior = null;
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) { //for each reminder
+            int remId = cursor.getInt(0);
+            int model = cursor.getInt(1);
+            behavior = new ReminderDataBehavior()
+                    .setFromStringRepresentation(cursor.getString(2));
+
+            if (model == 0) //(should not happen, though)
+                continue;
+            if (model == 1) { //to-do at instants
+                boolean triggerReminder = false;
+                ReminderDataBehavior.Instant[] instants = behavior.getInstants();
+                for (ReminderDataBehavior.Instant instant: instants) {
+                    if (instant.isEvent() && instant.getEventId() == eventId) {
+                        triggerReminder = true;
+                        break;
+                    }
+                }
+                if (triggerReminder) {
+                    remindersToOpen.add(remId);
+                }
+            } else {
+                //...........
+
+
+            }
+        }
+        cursor.close();
+    }
+
+    public void commit() {
+        //[temp]
+        //String text = UtilGeneral.joinIntegerList(",", new ArrayList<>(remindersToOpen));
+        //Toast.makeText(context, "reminders to open: "+text, Toast.LENGTH_LONG).show();
+
+        // todo ...
 
 
     }
@@ -56,7 +160,8 @@ public class ReminderBoardLogic {
     ////
     /**
      * @return cursor containing columns (reminder-id, model, behavior-settings), or null if sitIds
-     *         is empty */
+     *         is empty
+     * Remember to close the cursor. */
     private Cursor readRemBehaviorInvolvingSituations(Set<Integer> sitIds) {
         if (sitIds.isEmpty())
             return null;
@@ -79,7 +184,8 @@ public class ReminderBoardLogic {
     }
 
     /**
-     * @return cursor containing columns (reminder-id, model, behavior-settings) */
+     * @return cursor containing columns (reminder-id, model, behavior-settings)
+     * Remember to close the cursor. */
     private Cursor readRemBehaviorInvolvingEvent(int eventId) {
         return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                 new String[] {"_id", "type", "behavior_settings"},

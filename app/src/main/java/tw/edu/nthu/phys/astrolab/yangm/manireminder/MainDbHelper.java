@@ -2,22 +2,19 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
     public static final String TABLE_REMINDERS_BEHAVIOR = "reminders_behavior_settings";
+    public static final String TABLE_REMINDERS_STARTED_PERIODS = "reminders_started_periods";
     public static final String TABLE_TAGS = "tags";
     public static final String TABLE_SITUATIONS = "situations";
     public static final String TABLE_EVENTS = "events";
@@ -156,18 +153,13 @@ public class MainDbHelper extends SQLiteOpenHelper {
                     + "type INTEGER, "
                     + "sit_event_id INTEGER);");
         }
-    }
 
-    private List<Integer> getIdsInTable(SQLiteDatabase db, String table) {
-        Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
-                null, null, null);
-        cursor.moveToPosition(-1);
-        List<Integer> ids = new ArrayList<>();
-        while (cursor.moveToNext()) {
-            ids.add(cursor.getInt(0));
+        if (oldVersion < 3) {
+            // reminder started periods (for model-2,3 reminders)
+            db.execSQL("CREATE TABLE " + TABLE_REMINDERS_STARTED_PERIODS + " ("
+                    + "_id INTEGER PRIMARY KEY, "
+                    + "started_periods TEXT);");
         }
-        cursor.close();
-        return ids;
     }
 
     //

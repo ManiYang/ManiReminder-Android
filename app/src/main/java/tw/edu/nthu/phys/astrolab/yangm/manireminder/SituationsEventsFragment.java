@@ -143,8 +143,7 @@ public class SituationsEventsFragment extends Fragment {
 
         //
         loadAllSitsEventsList(view);
-
-        Log.v("SituationsEventsFrag", "### onStart() done");
+        //Log.v("SituationsEventsFrag", "### onStart() done");
     }
 
     private void loadAllSitsEventsList(View view) {
@@ -247,6 +246,7 @@ public class SituationsEventsFragment extends Fragment {
         // start situations in inducedSitsToStart
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
         boardLogic.startSituations(inducedSitsToStart);
+        boardLogic.commit();
     }
 
     private void userTriggerEvent(int eventId, Calendar at) {
@@ -255,9 +255,10 @@ public class SituationsEventsFragment extends Fragment {
         // add to history
         UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_EVENT, eventId);
 
-
-        // todo: trigger event `eventId`........
-
+        // trigger event `eventId`
+        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
+        boardLogic.triggerEvent(eventId);
+        boardLogic.commit();
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
@@ -277,9 +278,11 @@ public class SituationsEventsFragment extends Fragment {
         //
         Set<Integer> inducedSitsToStop
                 = getInducedSituationsToStart(sitId); //uses current (updated) startedSitIds
-        // todo: stop situations in inducedSitsToStop....
 
-
+        // stop situations in inducedSitsToStop....
+        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
+        boardLogic.stopSituations(inducedSitsToStop);
+        boardLogic.commit();
     }
 
     //
