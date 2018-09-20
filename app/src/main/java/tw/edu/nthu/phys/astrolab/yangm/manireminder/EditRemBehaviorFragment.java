@@ -1116,7 +1116,7 @@ public class EditRemBehaviorFragment extends Fragment
 
         // 1. add to allSits/allEvents
         int newId = (allSitOrEvents.size() == 0) ? 0 :
-                Collections.max(UtilGeneral.getKeysOfSparseStringArray(allSitOrEvents)) + 1;
+                Collections.max(UtilGeneral.getKeysOfSparseArray(allSitOrEvents)) + 1;
         allSitOrEvents.append(newId, newSitEvent);
 
         // 2. add to adapterSituations/adapterEvents

@@ -89,7 +89,7 @@ public class EditRemTagsFragment extends Fragment
 
         SparseArray<String> allTags = UtilGeneral.parseAsSparseStringArray(allTagsDict);
         allTagNames = UtilGeneral.getValuesOfSparseStringArray(allTags);
-        allTagIds = UtilGeneral.getKeysOfSparseStringArray(allTags);
+        allTagIds = UtilGeneral.getKeysOfSparseArray(allTags);
 
         // populate reminder tags
         TextListAdapter adapter = new TextListAdapter(remTags, TextListAdapter.SINGLE_SELECTION);

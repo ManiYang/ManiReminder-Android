@@ -12,9 +12,10 @@ import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public class UtilStorage {
 
@@ -110,8 +111,8 @@ public class UtilStorage {
         if (historyRecordType < 0 || historyRecordType > 2)
             throw new RuntimeException("bad historyRcordType");
 
-        String dateStr = new SimpleDateFormat("yyyy-MM-dd").format(at.getTime());
-        String timeStr = new SimpleDateFormat("HH:mm:ss").format(at.getTime());
+        String dateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(at.getTime());
+        String timeStr = new SimpleDateFormat("HH:mm:ss", Locale.US).format(at.getTime());
 
         ContentValues values = new ContentValues();
         values.put("date", dateStr);
@@ -193,9 +194,9 @@ public class UtilStorage {
         return remsStartedPeriods;
     }
 
-    public static void updateRemindersStartedPeriods(
-            Context context, List<Integer> remIds, List<Integer[]> startedPeriods) {
-        if (remIds.isEmpty())
+    public static void updateRemindersStartedPeriods(Context context,
+                                                     SparseArray<Set<Integer>> remsStartedPeriods) {
+        if (remsStartedPeriods.size() == 0)
             return;
 
         SQLiteDatabase db;
@@ -207,12 +208,12 @@ public class UtilStorage {
         }
 
         List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
-        for (int i=0; i<remIds.size(); i++) {
-            int id = remIds.get(i);
+        for (int i=0; i<remsStartedPeriods.size(); i++) {
+            int id = remsStartedPeriods.keyAt(i);
 
-            Integer[] periods = startedPeriods.get(i);
+            Set<Integer> periods = remsStartedPeriods.valueAt(i);
             String startedPeriodsStr =
-                    UtilGeneral.joinIntegerList(",", Arrays.asList(periods));
+                    UtilGeneral.joinIntegerList(",", new ArrayList<>(periods));
 
             if (idsExist.contains(id)) {
                 // update record

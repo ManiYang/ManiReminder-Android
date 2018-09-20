@@ -4,10 +4,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.util.SparseArray;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,90 +31,119 @@ public class ReminderBoardLogic {
         if (sitIds.isEmpty())
             return;
 
+        Set<Integer> remindersToOpen = new HashSet<>();
+        Set<Integer> remindersToStartRepeating = new HashSet<>();
+        List<Integer[]> reminderPeriodsToScheduleEnding = new ArrayList<>();
+
+        // get involved reminders
         Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
 
-        Set<Integer> remindersToOpen = new HashSet<>();
+        // get reminders (and their behavior data) of model 1 and those of model 2 & 3
+        List<SparseArray<ReminderDataBehavior>> arrays = groupByModelFromCursor(cursor);
+        cursor.close();
+        SparseArray<ReminderDataBehavior> remM1Behaviors = arrays.get(1);
+        SparseArray<ReminderDataBehavior> remM23Behaviors = arrays.get(2);
+
+        // deal with model-1 reminders
+        for (int i=0; i<remM1Behaviors.size(); i++) {
+            int remId = remM1Behaviors.keyAt(i);
+            ReminderDataBehavior.Instant[] instants = remM1Behaviors.valueAt(i).getInstants();
+            if (areSitsStartsInInstants(sitIds, instants)) {
+                remindersToOpen.add(remId);
+            }
+        }
+
+        // deal with model-2,3 reminders
+        List<Integer[]> remsStartedPeriods = UtilStorage.getRemindersStartedPeriods(
+                context, UtilGeneral.getKeysOfSparseArray(remM23Behaviors));
+
+        SparseArray<Set<Integer>> remsNewStartedPeriods = new SparseArray<>();
+        for (int i=0; i<remM23Behaviors.size(); i++) {
+            int remId = remM23Behaviors.keyAt(i);
+            ReminderDataBehavior behavior = remM23Behaviors.valueAt(i);
+            Integer[] startedPeriods = remsStartedPeriods.get(i);
+
+            // determine periods to start
+            Set<Integer> periodsToStart = UtilGeneral.setDifference(
+                    getPeriodsToStartOnSitsStart(behavior.getPeriods(), sitIds), startedPeriods);
+
+            // to open reminder or start repeating it
+            if (startedPeriods.length == 0 && !periodsToStart.isEmpty()) {
+                if (behavior.getRemType() == 2) {
+                    // open reminder
+                    remindersToOpen.add(remId);
+                } else {
+                    // start repeating reminder
+                    remindersToStartRepeating.add(remId);
+                }
+            }
+
+            // to schedule actions for periods-to-start whose end condition is time/duration
+            for (int period: periodsToStart) {
+                reminderPeriodsToScheduleEnding.add(new Integer[] {remId, period});
+            }
+
+            // to update started periods in database
+            if (!periodsToStart.isEmpty()) {
+                remsNewStartedPeriods.append(remId,
+                        UtilGeneral.setUnion(periodsToStart, startedPeriods));
+            }
+        }
+
+        // start repeating reminders
+        // remindersToStartRepeating
+        // todo...
 
 
-        /// deal with model-1 reminders, and find model-2,3 reminders
-        List<Integer> model23RemIds = new ArrayList<>();
-        List<ReminderDataBehavior> model23RemBehaviors = new ArrayList<>();
+
+        // open reminders
+        updateBoard(remindersToOpen, new HashSet<Integer>());
+
+        // update started periods of reminders
+        UtilStorage.updateRemindersStartedPeriods(context, remsNewStartedPeriods);
+
+        // schedule endings of newly started periods
+        // reminderPeriodsToScheduleEnding
+        // todo...
+
+
+
+
+    }
+
+    /**
+     * @param cursor must have columns (rem-id, model, behavior)
+     * @return [0]: model-0 reminders,  [1]: model-1 reminders,  [2]: model-2,3 reminders
+     * `cursor` is not closed. */
+    private List<SparseArray<ReminderDataBehavior>> groupByModelFromCursor(Cursor cursor) {
+        List<SparseArray<ReminderDataBehavior>> arrays = new ArrayList<>();
+        for (int i=0; i<3; i++) {
+            arrays.add(new SparseArray<ReminderDataBehavior>());
+        }
+
         cursor.moveToPosition(-1);
-        while (cursor.moveToNext()) { //for each reminder
+        while (cursor.moveToNext()) {
             int remId = cursor.getInt(0);
             int model = cursor.getInt(1);
             ReminderDataBehavior behavior = new ReminderDataBehavior()
                     .setFromStringRepresentation(cursor.getString(2));
 
-            if (model == 0) //(should not happen, though)
-                continue;
-            if (model == 1) { //to-do at instants
-                boolean triggerReminder = false;
-                ReminderDataBehavior.Instant[] instants = behavior.getInstants();
-                for (ReminderDataBehavior.Instant instant: instants) {
-                    if (instant.isSituationStart() && sitIds.contains(instant.getSituationId())) {
-                        triggerReminder = true;
-                        break;
-                    }
-                }
-                if (triggerReminder) {
-                    remindersToOpen.add(remId);
-                }
-            } else {
-                // model-2,3 reminders
-                model23RemIds.add(remId);
-                model23RemBehaviors.add(behavior);
-            }
-        }
-        cursor.close();
-
-        /// deal with model-2,3 reminders, and find reminders whose list of started periods gets updated
-        if (model23RemIds.isEmpty())
-            return;
-
-        List<Integer[]> model23RemStartedPeriods =
-                UtilStorage.getRemindersStartedPeriods(context, model23RemIds);
-
-        List<Integer> remIdsToUpdateStartedPeriods = new ArrayList<>();
-        List<Integer[]> remsNewStartedPeriods = new ArrayList<>();
-        for (int i=0; i<model23RemIds.size(); i++) {
-            int id = model23RemIds.get(i);
-            Integer[] startedPeriods = model23RemStartedPeriods.get(i);
-            ReminderDataBehavior behavior = model23RemBehaviors.get(i);
-            Set<Integer> periodsToStart = getPeriodsToStartOnSitsStart(behavior.getPeriods(), sitIds);
-
-            if (startedPeriods.length == 0 && !periodsToStart.isEmpty()) {
-                if (behavior.getRemType() == 2) { // remind during periods
-                    // open reminder
-                    remindersToOpen.add(id);
-                } else if (behavior.getRemType() == 3) { // to-do repetitively during periods
-                    // todo: start repeating reminder
-
-                }
-
-
-
-
-            }
-
-            // todo: schedule actions for newly started periods whose end condition is not situation end
-
-
-
-            // reminders which need updating started periods
-            if (!periodsToStart.isEmpty()) { //can be more strict................
-
-                Set<Integer> newStartedPeriods = new HashSet<>(Arrays.asList(startedPeriods));
-                newStartedPeriods.addAll(periodsToStart);
-
-                remIdsToUpdateStartedPeriods.add(id);
-                remsNewStartedPeriods.add(newStartedPeriods.toArray(new Integer[0]));
+            if (model == 0 || model == 1) {
+                arrays.get(model).append(remId, behavior);
+            } else if (model == 2 || model == 3) {
+                arrays.get(2).append(remId, behavior);
             }
         }
 
-        /// update started periods of reminders
-        UtilStorage.updateRemindersStartedPeriods(
-                context, remIdsToUpdateStartedPeriods, remsNewStartedPeriods);
+        return arrays;
+    }
+
+    boolean areSitsStartsInInstants(Set<Integer> sitIds, ReminderDataBehavior.Instant[] instants) {
+        for (ReminderDataBehavior.Instant instant: instants) {
+            if (instant.isSituationStart() && sitIds.contains(instant.getSituationId()))
+                return true;
+        }
+        return false;
     }
 
     /** returns {i: periods[i] gets started when all of `sitIds` start} */
@@ -128,6 +157,9 @@ public class ReminderBoardLogic {
         }
         return periodsToStart;
     }
+
+
+
 
     public void stopSituations(Set<Integer> sitIds) {
         if (sitIds.isEmpty())
@@ -202,25 +234,14 @@ public class ReminderBoardLogic {
         cursor.close();
     }
 
-    public void actionsByTime() {
+    public void performScheduleActions(ScheduleAction[] actions) {
+        Set<Integer> remindersToOpen = new HashSet<>();
+
+
 
     }
 
-    /*
-    public void openModel13RemindersByTime(Set<Integer> remIds) {
-
-    }
-
-    public void startReminderPeriodsByTime(List<Integer> remIds, List<Integer> periodIndexes) {
-
-    }
-
-    public void stopReminderPeriodsByTime(List<Integer> remIds, List<Integer> periodIndexes) {
-
-    }
-*/
-
-    ////
+    //
     private void updateBoard(Set<Integer> remindersToOpen, Set<Integer> remindersToClose) {
         //[temp]
         //String text = UtilGeneral.joinIntegerList(",", new ArrayList<>(remindersToOpen));
@@ -265,6 +286,5 @@ public class ReminderBoardLogic {
                 "involved_events LIKE ?", new String[] {"%,"+eventId+",%"},
                 null, null, null);
     }
-
 
 }
