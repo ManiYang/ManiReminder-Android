@@ -19,10 +19,12 @@ public class ScheduleAction {
     public static final int TYPE_REMINDER_M3_OPEN = 4;
     public static final int TYPE_RESCHEDULE_M3_REMINDER_REPEATS = 5;
 
-    int type = -1;
+    private int type = -1;
     private Calendar time;
-    int reminderId;
-    int periodIndex;
+    private int reminderId;
+    private int periodId;
+    private Calendar repeatStartAt;
+
 
     public ScheduleAction() {}
 
@@ -32,19 +34,19 @@ public class ScheduleAction {
         return this;
     }
 
-    public ScheduleAction setAsPeriodStart(Calendar time, int reminderId, int periodIndex) {
+    public ScheduleAction setAsPeriodStart(Calendar time, int reminderId, int periodId) {
         this.type = TYPE_PERIOD_START;
         this.time = time;
         this.reminderId = reminderId;
-        this.periodIndex = periodIndex;
+        this.periodId = periodId;
         return this;
     }
 
-    public ScheduleAction setAsPeriodStop(Calendar time, int reminderId, int periodIndex) {
+    public ScheduleAction setAsPeriodStop(Calendar time, int reminderId, int periodId) {
         this.type = TYPE_PERIOD_STOP;
         this.time = time;
         this.reminderId = reminderId;
-        this.periodIndex = periodIndex;
+        this.periodId = periodId;
         return this;
     }
 
@@ -62,16 +64,17 @@ public class ScheduleAction {
         return this;
     }
 
-    public ScheduleAction setAsRescheduleModel3ReminderRepeats(Calendar time, int reminderId) {
+    public ScheduleAction setAsRescheduleModel3ReminderRepeats(Calendar time, int reminderId,
+                                                               Calendar repeatStartAt) {
         this.type = TYPE_RESCHEDULE_M3_REMINDER_REPEATS;
         this.time = time;
         this.reminderId = reminderId;
+        this.repeatStartAt = repeatStartAt;
         return this;
     }
 
     /**
-     * @param cursor (type, time, reminder_id, period_index)
-     * */
+     * @param cursor must contain columns (type, time, reminder_id, period_id, repeat_start_at) */
     public ScheduleAction setFromCursor(Cursor cursor) {
         type = cursor.getInt(0);
 
@@ -88,7 +91,18 @@ public class ScheduleAction {
             reminderId = cursor.getInt(2);
 
         if (!cursor.isNull(3))
-            periodIndex = cursor.getInt(3);
+            periodId = cursor.getInt(3);
+
+        if (!cursor.isNull(4)) {
+            try {
+                Date date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US)
+                        .parse(cursor.getString(4));
+                repeatStartAt = new GregorianCalendar();
+                repeatStartAt.setTime(date);
+            } catch (ParseException e) {
+                throw new RuntimeException("Could not parse repeatStartAt string");
+            }
+        }
 
         return this;
     }
@@ -114,12 +128,20 @@ public class ScheduleAction {
         return reminderId;
     }
 
-    public int getPeriodIndex() {
+    public int getPeriodId() {
         if (type == -1)
             throw new RuntimeException("data not set");
         if (type != TYPE_PERIOD_START && type != TYPE_PERIOD_STOP)
             throw new RuntimeException("no period index for this type");
-        return periodIndex;
+        return periodId;
+    }
+
+    public Calendar getRepeatStartAt() {
+        if (type == -1)
+            throw new RuntimeException("data not set");
+        if (type != TYPE_RESCHEDULE_M3_REMINDER_REPEATS)
+            throw new RuntimeException("no repeat start time for this type");
+        return repeatStartAt;
     }
 
     public ContentValues getContentValues() {
@@ -137,9 +159,15 @@ public class ScheduleAction {
             values.put("reminder_id", reminderId);
 
         if (type == TYPE_PERIOD_START || type == TYPE_PERIOD_STOP)
-            values.put("period_index", periodIndex);
+            values.put("period_id", periodId);
         else
-            values.putNull("period_index");
+            values.putNull("period_id");
+
+        if (type == TYPE_RESCHEDULE_M3_REMINDER_REPEATS)
+            values.put("repeat_start_at", new SimpleDateFormat(
+                    "yyyy-MM-dd.HH:mm:ss", Locale.US).format(repeatStartAt.getTime()));
+        else
+            values.putNull("repeat_start_at");
 
         return values;
     }

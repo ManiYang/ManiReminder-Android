@@ -8,6 +8,8 @@ import android.util.SparseArray;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,13 +29,14 @@ public class ReminderBoardLogic {
         this.context = context;
     }
 
-    public void startSituations(Set<Integer> sitIds) {
+    public void startSituations(Set<Integer> sitIds, Calendar at) {
         if (sitIds.isEmpty())
             return;
 
         Set<Integer> remindersToOpen = new HashSet<>();
         Set<Integer> remindersToStartRepeating = new HashSet<>();
-        List<Integer[]> reminderPeriodsToScheduleEnding = new ArrayList<>();
+        List<Integer[]> periodsToScheduleEnding =
+                new ArrayList<>(); //each element: [reminder-id, period-id, period-index]
 
         // get involved reminders
         Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
@@ -54,61 +57,166 @@ public class ReminderBoardLogic {
         }
 
         // deal with model-2,3 reminders
-        List<Integer[]> remsStartedPeriods = UtilStorage.getRemindersStartedPeriods(
+        List<List<Integer>> remsStartedPeriodIds = UtilStorage.getRemindersStartedPeriodIds(
                 context, UtilGeneral.getKeysOfSparseArray(remM23Behaviors));
 
-        SparseArray<Set<Integer>> remsNewStartedPeriods = new SparseArray<>();
+        SparseArray<Set<Integer>> remsNewStartedPeriodIds = new SparseArray<>();
         for (int i=0; i<remM23Behaviors.size(); i++) {
             int remId = remM23Behaviors.keyAt(i);
             ReminderDataBehavior behavior = remM23Behaviors.valueAt(i);
-            Integer[] startedPeriods = remsStartedPeriods.get(i);
+            List<Integer> startedPeriodIds = remsStartedPeriodIds.get(i);
 
             // determine periods to start
-            Set<Integer> periodsToStart = UtilGeneral.setDifference(
-                    getPeriodsToStartOnSitsStart(behavior.getPeriods(), sitIds), startedPeriods);
+            List<Integer> periodIndexesToStart =
+                    getPeriodIndexesToStartOnSitsStart(behavior.getPeriods(), sitIds);
 
             // to open reminder or start repeating it
-            if (startedPeriods.length == 0 && !periodsToStart.isEmpty()) {
+            if (startedPeriodIds.isEmpty() && !periodIndexesToStart.isEmpty()) {
                 if (behavior.getRemType() == 2) {
-                    // open reminder
                     remindersToOpen.add(remId);
                 } else {
-                    // start repeating reminder
                     remindersToStartRepeating.add(remId);
                 }
             }
 
+            // create id's of periods to start
+            List<Integer> periodIdsToStart =
+                    createIdsForPeriodsToStart(periodIndexesToStart, startedPeriodIds, behavior);
+
             // to schedule actions for periods-to-start whose end condition is time/duration
-            for (int period: periodsToStart) {
-                reminderPeriodsToScheduleEnding.add(new Integer[] {remId, period});
+            for (int j=0; j<periodIndexesToStart.size(); j++) {
+                int periodIndex = periodIndexesToStart.get(j);
+                int periodId = periodIdsToStart.get(j);
+                if (periodId >= 100) {
+                    periodsToScheduleEnding.add(new Integer[] {remId, periodId, periodIndex});
+                }
             }
 
             // to update started periods in database
-            if (!periodsToStart.isEmpty()) {
-                remsNewStartedPeriods.append(remId,
-                        UtilGeneral.setUnion(periodsToStart, startedPeriods));
+            if (!periodIdsToStart.isEmpty()) {
+                remsNewStartedPeriodIds.append(remId,
+                        UtilGeneral.setUnion(periodIdsToStart, startedPeriodIds));
             }
         }
 
-        // start repeating reminders
-        // remindersToStartRepeating
-        // todo...
-
-
+        // start repeating reminders (get reminders to open and actions to schedule)
+        RemindersToOpenAndScheduleActions data =
+                startRepeatingReminders(remindersToStartRepeating, remM23Behaviors, at);
+        remindersToOpen.addAll(data.remindersToOpen);
+        List<ScheduleAction> scheduleActions = data.scheduleActions;
 
         // open reminders
         updateBoard(remindersToOpen, new HashSet<Integer>());
 
         // update started periods of reminders
-        UtilStorage.updateRemindersStartedPeriods(context, remsNewStartedPeriods);
+        UtilStorage.updateRemindersStartedPeriodIds(context, remsNewStartedPeriodIds);
 
-        // schedule endings of newly started periods
-        // reminderPeriodsToScheduleEnding
-        // todo...
+        // get schedule actions of endings of newly started periods
+        scheduleActions.addAll(
+                schedulePeriodsEndings(periodsToScheduleEnding, remM23Behaviors, at));
+
+        // schedule actions
+        //scheduleActions
+    }
+
+    /**
+     * @param remindersPeriods: Each element must be {reminder-id, period-id, period-index}  */
+    private List<ScheduleAction> schedulePeriodsEndings(
+                List<Integer[]> remindersPeriods,
+                SparseArray<ReminderDataBehavior> remindersBehaviors, Calendar periodStartAt) {
+        List<ScheduleAction> actions = new ArrayList<>();
+
+        for (Integer[] remIdPeriodId: remindersPeriods) {
+            int remId = remIdPeriodId[0];
+            int periodId = remIdPeriodId[1];
+            int periodIndex = remIdPeriodId[2];
+            ReminderDataBehavior.Period period =
+                    remindersBehaviors.get(remId).getPeriods()[periodIndex];
+
+            Calendar endTime = (Calendar) periodStartAt.clone();
+            if (period.isEndingAfterDuration()) {
+                endTime.add(Calendar.MINUTE, period.getDurationMinutes());
+            } else if (period.isTimeRange()) {
+                int[] hrMin = period.getEndHrMin();
+
+                int hr = hrMin[0];
+                if (hr >= 24) {
+                    endTime.add(Calendar.DAY_OF_MONTH, 1);
+                    hr -= 24;
+                }
+                endTime.set(Calendar.HOUR, hr);
+                endTime.set(Calendar.MINUTE, hrMin[1]);
+                endTime.set(Calendar.SECOND, 0);
+            }
+            actions.add(new ScheduleAction().setAsPeriodStop(endTime, remId, periodId));
+        }
+        return actions;
+    }
 
 
+    private class RemindersToOpenAndScheduleActions {
+        private Set<Integer> remindersToOpen;
+        private List<ScheduleAction> scheduleActions;
 
+        public RemindersToOpenAndScheduleActions(Set<Integer> remindersToOpen,
+                                                 List<ScheduleAction> scheduleActions) {
+            this.remindersToOpen = remindersToOpen;
+            this.scheduleActions = scheduleActions;
+        }
+    }
 
+    /**
+     * @param reminderBehaviors must include all of reminders in `reminderIds` */
+    private RemindersToOpenAndScheduleActions startRepeatingReminders(
+                Set<Integer> reminderIds, SparseArray<ReminderDataBehavior> reminderBehaviors,
+                Calendar at) {
+        Set<Integer> remindersToOpen = new HashSet<>();
+        List<ScheduleAction> scheduleActions = new ArrayList<>();
+
+        for (int remId: reminderIds) {
+            ReminderDataBehavior behavior = reminderBehaviors.get(remId);
+            int repeatOffset = behavior.getRepeatOffsetMinutes();
+            int repeatEvery = behavior.getRepeatEveryMinutes();
+
+            // open reminder
+            if (repeatOffset == 0) {
+                remindersToOpen.add(remId);
+            }
+
+            // schedule reminder repeats and reschedule
+            scheduleActions.addAll(
+                    scheduleReminderRepeatsAndReschedule(remId, at, at, repeatEvery, repeatOffset));
+        }
+
+        return new RemindersToOpenAndScheduleActions(remindersToOpen, scheduleActions);
+    }
+
+    private List<ScheduleAction> scheduleReminderRepeatsAndReschedule(int remId,
+            Calendar from, Calendar repeatStartedAt, int repeatEvery, int repeatOffset) {
+        List<ScheduleAction> actions = new ArrayList<>();
+
+        // schedule repeats within (from, from+tau]
+        int tau = context.getResources().getInteger(R.integer.tau_m3_reschedule);
+
+        float dt1 = UtilDatetime.timeDifference(from, repeatStartedAt) - repeatOffset;
+        int n1 = (int) Math.floor(dt1/repeatEvery) + 1;
+        int n2 = (int) Math.floor((dt1 + tau)/repeatEvery);
+        if (n2 >= n1 && n2 >= 0) {
+            if (n1 < 0)
+                n1 = 0;
+            for (int n=n1; n<=n2; n++) {
+                Calendar t = UtilDatetime.addMinutes(
+                        repeatStartedAt, repeatOffset + n*repeatEvery);
+                actions.add(new ScheduleAction().setAsModel3ReminderOpen(t, remId));
+            }
+        }
+
+        // schedule reschedule
+        Calendar rescheduleTime = UtilDatetime.addMinutes(from, tau);
+        actions.add(new ScheduleAction()
+                .setAsRescheduleModel3ReminderRepeats(rescheduleTime, remId, repeatStartedAt));
+
+        return actions;
     }
 
     /**
@@ -147,28 +255,52 @@ public class ReminderBoardLogic {
     }
 
     /** returns {i: periods[i] gets started when all of `sitIds` start} */
-    private Set<Integer> getPeriodsToStartOnSitsStart(ReminderDataBehavior.Period[] periods,
-                                                      Set<Integer> sitIds) {
-        Set<Integer> periodsToStart = new HashSet<>();
+    private List<Integer> getPeriodIndexesToStartOnSitsStart(ReminderDataBehavior.Period[] periods,
+                                                            Set<Integer> sitIds) {
+        List<Integer> periodIndexesToStart = new ArrayList<>();
         for (int i=0; i<periods.length; i++) {
             ReminderDataBehavior.Instant instant = periods[i].getStartInstant();
             if (instant.isSituationStart() && sitIds.contains(instant.getSituationId()))
-                periodsToStart.add(i);
+                periodIndexesToStart.add(i);
         }
-        return periodsToStart;
+        return periodIndexesToStart;
+    }
+
+    private List<Integer> createIdsForPeriodsToStart(List<Integer> periodIndexesToStart,
+                                                    List<Integer> startedPeriodIds,
+                                                    ReminderDataBehavior behavior) {
+        List<Integer> periodIdsToStart = new ArrayList<>();
+        int newPeriodIdMin = startedPeriodIds.isEmpty() ?
+                100 : Math.max(100, Collections.max(startedPeriodIds) + 1);
+        for (int i=0; i<periodIndexesToStart.size(); i++) {
+            int periodIndex = periodIndexesToStart.get(i);
+            int periodId;
+            if (behavior.getPeriods()[periodIndex].isSituationStartEnd()) {
+                periodId = -periodIndex; // id <= 0 for sit. start-end
+            } else {
+                periodId = newPeriodIdMin;
+                newPeriodIdMin++;
+            }
+            periodIdsToStart.add(periodId);
+        }
+        return periodIdsToStart;
     }
 
 
 
 
-    public void stopSituations(Set<Integer> sitIds) {
+
+
+
+
+    public void stopSituations(Set<Integer> sitIds, Calendar at) {
         if (sitIds.isEmpty())
             return;
 
         Set<Integer> remindersToOpen = new HashSet<>();
 
         Cursor cursor = readRemBehaviorInvolvingSituations(sitIds); //(rem-id, model, behavior)
-        ReminderDataBehavior behavior = null;
+        ReminderDataBehavior behavior;
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) { //for each reminder
             int remId = cursor.getInt(0);
@@ -200,10 +332,10 @@ public class ReminderBoardLogic {
         cursor.close();
     }
 
-    public void triggerEvent(int eventId) {
+    public void triggerEvent(int eventId, Calendar at) {
         Set<Integer> remindersToOpen = new HashSet<>();
         Cursor cursor = readRemBehaviorInvolvingEvent(eventId); //(rem-id, model, behavior)
-        ReminderDataBehavior behavior = null;
+        ReminderDataBehavior behavior;
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) { //for each reminder
             int remId = cursor.getInt(0);

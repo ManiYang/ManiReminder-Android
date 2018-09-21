@@ -148,14 +148,14 @@ public class UtilStorage {
     }
 
     //
-    public static List<Integer[]> getRemindersStartedPeriods(Context context,
-                                                             List<Integer> remIds) {
-        List<Integer[]> remsStartedPeriods = new ArrayList<>();
+    public static List<List<Integer>> getRemindersStartedPeriodIds(Context context,
+                                                                   List<Integer> remIds) {
+        List<List<Integer>> remsStartedPeriodIds = new ArrayList<>();
         if (remIds.isEmpty()) {
-            return remsStartedPeriods;
+            return remsStartedPeriodIds;
         }
         for (int i=0; i<remIds.size(); i++) {
-            remsStartedPeriods.add(null);
+            remsStartedPeriodIds.add(null);
         }
 
         SQLiteDatabase db;
@@ -175,28 +175,27 @@ public class UtilStorage {
             int id = cursor.getInt(0);
 
             String startedPeriodsStr = cursor.getString(1);
-            Integer[] startedPeriods =
-                    UtilGeneral.splitStringAsIntegerList(startedPeriodsStr, ",")
-                            .toArray(new Integer[0]);
+            List<Integer> startedPeriods =
+                    UtilGeneral.splitStringAsIntegerList(startedPeriodsStr, ",");
 
             int index = remIds.indexOf(id);
             if (index != -1) {
-                remsStartedPeriods.set(index, startedPeriods);
+                remsStartedPeriodIds.set(index, startedPeriods);
             }
         }
         cursor.close();
 
         for (int i=0; i<remIds.size(); i++) {
-            if (remsStartedPeriods.get(i) == null) {
-                remsStartedPeriods.set(i, new Integer[] {});
+            if (remsStartedPeriodIds.get(i) == null) {
+                remsStartedPeriodIds.set(i, new ArrayList<Integer>());
             }
         }
-        return remsStartedPeriods;
+        return remsStartedPeriodIds;
     }
 
-    public static void updateRemindersStartedPeriods(Context context,
-                                                     SparseArray<Set<Integer>> remsStartedPeriods) {
-        if (remsStartedPeriods.size() == 0)
+    public static void updateRemindersStartedPeriodIds(
+            Context context, SparseArray<Set<Integer>> remsStartedPeriodIds) {
+        if (remsStartedPeriodIds.size() == 0)
             return;
 
         SQLiteDatabase db;
@@ -208,10 +207,10 @@ public class UtilStorage {
         }
 
         List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
-        for (int i=0; i<remsStartedPeriods.size(); i++) {
-            int id = remsStartedPeriods.keyAt(i);
+        for (int i=0; i<remsStartedPeriodIds.size(); i++) {
+            int id = remsStartedPeriodIds.keyAt(i);
 
-            Set<Integer> periods = remsStartedPeriods.valueAt(i);
+            Set<Integer> periods = remsStartedPeriodIds.valueAt(i);
             String startedPeriodsStr =
                     UtilGeneral.joinIntegerList(",", new ArrayList<>(periods));
 

@@ -201,4 +201,8 @@ public class UtilGeneral {
     public static <T> Set<T> setUnion(Set<T> set1, T[] array2) {
         return setUnion(set1, Arrays.asList(array2));
     }
+
+    public static <T> Set<T> setUnion(List<T> list1, Collection<T> collection2) {
+        return setUnion(new HashSet<>(list1), collection2);
+    }
 }
