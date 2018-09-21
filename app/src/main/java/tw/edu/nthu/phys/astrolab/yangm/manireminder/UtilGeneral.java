@@ -188,6 +188,10 @@ public class UtilGeneral {
         return diff;
     }
 
+    public static <T> Set<T> setDifference(List<T> list1, Collection<T> collection2) {
+        return setDifference(new HashSet<>(list1), collection2);
+    }
+
     public static <T> Set<T> setDifference(Set<T> set1, T[] array2) {
         return setDifference(set1, Arrays.asList(array2));
     }
@@ -205,4 +209,11 @@ public class UtilGeneral {
     public static <T> Set<T> setUnion(List<T> list1, Collection<T> collection2) {
         return setUnion(new HashSet<>(list1), collection2);
     }
+
+    public static <T> boolean haveNonemptyIntersection(List<T> list1, List<T> list2) {
+        List<T> intersection = new ArrayList<>(list1);
+        intersection.retainAll(list2);
+        return !intersection.isEmpty();
+    }
+
 }
