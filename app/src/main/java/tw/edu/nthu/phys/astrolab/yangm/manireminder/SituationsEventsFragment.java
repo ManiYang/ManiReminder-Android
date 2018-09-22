@@ -1,6 +1,10 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
@@ -12,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -110,6 +115,32 @@ public class SituationsEventsFragment extends Fragment {
         });
 
         Log.v("SituationsEventsFrag", "### onCreateView() done");
+
+        // [temp]
+        ((Button) view.findViewById(R.id.button_test)).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+//                        Intent intent = new Intent(
+//                                "tw.edu.nthu.phys.astrolab.yangm.manireminder.UPDATE_BOARD");
+//                        LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
+
+
+                        Calendar time = Calendar.getInstance();
+                        time.add(Calendar.SECOND, 5);
+
+                        Intent intent = new Intent(getContext(), AlarmReceiver.class)
+                                .setAction("tw.edu.nthu.phys.astrolab.yangm.manireminder.TASKS")
+                                .putExtra("data", "testing...");
+                        AlarmManager alarmManager =
+                                (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+                        PendingIntent pendingIntent =
+                                PendingIntent.getBroadcast(getContext(), 1, intent,
+                                        PendingIntent.FLAG_ONE_SHOT);
+                        alarmManager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pendingIntent);
+                    }
+                }
+        );
 
         return view;
     }
@@ -245,7 +276,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // start situations in inducedSitsToStart
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.startSituations(inducedSitsToStart, at);
+//        boardLogic.startSituations(inducedSitsToStart, at);
     }
 
     private void userTriggerEvent(int eventId, Calendar at) {
@@ -256,7 +287,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // trigger event `eventId`
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.triggerEvent(eventId, at);
+//        boardLogic.triggerEvent(eventId, at);
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
@@ -279,7 +310,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // stop situations in inducedSitsToStop....
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.stopSituations(inducedSitsToStop, at);
+//        boardLogic.stopSituations(inducedSitsToStop, at);
     }
 
     //

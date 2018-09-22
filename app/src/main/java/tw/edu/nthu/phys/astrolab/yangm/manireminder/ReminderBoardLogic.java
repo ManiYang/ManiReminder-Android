@@ -283,6 +283,38 @@ public class ReminderBoardLogic {
         helper1.takeEffect(at, reader.remModel23Behaviors, reader.remModel1Behaviors);
     }
 
+    public void onAppStart() {
+        // todo....
+        // if there is scheduled action, check that exact one is main reschedule
+
+        // if there is no scheduled action, schedule model-1 reminder opening, period start, and
+        // main reschedule
+    }
+
+    public void onDeviceReboot() {
+        // todo....
+        // schedule current scheduled actions again
+
+    }
+
+    public void onReminderRemove(int remId) {
+        // todo....
+    }
+
+    public void onNewReminder(int remId) {
+        // todo....
+
+    }
+
+    public void onReminderBehaviorUpdate(int remId) {
+        // todo....
+    }
+
+    public void onSystemTimeChange() {
+        // ...
+    }
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private class Helper1 {
@@ -471,6 +503,9 @@ public class ReminderBoardLogic {
                 }
             }
         }
+
+        // schedule next main reschedule
+        actions.add(new ScheduleAction().setAsMainReschedule(to));
 
         //
         return actions;

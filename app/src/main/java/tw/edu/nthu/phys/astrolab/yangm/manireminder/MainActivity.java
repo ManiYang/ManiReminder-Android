@@ -1,6 +1,9 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
@@ -26,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
         ViewPager pager = findViewById(R.id.pager);
         pager.setAdapter(new MainPagerAdapter(getSupportFragmentManager()));
         ((TabLayout) findViewById(R.id.tabs)).setupWithViewPager(pager);
+
+        createNotificationChannel();
     }
 
     @Override
@@ -92,5 +97,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "ManiReminder Channel";
+            String description = "reminder notifications";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("channel mani", name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
 }
