@@ -22,7 +22,7 @@ public class ScheduleAction {
     private int type = -1;
     private Calendar time;
     private int reminderId;
-    private int periodId;
+    private int periodIndexOrId;
     private Calendar repeatStartAt;
 
 
@@ -34,11 +34,11 @@ public class ScheduleAction {
         return this;
     }
 
-    public ScheduleAction setAsPeriodStart(Calendar time, int reminderId, int periodId) {
+    public ScheduleAction setAsPeriodStart(Calendar time, int reminderId, int periodIndex) {
         this.type = TYPE_PERIOD_START;
         this.time = time;
         this.reminderId = reminderId;
-        this.periodId = periodId;
+        this.periodIndexOrId = periodIndex;
         return this;
     }
 
@@ -46,7 +46,7 @@ public class ScheduleAction {
         this.type = TYPE_PERIOD_STOP;
         this.time = time;
         this.reminderId = reminderId;
-        this.periodId = periodId;
+        this.periodIndexOrId = periodId;
         return this;
     }
 
@@ -91,7 +91,7 @@ public class ScheduleAction {
             reminderId = cursor.getInt(2);
 
         if (!cursor.isNull(3))
-            periodId = cursor.getInt(3);
+            periodIndexOrId = cursor.getInt(3);
 
         if (!cursor.isNull(4)) {
             try {
@@ -131,9 +131,17 @@ public class ScheduleAction {
     public int getPeriodId() {
         if (type == -1)
             throw new RuntimeException("data not set");
-        if (type != TYPE_PERIOD_START && type != TYPE_PERIOD_STOP)
+        if (type != TYPE_PERIOD_STOP)
+            throw new RuntimeException("no period id for this type");
+        return periodIndexOrId;
+    }
+
+    public int getPeriodIndex() {
+        if (type == -1)
+            throw new RuntimeException("data not set");
+        if (type != TYPE_PERIOD_START)
             throw new RuntimeException("no period index for this type");
-        return periodId;
+        return periodIndexOrId;
     }
 
     public Calendar getRepeatStartAt() {
@@ -159,7 +167,7 @@ public class ScheduleAction {
             values.put("reminder_id", reminderId);
 
         if (type == TYPE_PERIOD_START || type == TYPE_PERIOD_STOP)
-            values.put("period_id", periodId);
+            values.put("period_id", periodIndexOrId);
         else
             values.putNull("period_id");
 

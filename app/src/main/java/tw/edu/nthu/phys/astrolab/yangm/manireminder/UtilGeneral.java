@@ -32,7 +32,7 @@ public class UtilGeneral {
         return -1;
     }
 
-
+    //// split / join ////
     /**
      * Split input string to form a list of strings. Each token will be trimmed.
      * Empty tokens are ignored.
@@ -101,7 +101,7 @@ public class UtilGeneral {
         return false;
     }
 
-
+    //// SparseArray ////
     /**
      * @return Return the (first) key whose value equals `value`. If not found, return -1.
      */
@@ -127,6 +127,15 @@ public class UtilGeneral {
             keys.add(array.keyAt(i));
         }
         return keys;
+    }
+
+    /**
+     * Put all mappings in array2 into array1.
+     * @param array1 will be modified  */
+    public static <T> void sparseArrayPutAll(SparseArray<T> array1, SparseArray<T> array2) {
+        for (int i=0; i<array2.size(); i++) {
+            array1.put(array2.keyAt(i), array2.valueAt(i));
+        }
     }
 
     /**
@@ -181,7 +190,7 @@ public class UtilGeneral {
         return array;
     }
 
-
+    //// sets ////
     public static <T> Set<T> setDifference(Set<T> set1, Collection<T> collection2) {
         Set<T> diff = new HashSet<>(set1);
         diff.removeAll(collection2);

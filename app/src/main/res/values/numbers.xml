@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <integer name="tau_m3_reschedule">57</integer>
+    <integer name="tau_main_reschedule">61</integer>
 </resources>
