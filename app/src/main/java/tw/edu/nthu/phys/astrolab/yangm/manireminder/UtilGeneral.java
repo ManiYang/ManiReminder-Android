@@ -250,4 +250,26 @@ public class UtilGeneral {
     public static <T> boolean isSubset(Set<T> set1, Collection<T> collection2) {
         return setDifference(set1, collection2).isEmpty();
     }
+
+    //// arrays ////
+    public static <T> String[] toStringArray(List<T> list) {
+        String[] array = new String [list.size()];
+        for (int i=0; i<list.size(); i++) {
+            array[i] = list.get(i).toString();
+        }
+        return array;
+    }
+
+    public static <T> String[] toStringArray(Set<T> set) {
+        String[] array = new String [set.size()];
+        int i = 0;
+        for (T x: set) {
+            array[i] = x.toString();
+            i++;
+        }
+        return array;
+    }
+
+
+
 }

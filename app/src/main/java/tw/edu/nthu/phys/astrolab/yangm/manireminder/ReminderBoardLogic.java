@@ -22,6 +22,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
@@ -295,6 +296,7 @@ public class ReminderBoardLogic {
     }
 
     public void onAppStart() {
+        Log.v("logic", "app start");
         boolean haveScheduledActions =
                 UtilStorage.getRowCountInTable(context, MainDbHelper.TABLE_SCHEDULED_ACTIONS) > 0;
         if (haveScheduledActions) {
@@ -304,7 +306,7 @@ public class ReminderBoardLogic {
             }
         } else {
             // schedule model-1 reminder opening, period start, and main reschedule
-            Log.v("logic", "app run first time");
+            Log.v("logic", "app run first time after installation");
             ReminderBehaviorReader reader = new ReminderBehaviorReader();
             reader.addRemindersInvolvingTimeInInstant();
             List<ScheduleAction> actions = performMainRescheduling(Calendar.getInstance(),
@@ -314,6 +316,11 @@ public class ReminderBoardLogic {
     }
 
     public void onDeviceBootCompleted() {
+        Log.v("logic", "on device boot complete");
+
+        // There might be changes that should happen during device down......
+        // todo...
+
         // re-schedule the alarms & actions in the table of scheduled actions
         Set<Integer> alarmIds = UtilStorage.getScheduledAlarmIds(context);
         for (int alarmId: alarmIds) {
@@ -489,6 +496,8 @@ public class ReminderBoardLogic {
         final int TAU = context.getResources().getInteger(R.integer.tau_main_reschedule);
         Calendar to = (Calendar) from.clone();
         to.add(Calendar.MINUTE, TAU);
+        to.set(Calendar.SECOND, 0);
+        to.set(Calendar.MILLISECOND, 0);
 
         // schedule opening times of model-1 reminders
         for (int i=0; i<remM1Behaviors.size(); i++) {
@@ -557,6 +566,11 @@ public class ReminderBoardLogic {
             Calendar endTime = (Calendar) periodStartAt.clone();
             if (period.isEndingAfterDuration()) {
                 endTime.add(Calendar.MINUTE, period.getDurationMinutes());
+                if (endTime.get(Calendar.SECOND) >= 30) {
+                    endTime.add(Calendar.MINUTE, 1);
+                }
+                endTime.set(Calendar.SECOND, 0);
+                endTime.set(Calendar.MILLISECOND, 0);
             } else if (period.isTimeRange()) {
                 int[] hrMin = period.getEndHrMin();
 
@@ -568,6 +582,7 @@ public class ReminderBoardLogic {
                 endTime.set(Calendar.HOUR, hr);
                 endTime.set(Calendar.MINUTE, hrMin[1]);
                 endTime.set(Calendar.SECOND, 0);
+                endTime.set(Calendar.MILLISECOND, 0);
             }
             actions.add(new ScheduleAction().setAsPeriodStop(endTime, remId, periodId));
         }
@@ -717,14 +732,49 @@ public class ReminderBoardLogic {
         if (actions.isEmpty()) {
             return;
         }
+        if (actions.size() == 1) {
+            scheduleAlarmWithActions(actions, actions.get(0).getTime());
+            return;
+        }
 
-        // determine time when alarm will trigger (currently just get the latest scheduled time
-        // among the actions)
-        Calendar alarmTime = Calendar.getInstance();
-        for (ScheduleAction action: actions) {
-            if (action.getTime().compareTo(alarmTime) > 0) {
-                alarmTime = action.getTime();
+        // sort by time
+        Collections.sort(actions, new Comparator<ScheduleAction>() {
+            @Override
+            public int compare(ScheduleAction o1, ScheduleAction o2) {
+                return o1.getTime().compareTo(o2.getTime());
             }
+        });
+
+        // divide into groups, each group having actions scheduled at the same time
+        List<List<ScheduleAction>> actionGroups = new ArrayList<>();
+        actionGroups.add(new ArrayList<ScheduleAction>());
+        actionGroups.get(0).add(actions.get(0));
+        int g = 0;
+        Calendar groupTime = actionGroups.get(0).get(0).getTime();
+        for (int i=1; i<actions.size(); i++) {
+            ScheduleAction action = actions.get(i);
+            if (action.getTime().compareTo(groupTime) == 0) {
+                actionGroups.get(g).add(action);
+            } else {
+                actionGroups.add(new ArrayList<ScheduleAction>());
+                g++;
+                actionGroups.get(g).add(action);
+                groupTime = action.getTime();
+            }
+        }
+
+        // attach each group to an alarm
+        for (g=0; g<actionGroups.size(); g++) {
+            scheduleAlarmWithActions(actionGroups.get(g), actionGroups.get(g).get(0).getTime());
+        }
+    }
+
+    private void scheduleAlarmWithActions(List<ScheduleAction> actions, Calendar scheduleAt) {
+        // Ideally, all the `actions` have the same scheduled time which equal `scheduleAt`.
+        // Anyway, they will be attached to an alarm scheduled at `scheduleAt`.
+
+        if (actions.isEmpty()) {
+            return;
         }
 
         // get a new alarm id
@@ -740,7 +790,7 @@ public class ReminderBoardLogic {
 
         // set alarm using alarmId
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.getTimeInMillis(), pendingIntent);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, scheduleAt.getTimeInMillis(), pendingIntent);
 
         // add the actions (with alarmId) to DB
         UtilStorage.addScheduledActions(context, alarmId, actions);
@@ -764,16 +814,16 @@ public class ReminderBoardLogic {
         // get alarm id's with an action to be canceled
         Set<Integer> affectedAlarmIds = new HashSet<>();
 
-        String whereArgTypes = UtilGeneral.joinIntegerArray(", ",
-                        new int[] {ScheduleAction.TYPE_REMINDER_M3_OPEN,
-                                ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS});
-        String whereArgRemIds =
-                UtilGeneral.joinIntegerList(", ", new ArrayList<>(reminderIds));
+        List<Integer> args = new ArrayList<>();
+        args.add(ScheduleAction.TYPE_REMINDER_M3_OPEN);
+        args.add(ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS);
+        args.addAll(reminderIds);
 
         SQLiteDatabase db = UtilStorage.getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
-                "type IN (?) AND reminder_id IN (?)",
-                new String[] {whereArgTypes, whereArgRemIds},
+                "type IN (?,?) AND "
+                        + "reminder_id IN ("+UtilStorage.placeHolders(reminderIds.size())+")",
+                UtilGeneral.toStringArray(args),
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
@@ -799,6 +849,7 @@ public class ReminderBoardLogic {
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
             ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
+            Log.v("logic", "canceled alarm "+alarmId);
 
             // delete records
             UtilStorage.removeScheduledActions(context, alarmId);
@@ -1092,10 +1143,10 @@ public class ReminderBoardLogic {
 
         private Cursor queryReminders(Set<Integer> remIds) {
             // returns a cursor containing columns (reminder-id, model, behavior-settings)
-            String whereArg = UtilGeneral.joinIntegerList(", ", new ArrayList<>(remIds));
             return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                     new String[]{"_id", "type", "behavior_settings"},
-                    "_id IN (?)", new String[] {whereArg},
+                    "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
+                    UtilGeneral.toStringArray(remIds),
                     null, null, null);
         }
 

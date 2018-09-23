@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.util.SparseArray;
 
 import java.text.SimpleDateFormat;
@@ -106,13 +105,7 @@ public class UtilStorage {
     public static List<Integer> getIdsInTable(Context context, String table) {
         List<Integer> ids = new ArrayList<>();
 
-        SQLiteDatabase db;
-        try {
-            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
-            db = mainDbHelper.getReadableDatabase();
-        } catch (SQLiteException e) {
-            throw new RuntimeException("database unavailable");
-        }
+        SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
                 null, null, null);
         cursor.moveToPosition(-1);
@@ -218,8 +211,8 @@ public class UtilStorage {
 
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null,
-                "_id IN (?)",
-                new String[] {UtilGeneral.joinIntegerList(", ", remIds)},
+                "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
+                UtilGeneral.toStringArray(remIds),
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
@@ -338,5 +331,17 @@ public class UtilStorage {
         }
         cursor.close();
         return alarmIds;
+    }
+
+    //
+    public static String placeHolders(int n) {
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<n; i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append('?');
+        }
+        return builder.toString();
     }
 }

@@ -86,7 +86,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values = new ContentValues();
             values.put("_id", 0);
             values.put("type", 3);
-            values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
+            values.put("behavior_settings", "every5m.offset0m in sit0start-sitEnd, event0-after10m");
             values.put("involved_sits", ",0,");
             values.put("involved_events", ",0,");
             values.put("involve_time_in_start_instant", 0);

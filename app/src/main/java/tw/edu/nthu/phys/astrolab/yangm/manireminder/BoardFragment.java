@@ -12,6 +12,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -88,21 +89,27 @@ public class BoardFragment extends Fragment {
         SparseArray<String> remTitles = new SparseArray<>();
 
         String whereArgIds = UtilGeneral.joinIntegerList(", ", openedRemIds);
+        Log.v("BoardFragment", "whereArgIds="+whereArgIds);
+
         SQLiteDatabase db = UtilStorage.getReadableDatabase(getContext());
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"_id", "title"},
-                "_id IN (?)", new String[] {whereArgIds},
+                "_id IN ("+UtilStorage.placeHolders(openedRemIds.size())+")",
+                 UtilGeneral.toStringArray(openedRemIds),
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
             remTitles.append(cursor.getInt(0), cursor.getString(1));
         }
         cursor.close();
+        Log.v("BoardFragment", "remTitles.size()="+remTitles.size());
+
 
         // read reminder descriptions
         SparseArray<String> remDescriptions = new SparseArray<>();
 
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_DETAIL, new String[] {"_id", "description"},
-                "_id IN (?)", new String[] {whereArgIds},
+                "_id IN ("+UtilStorage.placeHolders(openedRemIds.size())+")",
+                 UtilGeneral.toStringArray(openedRemIds),
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {

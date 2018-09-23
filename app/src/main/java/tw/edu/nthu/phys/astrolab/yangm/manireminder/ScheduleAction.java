@@ -77,7 +77,7 @@ public class ScheduleAction {
      * @param cursor must contain columns
      *               {type, time, reminder_id, period_index_or_id, repeat_start_time} */
     public ScheduleAction setFromCursor(Cursor cursor) {
-        if (cursor.getCount() != 5) {
+        if (cursor.getColumnCount() != 5) {
             throw new RuntimeException("column count != 5");
         }
         if (!cursor.getColumnNames()[0].equals("type") ||
