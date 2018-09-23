@@ -87,10 +87,10 @@ public class BoardFragment extends Fragment {
         // read reminder titles
         SparseArray<String> remTitles = new SparseArray<>();
 
-        String whereArgIds = "("  + UtilGeneral.joinIntegerList(", ", openedRemIds) + ")";
+        String whereArgIds = UtilGeneral.joinIntegerList(", ", openedRemIds);
         SQLiteDatabase db = UtilStorage.getReadableDatabase(getContext());
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"_id", "title"},
-                "_id IN ?", new String[] {whereArgIds},
+                "_id IN (?)", new String[] {whereArgIds},
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
@@ -102,7 +102,7 @@ public class BoardFragment extends Fragment {
         SparseArray<String> remDescriptions = new SparseArray<>();
 
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_DETAIL, new String[] {"_id", "description"},
-                "_id IN ?", new String[] {whereArgIds},
+                "_id IN (?)", new String[] {whereArgIds},
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {

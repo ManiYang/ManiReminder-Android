@@ -218,8 +218,8 @@ public class UtilStorage {
 
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null,
-                "_id IN ?",
-                new String[] {"(" + UtilGeneral.joinIntegerList(", ", remIds) + ")"},
+                "_id IN (?)",
+                new String[] {UtilGeneral.joinIntegerList(", ", remIds)},
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {

@@ -304,10 +304,12 @@ public class ReminderBoardLogic {
             }
         } else {
             // schedule model-1 reminder opening, period start, and main reschedule
+            Log.v("logic", "app run first time");
             ReminderBehaviorReader reader = new ReminderBehaviorReader();
             reader.addRemindersInvolvingTimeInInstant();
-            performMainRescheduling(Calendar.getInstance(),
+            List<ScheduleAction> actions = performMainRescheduling(Calendar.getInstance(),
                     reader.remModel1Behaviors, reader.remModel23Behaviors);
+            scheduleNewActions(actions);
         }
     }
 
@@ -672,9 +674,6 @@ public class ReminderBoardLogic {
 
         // update the list of opened reminders
         List<Integer> openedRemIds = UtilStorage.getOpenedReminders(context);
-        if (!UtilGeneral.setIntersection(remindersToOpen, openedRemIds).isEmpty()) {
-            throw new RuntimeException("open already opened reminder");
-        }
         if (!UtilGeneral.isSubset(remindersToClose, openedRemIds)) {
             throw new RuntimeException("closing already closed reminder");
         }
@@ -748,6 +747,12 @@ public class ReminderBoardLogic {
 
         // increment new alarm id
         UtilStorage.writeSharedPrefInt(context, UtilStorage.KEY_NEW_ALARM_ID, alarmId+1);
+
+        // [log]
+        for (ScheduleAction action: actions) {
+            Log.v("logic", String.format("scheduled action: alarm-id %d, %s", alarmId,
+                    action.getDisplayString()));
+        }
     }
 
     private void stopRepeatingReminders(Set<Integer> reminderIds,
@@ -759,17 +764,15 @@ public class ReminderBoardLogic {
         // get alarm id's with an action to be canceled
         Set<Integer> affectedAlarmIds = new HashSet<>();
 
-        String whereArgTypes = "("
-                + UtilGeneral.joinIntegerArray(", ",
+        String whereArgTypes = UtilGeneral.joinIntegerArray(", ",
                         new int[] {ScheduleAction.TYPE_REMINDER_M3_OPEN,
-                                ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS})
-                + ")";
-        String whereArgRemIds = "("
-                + UtilGeneral.joinIntegerList(", ", new ArrayList<>(reminderIds))
-                + ")";
+                                ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS});
+        String whereArgRemIds =
+                UtilGeneral.joinIntegerList(", ", new ArrayList<>(reminderIds));
+
         SQLiteDatabase db = UtilStorage.getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
-                "type IN ? AND reminder_id IN ?",
+                "type IN (?) AND reminder_id IN (?)",
                 new String[] {whereArgTypes, whereArgRemIds},
                 null, null, null);
         cursor.moveToPosition(-1);
@@ -1002,8 +1005,8 @@ public class ReminderBoardLogic {
 
     private class ReminderBehaviorReader {
 
-        private SparseArray<ReminderDataBehavior> remModel1Behaviors;
-        private SparseArray<ReminderDataBehavior> remModel23Behaviors;
+        private SparseArray<ReminderDataBehavior> remModel1Behaviors = new SparseArray<>();
+        private SparseArray<ReminderDataBehavior> remModel23Behaviors = new SparseArray<>();
 
         private void clear() {
             remModel1Behaviors.clear();
@@ -1089,12 +1092,10 @@ public class ReminderBoardLogic {
 
         private Cursor queryReminders(Set<Integer> remIds) {
             // returns a cursor containing columns (reminder-id, model, behavior-settings)
-            String whereArg = "("
-                    + UtilGeneral.joinIntegerList(", ", new ArrayList<>(remIds))
-                    + ")";
+            String whereArg = UtilGeneral.joinIntegerList(", ", new ArrayList<>(remIds));
             return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                     new String[]{"_id", "type", "behavior_settings"},
-                    "_id IN ?", new String[] {whereArg},
+                    "_id IN (?)", new String[] {whereArg},
                     null, null, null);
         }
 

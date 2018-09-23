@@ -269,7 +269,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // start situations in inducedSitsToStart
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-//        boardLogic.startSituations(inducedSitsToStart, at);
+        boardLogic.startSituations(inducedSitsToStart, at);
     }
 
     private void userTriggerEvent(int eventId, Calendar at) {
@@ -280,7 +280,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // trigger event `eventId`
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-//        boardLogic.triggerEvent(eventId, at);
+        boardLogic.triggerEvent(eventId, at);
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
@@ -303,7 +303,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // stop situations in inducedSitsToStop....
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-//        boardLogic.stopSituations(inducedSitsToStop, at);
+        boardLogic.stopSituations(inducedSitsToStop, at);
     }
 
     //
