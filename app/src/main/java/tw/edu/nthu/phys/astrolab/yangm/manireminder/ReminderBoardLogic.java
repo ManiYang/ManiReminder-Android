@@ -1,5 +1,6 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -171,7 +172,7 @@ public class ReminderBoardLogic {
         helper1.takeEffect(at, reader.remModel23Behaviors);
     }
 
-    public void performActions(ScheduleAction[] actions) {
+    public void performScheduledActions(ScheduleAction[] actions) {
         Helper1 helper1 = new Helper1();
 
         List<ScheduleAction> periodStartStopActions = new ArrayList<>();
@@ -295,7 +296,7 @@ public class ReminderBoardLogic {
 
     public void onAppStart() {
         // todo....
-        // if there is scheduled action, check that exact one is main reschedule
+        // if there are scheduled actions, check that exact one of them is main reschedule
 
         // if there is no scheduled action, schedule model-1 reminder opening, period start, and
         // main reschedule
@@ -701,30 +702,46 @@ public class ReminderBoardLogic {
     }
 
     private void scheduleNewActions(List<ScheduleAction> actions) {
-        // assign every action an ID
-        int newIdMin = UtilStorage
-                .readSharedPrefInt(context, UtilStorage.KEY_NEW_SCHEDULED_ACTION_ID_MIN);
-        if (newIdMin == -1)
-            newIdMin = 0;
-
-        List<Integer> actionIds = new ArrayList<>();
-        for (int i=0; i<actions.size(); i++) {
-            actionIds.add(newIdMin);
-            newIdMin++;
+        if (actions.isEmpty()) {
+            return;
         }
 
-        UtilStorage.writeSharedPrefInt(
-                context, UtilStorage.KEY_NEW_SCHEDULED_ACTION_ID_MIN, newIdMin);
+        // determine time when alarm will trigger (currently just get the latest scheduled time
+        // among the actions)
+        Calendar alarmTime = Calendar.getInstance();
+        for (ScheduleAction action: actions) {
+            if (action.getTime().compareTo(alarmTime) > 0) {
+                alarmTime = action.getTime();
+            }
+        }
 
-        // write actions to DB
-        // todo .....
+        // get a new alarm id
+        int alarmId = UtilStorage.readSharedPrefInt(
+                context, UtilStorage.KEY_NEW_ALARM_ID, 0);
 
+        // create PendingIntent to be attached to alarm
+        Intent intentActions = new Intent(context, AlarmReceiver.class)
+                .setAction(context.getResources().getString(R.string.action_scheduled_actions))
+                .putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
 
+        // set alarm
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.getTimeInMillis(), pendingIntent);
 
+        // add the actions (with alarmId) to DB
+        UtilStorage.addScheduledActions(context, alarmId, actions);
+
+        // increment new alarm id
+        UtilStorage.writeSharedPrefInt(context, UtilStorage.KEY_NEW_ALARM_ID, alarmId+1);
     }
 
     private void stopRepeatingReminders(Set<Integer> reminderIds) {
         // todo .....
+
+
+
 
     }
 

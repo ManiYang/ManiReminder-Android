@@ -37,7 +37,7 @@
             android:name=".AlarmReceiver"
             android:exported="false" >
             <intent-filter>
-                <action android:name="tw.edu.nthu.phys.astrolab.yangm.manireminder.TASKS" />
+                <action android:name="@string/action_scheduled_actions" />
             </intent-filter>
         </receiver>
 

@@ -3,4 +3,7 @@
     <string name="action_update_board">
         tw.edu.nthu.phys.astrolab.yangm.manireminder.UPDATE_BOARD
     </string>
+    <string name="action_scheduled_actions">
+        tw.edu.nthu.phys.astrolab.yangm.manireminder.SCHEDULED_ACTIONS
+    </string>
 </resources>

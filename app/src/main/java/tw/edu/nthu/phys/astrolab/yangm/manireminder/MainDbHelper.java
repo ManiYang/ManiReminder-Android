@@ -165,7 +165,8 @@ public class MainDbHelper extends SQLiteOpenHelper {
         if (oldVersion < 4) {
             // scheduled actions
             db.execSQL("CREATE TABLE " + TABLE_SCHEDULED_ACTIONS + " ("
-                    + "_id INTEGER PRIMARY KEY, "
+                    + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "alarm_id INTEGER, "
                     + "type INTEGER, "
                     + "time TEXT, "
                     + "reminder_id INTEGER, "

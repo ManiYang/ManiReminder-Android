@@ -75,30 +75,40 @@ public class ScheduleAction {
 
     /**
      * @param cursor must contain columns
-     *               {action_id, type, time, reminder_id, period_index_or_id, repeat_start_at}
-     *               (action_id is not used) */
+     *               {type, time, reminder_id, period_index_or_id, repeat_start_time} */
     public ScheduleAction setFromCursor(Cursor cursor) {
-        type = cursor.getInt(1);
+        if (cursor.getCount() != 5) {
+            throw new RuntimeException("column count != 5");
+        }
+        if (!cursor.getColumnNames()[0].equals("type") ||
+                !cursor.getColumnNames()[1].equals("time") ||
+                !cursor.getColumnNames()[2].equals("reminder_id") ||
+                !cursor.getColumnNames()[3].equals("period_index_or_id") ||
+                !cursor.getColumnNames()[4].equals("repeat_start_time") ) {
+            throw new RuntimeException("`cursor` does not contain the expected columns");
+        }
+
+        type = cursor.getInt(0);
 
         try {
             Date date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US)
-                    .parse(cursor.getString(2));
+                    .parse(cursor.getString(1));
             time = new GregorianCalendar();
             time.setTime(date);
         } catch (ParseException e) {
             throw new RuntimeException("Could not parse time string");
         }
 
+        if (!cursor.isNull(2))
+            reminderId = cursor.getInt(2);
+
         if (!cursor.isNull(3))
-            reminderId = cursor.getInt(3);
+            periodIndexOrId = cursor.getInt(3);
 
-        if (!cursor.isNull(4))
-            periodIndexOrId = cursor.getInt(4);
-
-        if (!cursor.isNull(5)) {
+        if (!cursor.isNull(4)) {
             try {
                 Date date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US)
-                        .parse(cursor.getString(5));
+                        .parse(cursor.getString(4));
                 repeatStartAt = new GregorianCalendar();
                 repeatStartAt.setTime(date);
             } catch (ParseException e) {
