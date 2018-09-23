@@ -12,6 +12,7 @@ import android.util.SparseArray;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -120,6 +121,18 @@ public class UtilStorage {
         }
         cursor.close();
         return ids;
+    }
+
+    public static int getRowCountInTable(Context context, String table) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(table, new String[] {"COUNT(*)"}, null, null,
+                null, null, null);
+        if (!cursor.moveToPosition(0)) {
+            throw new RuntimeException("query failed");
+        }
+        int count = cursor.getInt(0);
+        cursor.close();
+        return count;
     }
 
     //
@@ -296,6 +309,34 @@ public class UtilStorage {
         while (cursor.moveToNext()) {
             actions.add(new ScheduleAction().setFromCursor(cursor));
         }
+        cursor.close();
         return actions;
+    }
+
+    public static int countMainSchedulingInScheduledActions(Context context) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"COUNT(*)"},
+                "type = ?",
+                new String[] {Integer.toString(ScheduleAction.TYPE_MAIN_RESCHEDULE)},
+                null, null, null);
+        if (!cursor.moveToPosition(0)) {
+            throw new RuntimeException("query failed");
+        }
+        int count = cursor.getInt(0);
+        cursor.close();
+        return count;
+    }
+
+    public static Set<Integer> getScheduledAlarmIds(Context context) {
+        Set<Integer> alarmIds = new HashSet<>();
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
+                null, null, "alarm_id", null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            alarmIds.add(cursor.getInt(0));
+        }
+        cursor.close();
+        return alarmIds;
     }
 }

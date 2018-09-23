@@ -295,17 +295,30 @@ public class ReminderBoardLogic {
     }
 
     public void onAppStart() {
-        // todo....
-        // if there are scheduled actions, check that exact one of them is main reschedule
-
-        // if there is no scheduled action, schedule model-1 reminder opening, period start, and
-        // main reschedule
+        boolean haveScheduledActions =
+                UtilStorage.getRowCountInTable(context, MainDbHelper.TABLE_SCHEDULED_ACTIONS) > 0;
+        if (haveScheduledActions) {
+            // check that exactly one of the scheduled actions is main reschedule
+            if (UtilStorage.countMainSchedulingInScheduledActions(context) != 1) {
+                throw new RuntimeException("more than one main reschedule found");
+            }
+        } else {
+            // schedule model-1 reminder opening, period start, and main reschedule
+            ReminderBehaviorReader reader = new ReminderBehaviorReader();
+            reader.addRemindersInvolvingTimeInInstant();
+            performMainRescheduling(Calendar.getInstance(),
+                    reader.remModel1Behaviors, reader.remModel23Behaviors);
+        }
     }
 
-    public void onDeviceReboot() {
-        // todo....
-        // schedule current scheduled actions again
-
+    public void onDeviceBootCompleted() {
+        // re-schedule the alarms & actions in the table of scheduled actions
+        Set<Integer> alarmIds = UtilStorage.getScheduledAlarmIds(context);
+        for (int alarmId: alarmIds) {
+            List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
+            UtilStorage.removeScheduledActions(context, alarmId);
+            scheduleNewActions(actions);
+        }
     }
 
     public void onReminderRemove(int remId) {

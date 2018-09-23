@@ -30,7 +30,11 @@ public class MainActivity extends AppCompatActivity {
         pager.setAdapter(new MainPagerAdapter(getSupportFragmentManager()));
         ((TabLayout) findViewById(R.id.tabs)).setupWithViewPager(pager);
 
+        //
         createNotificationChannel();
+
+        //
+        new ReminderBoardLogic(this).onAppStart();
     }
 
     @Override

@@ -12,7 +12,14 @@ public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         int alarmId = intent.getIntExtra(EXTRA_ALARM_ID, -1);
+
+        // get actions associated to `alarmId`
         List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
+
+        // delete the actions in DB
+        UtilStorage.removeScheduledActions(context, alarmId);
+
+        // perform actions
         new ReminderBoardLogic(context).performScheduledActions(actions);
     }
 }
