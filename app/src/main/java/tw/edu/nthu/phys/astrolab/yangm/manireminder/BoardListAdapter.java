@@ -18,7 +18,7 @@ public class BoardListAdapter
         private String title;
         private String description;
 
-        public ReminderData(int id, String title, String description) {
+        public ReminderData(String title, String description) {
             this.title = title;
             this.description = description;
         }
