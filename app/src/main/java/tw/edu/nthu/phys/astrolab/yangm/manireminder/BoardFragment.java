@@ -33,10 +33,7 @@ public class BoardFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_board, container, false);
-
-
-        return view;
+        return inflater.inflate(R.layout.fragment_board, container, false);
     }
 
     @Override
@@ -60,8 +57,8 @@ public class BoardFragment extends Fragment {
             };
         }
         LocalBroadcastManager.getInstance(getContext())
-                .registerReceiver(updateBroadcastReceiver, new IntentFilter(
-                        "tw.edu.nthu.phys.astrolab.yangm.manireminder.UPDATE_BOARD"));
+                .registerReceiver(updateBroadcastReceiver,
+                        new IntentFilter(getString(R.string.action_update_board)));
     }
 
     @Override

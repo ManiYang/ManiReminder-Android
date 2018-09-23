@@ -1,9 +1,19 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.Toast;
@@ -641,8 +651,53 @@ public class ReminderBoardLogic {
     }
 
     private void updateBoard(Set<Integer> remindersToOpen, Set<Integer> remindersToClose) {
-        // todo ...
+        Set<Integer> intersect = UtilGeneral.setIntersection(remindersToOpen, remindersToClose);
+        if (!intersect.isEmpty()) {
+            throw new RuntimeException("reminder(s) to open and close at the same time");
+        }
 
+        // update the list of opened reminders
+        List<Integer> openedRemIds = UtilStorage.getOpenedReminders(context);
+        if (!UtilGeneral.setIntersection(remindersToOpen, openedRemIds).isEmpty()) {
+            throw new RuntimeException("open already opened reminder");
+        }
+        if (!UtilGeneral.isSubset(remindersToClose, openedRemIds)) {
+            throw new RuntimeException("closing already closed reminder");
+        }
+        openedRemIds.addAll(remindersToOpen);
+        openedRemIds.removeAll(remindersToClose);
+
+        // write to file
+        UtilStorage.writeOpenedReminders(context, openedRemIds);
+
+        // local broadcast
+        Intent intent = new Intent(context.getResources().getString(R.string.action_update_board));
+        boolean received = LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+
+        // issue notification
+        if (!remindersToOpen.isEmpty()) {
+            Intent intentOnUserTap = new Intent(context, MainActivity.class);
+            PendingIntent pendingIntent = TaskStackBuilder.create(context)
+                    .addNextIntentWithParentStack(intentOnUserTap)
+                    .getPendingIntent(1, PendingIntent.FLAG_ONE_SHOT);
+
+            Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
+                    context.getResources().getString(R.string.channel_id));
+            builder.setSmallIcon(R.mipmap.ic_launcher_round)
+                    .setContentTitle("New Reminder")
+                    .setContentText("You have new reminders.")
+                    .setContentIntent(pendingIntent)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setAutoCancel(true)
+                    .setSound(notificationSound, AudioManager.STREAM_NOTIFICATION)
+                    .setLights(Color.WHITE,500, 500);
+            int notificationId = context.getResources().getInteger(R.integer.notification_id);
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build());
+        }
     }
 
     private void scheduleNewActions(List<ScheduleAction> actions) {

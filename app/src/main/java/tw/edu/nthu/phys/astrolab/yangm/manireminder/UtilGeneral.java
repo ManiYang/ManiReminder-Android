@@ -33,6 +33,7 @@ public class UtilGeneral {
     }
 
     //// split / join ////
+
     /**
      * Split input string to form a list of strings. Each token will be trimmed.
      * Empty tokens are ignored.
@@ -102,6 +103,7 @@ public class UtilGeneral {
     }
 
     //// SparseArray ////
+
     /**
      * @return Return the (first) key whose value equals `value`. If not found, return -1.
      */
@@ -131,9 +133,11 @@ public class UtilGeneral {
 
     /**
      * Put all mappings in array2 into array1.
-     * @param array1 will be modified  */
+     *
+     * @param array1 will be modified
+     */
     public static <T> void sparseArrayPutAll(SparseArray<T> array1, SparseArray<T> array2) {
-        for (int i=0; i<array2.size(); i++) {
+        for (int i = 0; i < array2.size(); i++) {
             array1.put(array2.keyAt(i), array2.valueAt(i));
         }
     }
@@ -225,4 +229,14 @@ public class UtilGeneral {
         return !intersection.isEmpty();
     }
 
+    public static <T> Set<T> setIntersection(Set<T> set1, Collection<T> collection2) {
+        Set<T> intersection = new HashSet<>(set1);
+        intersection.retainAll(collection2);
+        return intersection;
+    }
+
+    /** Is `set1` a subset of `collection2`? */
+    public static <T> boolean isSubset(Set<T> set1, Collection<T> collection2) {
+        return setDifference(set1, collection2).isEmpty();
+    }
 }

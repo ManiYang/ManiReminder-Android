@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     //
     private class MainPagerAdapter extends FragmentPagerAdapter {
-        public MainPagerAdapter(FragmentManager fm) {
+        MainPagerAdapter(FragmentManager fm) {
             super(fm);
         }
 
@@ -99,13 +99,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "ManiReminder Channel";
-            String description = "reminder notifications";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel("channel mani", name, importance);
-            channel.setDescription(description);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+            NotificationChannel channel = new NotificationChannel(
+                    getResources().getString(R.string.channel_id),
+                    getResources().getString(R.string.channel_name),
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setDescription(getResources().getString(R.string.channel_dsecription));
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
         }
     }
 }

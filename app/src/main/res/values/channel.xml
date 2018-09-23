@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_id">tw.edu.nthu.phys.astrolab.yangm.manireminder.channel</string>
+    <string name="channel_name">ManiReminder</string>
+    <string name="channel_dsecription">
+        Notification channel for ManiReminder to notify about new reminders.
+    </string>
+</resources>

@@ -121,9 +121,7 @@ public class SituationsEventsFragment extends Fragment {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-//                        Intent intent = new Intent(
-//                                "tw.edu.nthu.phys.astrolab.yangm.manireminder.UPDATE_BOARD");
-//                        LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
+
 
 
                         Calendar time = Calendar.getInstance();

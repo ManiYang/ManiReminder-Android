@@ -22,6 +22,7 @@ public class UtilStorage {
     public static final String PREFERENCE_FILE =
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
+    public static final String KEY_OPENED_REMINDERS = "opened_reminders";
 
     public static final int MAX_RECORDS_IN_HISTORY = 300;
 
@@ -32,26 +33,38 @@ public class UtilStorage {
         String startedSitsStr = sharedPref.getString(KEY_STARTED_SITUATIONS, null);
 
         List<Integer> ids = new ArrayList<>();
-        if (startedSitsStr == null) {
-            return ids;
-        } else if (startedSitsStr.length() == 0) {
-            return ids;
+        if (startedSitsStr == null || startedSitsStr.isEmpty()) {
+            return new ArrayList<>();
         } else {
-            String[] tokens = startedSitsStr.split(",");
-            for (String str: tokens) {
-                ids.add(Integer.parseInt(str));
-            }
-            return ids;
+            return UtilGeneral.splitStringAsIntegerList(startedSitsStr, ",");
         }
     }
 
-    /** write asynchronously */
     public static void writeStartedSituations(Context context, List<Integer> startedSituationIds) {
         String data = UtilGeneral.joinIntegerList(",", startedSituationIds);
-
         SharedPreferences sharedPref =
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
-        sharedPref.edit().putString(KEY_STARTED_SITUATIONS, data).apply();
+        sharedPref.edit().putString(KEY_STARTED_SITUATIONS, data).commit(); //synchronous
+    }
+
+    //
+    public static List<Integer> getOpenedReminders(Context context) {
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        String openedSits = sharedPref.getString(KEY_OPENED_REMINDERS, null);
+
+        if (openedSits == null || openedSits.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            return UtilGeneral.splitStringAsIntegerList(openedSits, ",");
+        }
+    }
+
+    public static void writeOpenedReminders(Context context, List<Integer> openedRemIds) {
+        String data = UtilGeneral.joinIntegerList(",", openedRemIds);
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        sharedPref.edit().putString(KEY_OPENED_REMINDERS, data).commit(); //synchronous
     }
 
     //
