@@ -172,7 +172,7 @@ public class ReminderBoardLogic {
         helper1.takeEffect(at, reader.remModel23Behaviors);
     }
 
-    public void performScheduledActions(ScheduleAction[] actions) {
+    public void performScheduledActions(List<ScheduleAction> actions) {
         Helper1 helper1 = new Helper1();
 
         List<ScheduleAction> periodStartStopActions = new ArrayList<>();
@@ -458,7 +458,7 @@ public class ReminderBoardLogic {
             scheduleNewActions(scheduleActions);
 
             // stop repeating reminders
-            stopRepeatingReminders(remindersToStopRepeating);
+            stopRepeatingReminders(remindersToStopRepeating, remM23Behaviors);
         }
     }
 
@@ -719,14 +719,14 @@ public class ReminderBoardLogic {
         int alarmId = UtilStorage.readSharedPrefInt(
                 context, UtilStorage.KEY_NEW_ALARM_ID, 0);
 
-        // create PendingIntent to be attached to alarm
+        // create PendingIntent to attach to alarm
         Intent intentActions = new Intent(context, AlarmReceiver.class)
                 .setAction(context.getResources().getString(R.string.action_scheduled_actions))
                 .putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
 
-        // set alarm
+        // set alarm using alarmId
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.getTimeInMillis(), pendingIntent);
 
@@ -737,12 +737,61 @@ public class ReminderBoardLogic {
         UtilStorage.writeSharedPrefInt(context, UtilStorage.KEY_NEW_ALARM_ID, alarmId+1);
     }
 
-    private void stopRepeatingReminders(Set<Integer> reminderIds) {
-        // todo .....
+    private void stopRepeatingReminders(Set<Integer> reminderIds,
+                                        SparseArray<ReminderDataBehavior> remBehaviors) {
+        if (reminderIds.isEmpty()) {
+            return;
+        }
 
+        // get alarm id's with an action to be canceled
+        Set<Integer> affectedAlarmIds = new HashSet<>();
 
+        String whereArgTypes = "("
+                + UtilGeneral.joinIntegerArray(", ",
+                        new int[] {ScheduleAction.TYPE_REMINDER_M3_OPEN,
+                                ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS})
+                + ")";
+        String whereArgRemIds = "("
+                + UtilGeneral.joinIntegerList(", ", new ArrayList<>(reminderIds))
+                + ")";
+        SQLiteDatabase db = UtilStorage.getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
+                "type IN ? AND reminder_id IN ?",
+                new String[] {whereArgTypes, whereArgRemIds},
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            affectedAlarmIds.add(cursor.getInt(0));
+        }
+        cursor.close();
 
+        //
+        for (int alarmId: affectedAlarmIds) { // for each affected scheduled alarm
+            // get new list of actions
+            List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
+            List<ScheduleAction> newActionList = new ArrayList<>();
+            for (ScheduleAction action: actions) {
+                if (action.getType() != ScheduleAction.TYPE_REMINDER_M3_OPEN
+                    && action.getType() != ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS) {
+                    newActionList.add(action);
+                }
+            }
 
+            // cancel alarm
+            Intent intentActions = new Intent(context, AlarmReceiver.class)
+                    .setAction(context.getResources().getString(R.string.action_scheduled_actions));
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
+            ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
+
+            // delete records
+            UtilStorage.removeScheduledActions(context, alarmId);
+
+            // schedule new alarm with actions in `newActionList`
+            if (!newActionList.isEmpty()) {
+                scheduleNewActions(newActionList);
+            }
+        }
     }
 
     //// private tools ////////////////////////////////////////////////////////////////////////////

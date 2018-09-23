@@ -91,6 +91,17 @@ public class UtilGeneral {
         return builder.toString();
     }
 
+    public static String joinIntegerArray(String delimiter, int[] intArray) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < intArray.length; i++) {
+            if (i > 0) {
+                builder.append(delimiter);
+            }
+            builder.append(intArray[i]);
+        }
+        return builder.toString();
+    }
+
     public static boolean hasDuplicatedElement(String[] array) {
         for (int i = 0; i < array.length; i++) {
             String s = array[i];

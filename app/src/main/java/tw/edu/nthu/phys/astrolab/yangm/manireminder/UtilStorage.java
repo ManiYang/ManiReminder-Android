@@ -8,7 +8,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.SparseArray;
-import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -173,14 +172,7 @@ public class UtilStorage {
         values.put("type", historyRecordType);
         values.put("sit_event_id", sitOrEventId);
 
-        SQLiteDatabase db;
-        try {
-            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
-            db = mainDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            Toast.makeText(context, "Database unavailable", Toast.LENGTH_LONG).show();
-            return;
-        }
+        SQLiteDatabase db = getWritableDatabase(context);
         db.insert(MainDbHelper.TABLE_HISTORY, null, values);
 
         // when number of records exceeds MAX_RECORDS_IN_HISTORY
@@ -211,14 +203,7 @@ public class UtilStorage {
             remsStartedPeriodIds.add(null);
         }
 
-        SQLiteDatabase db;
-        try {
-            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
-            db = mainDbHelper.getReadableDatabase();
-        } catch (SQLiteException e) {
-            throw new RuntimeException("database unavailable");
-        }
-
+        SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null,
                 "_id IN ?",
                 new String[] {"(" + UtilGeneral.joinIntegerList(", ", remIds) + ")"},
@@ -251,14 +236,7 @@ public class UtilStorage {
         if (remsStartedPeriodIds.size() == 0)
             return;
 
-        SQLiteDatabase db;
-        try {
-            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
-            db = mainDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            throw new RuntimeException("database unavailable");
-        }
-
+        SQLiteDatabase db = getWritableDatabase(context);
         List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
         for (int i=0; i<remsStartedPeriodIds.size(); i++) {
             int id = remsStartedPeriodIds.keyAt(i);
@@ -306,7 +284,7 @@ public class UtilStorage {
                 "alarm_id = ?", new String[] {Integer.toString(alarmId)});
     }
 
-    public static List<ScheduleAction> readScheduledActions(Context context, int alarmId) {
+    public static List<ScheduleAction> getScheduledActions(Context context, int alarmId) {
         List<ScheduleAction> actions = new ArrayList<>();
 
         SQLiteDatabase db = getReadableDatabase(context);
