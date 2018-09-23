@@ -701,7 +701,26 @@ public class ReminderBoardLogic {
     }
 
     private void scheduleNewActions(List<ScheduleAction> actions) {
+        // assign every action an ID
+        int newIdMin = UtilStorage
+                .readSharedPrefInt(context, UtilStorage.KEY_NEW_SCHEDULED_ACTION_ID_MIN);
+        if (newIdMin == -1)
+            newIdMin = 0;
+
+        List<Integer> actionIds = new ArrayList<>();
+        for (int i=0; i<actions.size(); i++) {
+            actionIds.add(newIdMin);
+            newIdMin++;
+        }
+
+        UtilStorage.writeSharedPrefInt(
+                context, UtilStorage.KEY_NEW_SCHEDULED_ACTION_ID_MIN, newIdMin);
+
+        // write actions to DB
         // todo .....
+
+
+
     }
 
     private void stopRepeatingReminders(Set<Integer> reminderIds) {

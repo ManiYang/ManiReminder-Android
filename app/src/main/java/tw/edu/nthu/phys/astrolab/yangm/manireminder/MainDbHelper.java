@@ -9,7 +9,7 @@ import android.util.Log;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -19,6 +19,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
     public static final String TABLE_SITUATIONS = "situations";
     public static final String TABLE_EVENTS = "events";
     public static final String TABLE_HISTORY = "history";
+    public static final String TABLE_SCHEDULED_ACTIONS = "scheduled_actions";
 
 
     public MainDbHelper(Context context) {
@@ -159,6 +160,17 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_STARTED_PERIODS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "started_periods TEXT);");
+        }
+
+        if (oldVersion < 4) {
+            // scheduled actions
+            db.execSQL("CREATE TABLE " + TABLE_SCHEDULED_ACTIONS + " ("
+                    + "_id INTEGER PRIMARY KEY, "
+                    + "type INTEGER, "
+                    + "time TEXT, "
+                    + "reminder_id INTEGER, "
+                    + "period_index_or_id INTEGER, "
+                    + "repeat_start_time TEXT);");
         }
     }
 

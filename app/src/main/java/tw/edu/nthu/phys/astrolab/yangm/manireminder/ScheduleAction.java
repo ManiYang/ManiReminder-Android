@@ -74,29 +74,31 @@ public class ScheduleAction {
     }
 
     /**
-     * @param cursor must contain columns (type, time, reminder_id, period_id, repeat_start_at) */
+     * @param cursor must contain columns
+     *               {action_id, type, time, reminder_id, period_index_or_id, repeat_start_at}
+     *               (action_id is not used) */
     public ScheduleAction setFromCursor(Cursor cursor) {
-        type = cursor.getInt(0);
+        type = cursor.getInt(1);
 
         try {
             Date date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US)
-                    .parse(cursor.getString(1));
+                    .parse(cursor.getString(2));
             time = new GregorianCalendar();
             time.setTime(date);
         } catch (ParseException e) {
             throw new RuntimeException("Could not parse time string");
         }
 
-        if (!cursor.isNull(2))
-            reminderId = cursor.getInt(2);
-
         if (!cursor.isNull(3))
-            periodIndexOrId = cursor.getInt(3);
+            reminderId = cursor.getInt(3);
 
-        if (!cursor.isNull(4)) {
+        if (!cursor.isNull(4))
+            periodIndexOrId = cursor.getInt(4);
+
+        if (!cursor.isNull(5)) {
             try {
                 Date date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US)
-                        .parse(cursor.getString(4));
+                        .parse(cursor.getString(5));
                 repeatStartAt = new GregorianCalendar();
                 repeatStartAt.setTime(date);
             } catch (ParseException e) {
@@ -167,15 +169,15 @@ public class ScheduleAction {
             values.put("reminder_id", reminderId);
 
         if (type == TYPE_PERIOD_START || type == TYPE_PERIOD_STOP)
-            values.put("period_id", periodIndexOrId);
+            values.put("period_index_or_id", periodIndexOrId);
         else
-            values.putNull("period_id");
+            values.putNull("period_index_or_id");
 
         if (type == TYPE_RESCHEDULE_M3_REMINDER_REPEATS)
-            values.put("repeat_start_at", new SimpleDateFormat(
+            values.put("repeat_start_time", new SimpleDateFormat(
                     "yyyy-MM-dd.HH:mm:ss", Locale.US).format(repeatStartAt.getTime()));
         else
-            values.putNull("repeat_start_at");
+            values.putNull("repeat_start_time");
 
         return values;
     }

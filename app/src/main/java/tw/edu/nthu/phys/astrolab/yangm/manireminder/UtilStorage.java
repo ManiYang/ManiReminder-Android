@@ -23,6 +23,7 @@ public class UtilStorage {
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
     public static final String KEY_OPENED_REMINDERS = "opened_reminders";
+    public static final String KEY_NEW_SCHEDULED_ACTION_ID_MIN = "new_scheduled_action_id_min";
 
     public static final int MAX_RECORDS_IN_HISTORY = 300;
 
@@ -48,6 +49,27 @@ public class UtilStorage {
     }
 
     //
+    public static List<Integer> getIdsInTable(Context context, String table) {
+        List<Integer> ids = new ArrayList<>();
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getReadableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+        Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            ids.add(cursor.getInt(0));
+        }
+        cursor.close();
+        return ids;
+    }
+
+    //
     public static List<Integer> getOpenedReminders(Context context) {
         SharedPreferences sharedPref =
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
@@ -65,6 +87,19 @@ public class UtilStorage {
         SharedPreferences sharedPref =
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
         sharedPref.edit().putString(KEY_OPENED_REMINDERS, data).commit(); //synchronous
+    }
+
+    //
+    public static int readSharedPrefInt(Context context, String key) {
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        return sharedPref.getInt(key, -1);
+    }
+
+    public static void writeSharedPrefInt(Context context, String key, int value) {
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        sharedPref.edit().putInt(key, value).commit();
     }
 
     //
@@ -244,8 +279,58 @@ public class UtilStorage {
     }
 
     //
-    public static List<Integer> getIdsInTable(Context context, String table) {
-        List<Integer> ids = new ArrayList<>();
+    public static void addScheduledActions(
+            Context context, List<Integer> actionIds, List<ScheduleAction> actions) {
+        if (actionIds.size() != actions.size()) {
+            throw new RuntimeException("inconsistent sizes of `actionIds` and `actions`");
+        }
+
+        if (actionIds.isEmpty()) {
+            return;
+        }
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+
+        for (int i=0; i<actionIds.size(); i++) {
+            ScheduleAction action = actions.get(i);
+            ContentValues values = action.getContentValues();
+            values.put("_id", actionIds.get(i));
+            db.insert(MainDbHelper.TABLE_SCHEDULED_ACTIONS, null, values);
+        }
+    }
+
+    public static void removeScheduledActions(Context context, List<Integer> actionIds) {
+        if (actionIds.isEmpty()) {
+            return;
+        }
+
+        SQLiteDatabase db;
+        try {
+            SQLiteOpenHelper mainDbHelper = new MainDbHelper(context);
+            db = mainDbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            throw new RuntimeException("database unavailable");
+        }
+
+        String whereArg = "(" + UtilGeneral.joinIntegerList(", ", actionIds) + ")";
+        db.delete(MainDbHelper.TABLE_SCHEDULED_ACTIONS,
+                "_id IN ?", new String[] {whereArg});
+    }
+
+    /**
+     * @param actionIdsString - comma separated  */
+    public static SparseArray<ScheduleAction> readScheduledActions(Context context,
+                                                                   String actionIdsString) {
+        SparseArray<ScheduleAction> actions = new SparseArray<>();
+        if (actionIdsString.trim().isEmpty()) {
+            return actions;
+        }
 
         SQLiteDatabase db;
         try {
@@ -254,14 +339,15 @@ public class UtilStorage {
         } catch (SQLiteException e) {
             throw new RuntimeException("database unavailable");
         }
-        Cursor cursor = db.query(table, new String[] {"_id"}, null, null,
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, null,
+                "_id IN ?", new String[] {"("+actionIdsString+")"},
                 null, null, null);
+
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
-            ids.add(cursor.getInt(0));
+            int id = cursor.getInt(0);
+            actions.append(id, new ScheduleAction().setFromCursor(cursor));
         }
-        cursor.close();
-        return ids;
+        return actions;
     }
-
 }
