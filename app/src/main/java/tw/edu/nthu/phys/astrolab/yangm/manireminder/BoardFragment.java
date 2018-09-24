@@ -14,9 +14,11 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import java.util.List;
 
@@ -46,6 +48,22 @@ public class BoardFragment extends Fragment {
         boardRecycler.setAdapter(adapter);
         boardRecycler.setLayoutManager(
                 new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+
+        adapter.setItemListener(new BoardListAdapter.ItemListener() {
+            @Override
+            public void onClick(View v, int remId) {
+                v.setSelected(!v.isSelected());
+                remindersIdData.get(remId).toggleHighlight();
+                UtilStorage.toggleHighlightOfOpenedReminder(getContext(), remId);
+            }
+
+            @Override
+            public void onLongClick(View v, int remId) {
+                // [temp]
+                Toast.makeText(getContext(), String.format("long-clicked rem %d", remId),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
 
         // create broadcast receiver (registered in onStart())
         updateBroadcastReceiver = new BroadcastReceiver() {
@@ -83,14 +101,13 @@ public class BoardFragment extends Fragment {
 
     private void loadData() {
         // read opened reminders (ID's)
-        List<Integer> openedRemIds = UtilStorage.getOpenedReminders(getContext());
+        SparseBooleanArray openedRems = UtilStorage.getOpenedReminders(getContext());
+        List<Integer> openedRemIds = UtilGeneral.getKeysOfSparseBooleanArray(openedRems);
 
         // read reminder titles
-        SparseArray<String> remTitles = new SparseArray<>();
-
         String whereArgIds = UtilGeneral.joinIntegerList(", ", openedRemIds);
-        Log.v("BoardFragment", "whereArgIds="+whereArgIds);
 
+        SparseArray<String> remTitles = new SparseArray<>();
         SQLiteDatabase db = UtilStorage.getReadableDatabase(getContext());
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"_id", "title"},
                 "_id IN ("+UtilStorage.placeHolders(openedRemIds.size())+")",
@@ -102,7 +119,6 @@ public class BoardFragment extends Fragment {
         }
         cursor.close();
         Log.v("BoardFragment", "remTitles.size()="+remTitles.size());
-
 
         // read reminder descriptions
         SparseArray<String> remDescriptions = new SparseArray<>();
@@ -119,13 +135,16 @@ public class BoardFragment extends Fragment {
 
         // update `remindersIdData`
         remindersIdData.clear();
-        for (int remId: openedRemIds) {
+        for (int i=0; i<openedRems.size(); i++) {
+            int remId = openedRems.keyAt(i);
             String title = remTitles.get(remId);
             String description = remDescriptions.get(remId);
+            boolean highlight = openedRems.valueAt(i);
             if (title == null || description == null) {
                 throw new RuntimeException("failed to get reminder data");
             }
-            remindersIdData.append(remId, new BoardListAdapter.ReminderData(title, description));
+            remindersIdData.append(remId,
+                    new BoardListAdapter.ReminderData(title, description, highlight));
         }
 
         // notify adapter about data change

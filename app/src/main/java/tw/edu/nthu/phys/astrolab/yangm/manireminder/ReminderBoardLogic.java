@@ -675,6 +675,11 @@ public class ReminderBoardLogic {
 
         // schedule reschedule
         Calendar rescheduleTime = UtilDatetime.addMinutes(from, tau);
+        if (rescheduleTime.get(Calendar.SECOND) > 0 || rescheduleTime.get(Calendar.MILLISECOND) > 0) {
+            rescheduleTime.add(Calendar.MINUTE, 1);
+        }
+        rescheduleTime.set(Calendar.SECOND, 0);
+        rescheduleTime.set(Calendar.MILLISECOND, 0);
         actions.add(new ScheduleAction()
                 .setAsRescheduleModel3ReminderRepeats(rescheduleTime, remId, repeatStartedAt));
 
@@ -688,15 +693,8 @@ public class ReminderBoardLogic {
         }
 
         // update the list of opened reminders
-        List<Integer> openedRemIds = UtilStorage.getOpenedReminders(context);
-        if (!UtilGeneral.isSubset(remindersToClose, openedRemIds)) {
-            throw new RuntimeException("closing already closed reminder");
-        }
-        openedRemIds.addAll(remindersToOpen);
-        openedRemIds.removeAll(remindersToClose);
-
-        // write to file
-        UtilStorage.writeOpenedReminders(context, openedRemIds);
+        UtilStorage.removeOpenedReminders(context, remindersToClose);
+        UtilStorage.addOpenedReminders(context, remindersToOpen);
 
         // local broadcast
         Intent intent = new Intent(context.getResources().getString(R.string.action_update_board));

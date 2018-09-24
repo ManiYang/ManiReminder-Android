@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,6 +138,14 @@ public class UtilGeneral {
     public static ArrayList<Integer> getKeysOfSparseArray(SparseArray<?> array) {
         ArrayList<Integer> keys = new ArrayList<>();
         for (int i = 0; i < array.size(); i++) {
+            keys.add(array.keyAt(i));
+        }
+        return keys;
+    }
+
+    public static ArrayList<Integer> getKeysOfSparseBooleanArray(SparseBooleanArray array) {
+        ArrayList<Integer> keys = new ArrayList<>();
+        for (int i=0; i<array.size(); i++) {
             keys.add(array.keyAt(i));
         }
         return keys;

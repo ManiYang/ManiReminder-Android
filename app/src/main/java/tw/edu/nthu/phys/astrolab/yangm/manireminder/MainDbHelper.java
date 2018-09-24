@@ -9,7 +9,7 @@ import android.util.Log;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 2;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -20,6 +20,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
     public static final String TABLE_EVENTS = "events";
     public static final String TABLE_HISTORY = "history";
     public static final String TABLE_SCHEDULED_ACTIONS = "scheduled_actions";
+    public static final String TABLE_OPENED_REMINDERS = "opened_reminders";
 
 
     public MainDbHelper(Context context) {
@@ -86,7 +87,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values = new ContentValues();
             values.put("_id", 0);
             values.put("type", 3);
-            values.put("behavior_settings", "every5m.offset0m in sit0start-sitEnd, event0-after10m");
+            values.put("behavior_settings", "every1m.offset0m in sit0start-sitEnd, event0-after10m");
             values.put("involved_sits", ",0,");
             values.put("involved_events", ",0,");
             values.put("involve_time_in_start_instant", 0);
@@ -153,16 +154,14 @@ public class MainDbHelper extends SQLiteOpenHelper {
                     + "time TEXT, "
                     + "type INTEGER, "
                     + "sit_event_id INTEGER);");
-        }
 
-        if (oldVersion < 3) {
+
             // reminder started periods (for model-2,3 reminders)
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_STARTED_PERIODS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "started_periods TEXT);");
-        }
 
-        if (oldVersion < 4) {
+
             // scheduled actions
             db.execSQL("CREATE TABLE " + TABLE_SCHEDULED_ACTIONS + " ("
                     + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -172,6 +171,11 @@ public class MainDbHelper extends SQLiteOpenHelper {
                     + "reminder_id INTEGER, "
                     + "period_index_or_id INTEGER, "
                     + "repeat_start_time TEXT);");
+
+            // opened reminders
+            db.execSQL("CREATE TABLE " + TABLE_OPENED_REMINDERS + " ("
+                    + "_id INTEGER PRIMARY KEY, "
+                    + "highlight INTEGER);");
         }
     }
 

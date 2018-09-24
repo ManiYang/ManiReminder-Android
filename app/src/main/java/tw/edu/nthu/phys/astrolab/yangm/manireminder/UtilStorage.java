@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -59,27 +60,6 @@ public class UtilStorage {
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
         sharedPref.edit().putString(KEY_STARTED_SITUATIONS, data).commit(); //synchronous
     }
-
-    //
-    public static List<Integer> getOpenedReminders(Context context) {
-        SharedPreferences sharedPref =
-                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
-        String openedSits = sharedPref.getString(KEY_OPENED_REMINDERS, null);
-
-        if (openedSits == null || openedSits.isEmpty()) {
-            return new ArrayList<>();
-        } else {
-            return UtilGeneral.splitStringAsIntegerList(openedSits, ",");
-        }
-    }
-
-    public static void writeOpenedReminders(Context context, List<Integer> openedRemIds) {
-        String data = UtilGeneral.joinIntegerList(",", openedRemIds);
-        SharedPreferences sharedPref =
-                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
-        sharedPref.edit().putString(KEY_OPENED_REMINDERS, data).commit(); //synchronous
-    }
-
 
     //
     public static SQLiteDatabase getReadableDatabase(Context context) {
@@ -343,5 +323,76 @@ public class UtilStorage {
             builder.append('?');
         }
         return builder.toString();
+    }
+
+    //
+    public static SparseBooleanArray getOpenedReminders(Context context) {
+        SparseBooleanArray rems = new SparseBooleanArray();
+
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_OPENED_REMINDERS,
+                new String[] {"_id", "highlight"},
+                null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            rems.append(cursor.getInt(0), cursor.getInt(1) == 1);
+        }
+        cursor.close();
+        return rems;
+    }
+
+    /** Reminders will be added with highlight = 1.
+     *  If a reminder already exists, it will be updated with highlight = 1. */
+    public static void addOpenedReminders(Context context, Set<Integer> remIdsToAdd) {
+        SparseBooleanArray remsOld = getOpenedReminders(context);
+
+        // update
+        for (int i=0; i<remsOld.size(); i++) {
+            int remId = remsOld.keyAt(i);
+            if (remIdsToAdd.contains(remId)) {
+                if (! remsOld.valueAt(i)) {
+                    SQLiteDatabase db = getWritableDatabase(context);
+                    ContentValues values = new ContentValues();
+                    values.put("highlight", 1);
+                    db.update(MainDbHelper.TABLE_OPENED_REMINDERS, values,
+                            "_id = ?", new String[] {Integer.toString(remId)});
+                }
+            }
+        }
+
+        // insert
+        SQLiteDatabase db = getWritableDatabase(context);
+        for (int remId: remIdsToAdd) {
+            if (remsOld.indexOfKey(remId) < 0) {
+                ContentValues values = new ContentValues();
+                values.put("_id", remId);
+                values.put("highlight", 1);
+                db.insert(MainDbHelper.TABLE_OPENED_REMINDERS, null, values);
+            }
+        }
+    }
+
+    public static void toggleHighlightOfOpenedReminder(Context context, int remId) {
+        SparseBooleanArray rems = getOpenedReminders(context);
+        int index = rems.indexOfKey(remId);
+        if (index < 0) {
+            throw new RuntimeException("`remId` not found in opened reminders");
+        }
+        int newHighlight = rems.valueAt(index) ? 0 : 1;
+
+        ContentValues values = new ContentValues();
+        values.put("highlight", newHighlight);
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.update(MainDbHelper.TABLE_OPENED_REMINDERS, values,
+                "_id = ?", new String[] {Integer.toString(remId)});
+    }
+
+    public static void removeOpenedReminders(Context context, Set<Integer> remIdsToRemove) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        for (int remId: remIdsToRemove) {
+            db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
+                    "_id = ?", new String[] {Integer.toString(remId)});
+        }
     }
 }
