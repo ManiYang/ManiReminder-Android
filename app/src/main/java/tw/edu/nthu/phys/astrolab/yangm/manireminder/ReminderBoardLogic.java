@@ -17,6 +17,7 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.Set;
 
 public class ReminderBoardLogic {
 
+    private static final int PERIOD_ID_START_FOR_NON_SIT_START_END = 100;
     private Context context;
     private SQLiteDatabase db;
 
@@ -316,18 +318,118 @@ public class ReminderBoardLogic {
     }
 
     public void onDeviceBootCompleted() {
+        // perform "fresh start"
+
         Log.v("logic", "on device boot complete");
+        List<ScheduleAction> actionsToSchedule = new ArrayList<>();
 
-        // There might be changes that should happen during device down......
-        // todo...
+        Calendar now = Calendar.getInstance();
+        ReminderBehaviorReader reader = new ReminderBehaviorReader();
 
-        // re-schedule the alarms & actions in the table of scheduled actions
-        Set<Integer> alarmIds = UtilStorage.getScheduledAlarmIds(context);
-        for (int alarmId: alarmIds) {
-            List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
-            UtilStorage.removeScheduledActions(context, alarmId);
-            scheduleNewActions(actions);
+        // do main reschedule at now
+        reader.addRemindersInvolvingTimeInInstant();
+        actionsToSchedule.addAll(performMainRescheduling(
+                now, reader.remModel1Behaviors, reader.remModel23Behaviors));
+
+        // re-determine started periods
+        List<Integer[]> startedPeriods = new ArrayList<>(); //{rem-id, period-id, period-index}
+        List<Calendar> startedPeriodsStartTime = new ArrayList<>();
+        SparseArray<List<Integer>> remsStartedPeriodIds = new SparseArray<>(); //duplicate data
+        Set<Integer> remM2IdsToOpen = new HashSet<>();
+        SparseArray<Calendar> remM3StartedTime = new SparseArray<>();
+
+        reader.addModel23Reminders();
+        List<UtilStorage.HistoryRecord> historyRecords =
+                UtilStorage.getHistoryRecords(context, null);
+        List<Integer> startedSitIds = UtilStorage.getStartedSituations(context);
+
+        List<Integer> periodIndexesToStart = new ArrayList<>(); //used only temporarily
+        int minPeriodIdNonSitStartEnd = PERIOD_ID_START_FOR_NON_SIT_START_END;
+        for (int i=0; i<reader.remModel23Behaviors.size(); i++) {
+            int remId = reader.remModel23Behaviors.keyAt(i);
+            ReminderDataBehavior behavior = reader.remModel23Behaviors.valueAt(i);
+            ReminderDataBehavior.Period[] periods = behavior.getPeriods();
+
+            periodIndexesToStart.clear();
+            Calendar earliestStartTime = Calendar.getInstance();
+            for (int p=0; p<periods.length; p++) {
+                // find started periods
+                List<Calendar> startedTimes = getPeriodStartedTime(now, periods[p],
+                        historyRecords, startedSitIds);
+                for (Calendar startedTime: startedTimes) {
+                    periodIndexesToStart.add(p);
+                    startedPeriodsStartTime.add(startedTime);
+
+                    if (startedTime.compareTo(earliestStartTime) < 0) {
+                        earliestStartTime = startedTime;
+                    }
+                }
+            }
+
+            if (!periodIndexesToStart.isEmpty()) {
+                List<Integer> periodIds = createIdsForPeriodsToStart(
+                        periodIndexesToStart, minPeriodIdNonSitStartEnd, behavior);
+                for (int j = 0; j < periodIds.size(); j++) {
+                    int periodId = periodIds.get(j);
+                    startedPeriods.add(
+                            new Integer[]{remId, periodId, periodIndexesToStart.get(j)});
+                    if (periodId >= minPeriodIdNonSitStartEnd)
+                        minPeriodIdNonSitStartEnd++;
+                }
+                remsStartedPeriodIds.append(remId, periodIds);
+
+                //
+                if (behavior.isReminderInPeriod()) {
+                    remM2IdsToOpen.add(remId);
+                } else {
+                    remM3StartedTime.append(remId, earliestStartTime);
+                }
+            }
         }
+
+        // overwrite started periods to DB
+        UtilStorage.writeStartedPeriods(context, remsStartedPeriodIds);
+
+        // schedule ending actions of started periods
+        List<Integer[]> list = new ArrayList<>();
+        for (int i=0; i<startedPeriods.size(); i++) {
+            list.clear();
+            list.add(startedPeriods.get(i));
+            actionsToSchedule.addAll(schedulePeriodsEndings(
+                    list, reader.remModel23Behaviors, startedPeriodsStartTime.get(i)));
+        }
+
+        // update the list of opened reminders (model-2 reminders: open only those in
+        // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
+        Set<Integer> remIdsToRemoveFromOpened = new HashSet<>();
+        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
+        for (int i=0; i<openedRemsOld.size(); i++) {
+            int remId = openedRemsOld.keyAt(i);
+
+            int index = reader.remModel23Behaviors.indexOfKey(remId);
+                    //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
+            if (index >= 0 && reader.remModel23Behaviors.valueAt(index).isReminderInPeriod()) {
+                //(remId is of model 2)
+                if (!remM2IdsToOpen.contains(remId)) {
+                    remIdsToRemoveFromOpened.add(remId);
+                }
+            }
+        }
+        UtilStorage.removeOpenedReminders(context, remIdsToRemoveFromOpened);
+        UtilStorage.addOpenedReminders(context, remM2IdsToOpen);
+
+        // do rescheduling for started model-3 reminders from now
+        actionsToSchedule.addAll(
+                rescheduleReminderRepeats(remM3StartedTime, reader.remModel23Behaviors, now));
+
+        //
+        scheduleNewActions(actionsToSchedule);
+
+        //
+        if (!remM2IdsToOpen.isEmpty()) {
+            issueNotification();
+        }
+        Log.v("logic", "fresh start done");
     }
 
     public void onReminderRemove(int remId) {
@@ -356,10 +458,10 @@ public class ReminderBoardLogic {
         private Set<Integer> remindersToClose;
         private Set<Integer> remindersToStartRepeating;
         private Set<Integer> remindersToStopRepeating;
-        private SparseArray<Calendar> remM3ToRescheduleRepeatStartTime;
         private List<Integer[]> periodsToScheduleEnding; //element: {rem-id, period-id, period-index}
         private SparseArray<Set<Integer>> remsNewStartedPeriodIds;
         private boolean doMainReschedule;
+        private SparseArray<Calendar> remM3ToRescheduleRepeatStartTime;
 
         Helper1() {
             remindersToOpen = new HashSet<>();
@@ -631,7 +733,7 @@ public class ReminderBoardLogic {
 
     private List<ScheduleAction> rescheduleReminderRepeats(
                 SparseArray<Calendar> remIdToRepeatStartTime,
-                SparseArray<ReminderDataBehavior> reminderBehaviors, Calendar at) {
+                SparseArray<ReminderDataBehavior> reminderBehaviors, Calendar from) {
         List<ScheduleAction> actions = new ArrayList<>();
         for (int i=0; i<remIdToRepeatStartTime.size(); i++) {
             int remId = remIdToRepeatStartTime.keyAt(i);
@@ -646,7 +748,7 @@ public class ReminderBoardLogic {
             }
 
             List<ScheduleAction> moreActions = scheduleReminderRepeatsAndNextReschedule(
-                    remId, at, repeatStartTime,
+                    remId, from, repeatStartTime,
                     behavior.getRepeatEveryMinutes(), behavior.getRepeatOffsetMinutes());
             actions.addAll(moreActions);
         }
@@ -702,28 +804,32 @@ public class ReminderBoardLogic {
 
         // issue notification
         if (!remindersToOpen.isEmpty()) {
-            Intent intentOnUserTap = new Intent(context, MainActivity.class);
-            PendingIntent pendingIntent = TaskStackBuilder.create(context)
-                    .addNextIntentWithParentStack(intentOnUserTap)
-                    .getPendingIntent(1, PendingIntent.FLAG_ONE_SHOT);
-
-            Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
-                    context.getResources().getString(R.string.channel_id));
-            builder.setSmallIcon(R.mipmap.ic_launcher_round)
-                    .setContentTitle("New Reminder")
-                    .setContentText("You have new reminders.")
-                    .setContentIntent(pendingIntent)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                    .setAutoCancel(true)
-                    .setSound(notificationSound, AudioManager.STREAM_NOTIFICATION)
-                    .setLights(Color.WHITE,500, 500);
-            int notificationId = context.getResources().getInteger(R.integer.notification_id);
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build());
+            issueNotification();
         }
+    }
+
+    private void issueNotification() {
+        Intent intentOnUserTap = new Intent(context, MainActivity.class);
+        PendingIntent pendingIntent = TaskStackBuilder.create(context)
+                .addNextIntentWithParentStack(intentOnUserTap)
+                .getPendingIntent(1, PendingIntent.FLAG_ONE_SHOT);
+
+        Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
+                context.getResources().getString(R.string.channel_id));
+        builder.setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentTitle("New Reminder")
+                .setContentText("You have new reminders.")
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setAutoCancel(true)
+                .setSound(notificationSound, AudioManager.STREAM_NOTIFICATION)
+                .setLights(Color.GREEN,500, 500);
+        int notificationId = context.getResources().getInteger(R.integer.notification_id);
+        NotificationManagerCompat.from(context).notify(notificationId, builder.build());
     }
 
     private void scheduleNewActions(List<ScheduleAction> actions) {
@@ -900,6 +1006,13 @@ public class ReminderBoardLogic {
             UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
         }
 
+        private void addModel23Reminders() {
+            Cursor cursor = queryModel23Reminders();
+            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
+            cursor.close();
+            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+        }
+
         private void addReminders(Set<Integer> remIds) {
             Cursor cursor = queryReminders(remIds);
             List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
@@ -945,6 +1058,13 @@ public class ReminderBoardLogic {
             return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                     new String[]{"_id", "type", "behavior_settings"},
                     "involve_time_in_start_instant = ?", new String[] {"1"},
+                    null, null, null);
+        }
+
+        private Cursor queryModel23Reminders() {
+            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
+                    new String[]{"_id", "type", "behavior_settings"},
+                    "type IN (?,?)", new String[] {"2", "3"},
                     null, null, null);
         }
 
@@ -1157,17 +1277,27 @@ public class ReminderBoardLogic {
     private List<Integer> createIdsForPeriodsToStart(List<Integer> periodIndexesToStart,
                                                      List<Integer> startedPeriodIds,
                                                      ReminderDataBehavior behavior) {
+        int newPeriodIdMinForNonSitStartEnd = startedPeriodIds.isEmpty() ?
+                PERIOD_ID_START_FOR_NON_SIT_START_END
+                : Math.max(PERIOD_ID_START_FOR_NON_SIT_START_END,
+                        Collections.max(startedPeriodIds) + 1);
+        return createIdsForPeriodsToStart(
+                periodIndexesToStart, newPeriodIdMinForNonSitStartEnd, behavior);
+    }
+
+    /** see above */
+    private List<Integer> createIdsForPeriodsToStart(List<Integer> periodIndexesToStart,
+                                                     int newPeriodIdMinForNonSitStartEnd,
+                                                     ReminderDataBehavior behavior) {
         List<Integer> periodIdsToStart = new ArrayList<>();
-        int newPeriodIdMin = startedPeriodIds.isEmpty() ?
-                100 : Math.max(100, Collections.max(startedPeriodIds) + 1);
         for (int i=0; i<periodIndexesToStart.size(); i++) {
             int periodIndex = periodIndexesToStart.get(i);
             int periodId;
             if (behavior.getPeriods()[periodIndex].isSituationStartEnd()) {
                 periodId = -periodIndex; // id <= 0 for sit. start-end
             } else {
-                periodId = newPeriodIdMin;
-                newPeriodIdMin++;
+                periodId = newPeriodIdMinForNonSitStartEnd;
+                newPeriodIdMinForNonSitStartEnd++;
             }
             periodIdsToStart.add(periodId);
         }
@@ -1184,15 +1314,17 @@ public class ReminderBoardLogic {
                                                 List<UtilStorage.HistoryRecord> historyRecords,
                                                 List<Integer> startedSituations) {
         List<Calendar> periodStartTimes = new ArrayList<>();
+        HistoryRecordsFinder histRecordsFinder = new HistoryRecordsFinder(historyRecords);
 
         if (period.isSituationStartEnd()) {
             int sitId = period.getStartInstant().getSituationId();
             if (startedSituations.contains(sitId)) {
                 // try to find start of situation `sitId` in `historyRecords`
-                Calendar t = findLatestSituationStartInHistory(sitId, historyRecords);
+                Calendar t = histRecordsFinder.findLatestSituationStart(sitId);
                 if (t == null) {
                     // not found in history: return N days ago
-                    final int DAYS_MAX = context.getResources().getInteger(R.integer.history_record_days_max);
+                    final int DAYS_MAX = context.getResources()
+                            .getInteger(R.integer.history_record_days_max);
                     t = (Calendar) at.clone();
                     t.add(Calendar.DAY_OF_MONTH, -DAYS_MAX);
                 }
@@ -1245,84 +1377,94 @@ public class ReminderBoardLogic {
             ReminderDataBehavior.Instant instant = period.getStartInstant();
             if (instant.isSituationStart()) {
                 periodStartTimes.addAll(
-                        findSituationStartHistRecordsInTimeRange(
-                                instant.getSituationId(), historyRecords, from, at));
+                        histRecordsFinder.findSituationStartInTimeRange(
+                                instant.getSituationId(), from, at));
             } else if (instant.isSituationEnd()) {
                 periodStartTimes.addAll(
-                        findSituationEndHistRecordsInTimeRange(
-                                instant.getSituationId(), historyRecords, from, at));
+                        histRecordsFinder.findSituationEndInTimeRange(
+                                instant.getSituationId(), from, at));
             } else if (instant.isEvent()) {
                 periodStartTimes.addAll(
-                        findEventHistRecordsInTimeRange(
-                                instant.getSituationId(), historyRecords, from, at));
+                        histRecordsFinder.findEventInTimeRange(
+                                instant.getSituationId(), from, at));
             } else { // (instant is Time)
+                Calendar tf = (Calendar) at.clone();
+                while (tf.compareTo(from) > 0) {
+                    Calendar ti = (Calendar) tf.clone();
+                    ti.add(Calendar.HOUR_OF_DAY, -12);
+                    if (ti.compareTo(from) < 0) {
+                        ti = from;
+                    }
+                    Calendar tInstant = getInstantTimeWithin(instant, ti, tf);
+                    if (tInstant != null) {
+                        periodStartTimes.add(tInstant);
+                    }
 
+                    //
+                    tf.add(Calendar.HOUR_OF_DAY, -12);
+                }
             }
             return periodStartTimes;
         }
     }
 
-    /**
-     * @param historyRecords must be in descending order of time
-     * @return null if not found */
-    private Calendar findLatestSituationStartInHistory(
-                int sitId, List<UtilStorage.HistoryRecord> historyRecords) {
-        for (int i=0; i<historyRecords.size(); i++) {
-            UtilStorage.HistoryRecord record = historyRecords.get(i);
-            if (record.isStartOfSituationWithId(sitId)) {
-                return record.getTime();
-            }
+    private class HistoryRecordsFinder {
+        private List<UtilStorage.HistoryRecord> historyRecords;
+
+        /**
+         * @param historyRecords must be in descending order of time */
+        HistoryRecordsFinder(List<UtilStorage.HistoryRecord> historyRecords) {
+            this.historyRecords = historyRecords;
         }
-        return null;
-    }
 
-    /**
-     * @param historyRecords must be in descending order of time  */
-    private List<Calendar> findSituationStartHistRecordsInTimeRange(
-            int sitId, List<UtilStorage.HistoryRecord> historyRecords,
-            Calendar fromExclusive, Calendar to) {
-        return findHistRecordsInTimeRange(
-                UtilStorage.HIST_TYPE_SIT_START, sitId, historyRecords, fromExclusive, to);
-    }
-
-    /**
-     * @param historyRecords must be in descending order of time  */
-    private List<Calendar> findSituationEndHistRecordsInTimeRange(
-            int sitId, List<UtilStorage.HistoryRecord> historyRecords,
-            Calendar fromExclusive, Calendar to) {
-        return findHistRecordsInTimeRange(
-                UtilStorage.HIST_TYPE_SIT_END, sitId, historyRecords, fromExclusive, to);
-    }
-
-    /**
-     * @param historyRecords must be in descending order of time  */
-    private List<Calendar> findEventHistRecordsInTimeRange(
-            int eventId, List<UtilStorage.HistoryRecord> historyRecords,
-            Calendar fromExclusive, Calendar to) {
-        return findHistRecordsInTimeRange(
-                UtilStorage.HIST_TYPE_EVENT, eventId, historyRecords, fromExclusive, to);
-    }
-
-    /**
-     * @param historyRecords must be in descending order of time  */
-    private List<Calendar> findHistRecordsInTimeRange(int type, int sitOrEventId,
-                                                      List<UtilStorage.HistoryRecord> historyRecords,
-                                                      Calendar fromExclusive, Calendar to) {
-        List<Calendar> sitStartTimes = new ArrayList<>();
-        for (int i=0; i<historyRecords.size(); i++) {
-            UtilStorage.HistoryRecord record = historyRecords.get(i);
-            Calendar recTime = record.getTime();
-            if (recTime.compareTo(fromExclusive) <= 0) {
-                break;
-            }
-
-            if (record.getSitOrEventId() == sitOrEventId && record.getType() == type) {
-                if (recTime.compareTo(to) <= 0) {
-                    sitStartTimes.add(recTime);
+        /**
+         * @return null if not found  */
+        private Calendar findLatestSituationStart(int sitId) {
+            for (int i = 0; i < historyRecords.size(); i++) {
+                UtilStorage.HistoryRecord record = historyRecords.get(i);
+                if (record.isStartOfSituationWithId(sitId)) {
+                    return record.getTime();
                 }
             }
+            return null;
         }
-        return sitStartTimes;
+
+        private List<Calendar> findSituationStartInTimeRange(int sitId,
+                                                             Calendar fromExclusive, Calendar to) {
+            return this.findRecordsInTimeRange(
+                    UtilStorage.HIST_TYPE_SIT_START, sitId, fromExclusive, to);
+        }
+
+        private List<Calendar> findSituationEndInTimeRange(int sitId,
+                                                           Calendar fromExclusive, Calendar to) {
+            return this.findRecordsInTimeRange(
+                    UtilStorage.HIST_TYPE_SIT_END, sitId, fromExclusive, to);
+        }
+
+        private List<Calendar> findEventInTimeRange(int eventId,
+                                                    Calendar fromExclusive, Calendar to) {
+            return this.findRecordsInTimeRange(
+                    UtilStorage.HIST_TYPE_EVENT, eventId, fromExclusive, to);
+        }
+
+        private List<Calendar> findRecordsInTimeRange(int type, int sitOrEventId,
+                                                      Calendar fromExclusive, Calendar to) {
+            List<Calendar> sitStartTimes = new ArrayList<>();
+            for (int i = 0; i < historyRecords.size(); i++) {
+                UtilStorage.HistoryRecord record = historyRecords.get(i);
+                Calendar recTime = record.getTime();
+                if (recTime.compareTo(fromExclusive) <= 0) {
+                    break;
+                }
+
+                if (record.getSitOrEventId() == sitOrEventId && record.getType() == type) {
+                    if (recTime.compareTo(to) <= 0) {
+                        sitStartTimes.add(recTime);
+                    }
+                }
+            }
+            return sitStartTimes;
+        }
     }
 
 }

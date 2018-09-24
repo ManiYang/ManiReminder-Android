@@ -319,6 +319,7 @@ public class UtilStorage {
         return remsStartedPeriodIds;
     }
 
+    /** update the list of started periods for specified reminders */
     public static void updateRemindersStartedPeriodIds(
             Context context, SparseArray<Set<Integer>> remsStartedPeriodIds) {
         if (remsStartedPeriodIds.size() == 0)
@@ -326,6 +327,7 @@ public class UtilStorage {
 
         SQLiteDatabase db = getWritableDatabase(context);
         List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
+        ContentValues values = new ContentValues();
         for (int i=0; i<remsStartedPeriodIds.size(); i++) {
             int id = remsStartedPeriodIds.keyAt(i);
 
@@ -333,19 +335,36 @@ public class UtilStorage {
             String startedPeriodsStr =
                     UtilGeneral.joinIntegerList(",", new ArrayList<>(periods));
 
+            values.clear();
             if (idsExist.contains(id)) {
                 // update record
-                ContentValues values = new ContentValues();
                 values.put("started_periods", startedPeriodsStr);
                 db.update(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, values,
                         "_id = ?", new String[] {String.valueOf(id)});
             } else {
                 // insert record
-                ContentValues values = new ContentValues();
                 values.put("_id", id);
                 values.put("started_periods", startedPeriodsStr);
                 db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null, values);
             }
+        }
+    }
+
+    /** update whole table (removing original data first) */
+    public static void writeStartedPeriods(Context context,
+                                           SparseArray<List<Integer>> remsStartedPeriodIds) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null, null);
+
+        ContentValues values = new ContentValues();
+        for (int i=0; i<remsStartedPeriodIds.size(); i++) {
+            int remId = remsStartedPeriodIds.keyAt(i);
+            List<Integer> periodIds = remsStartedPeriodIds.valueAt(i);
+
+            values.clear();
+            values.put("_id", remId);
+            values.put("started_periods", UtilGeneral.joinIntegerList(",", periodIds));
+            db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null, values);
         }
     }
 
