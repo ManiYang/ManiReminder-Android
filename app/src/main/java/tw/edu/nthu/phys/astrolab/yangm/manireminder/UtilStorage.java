@@ -148,7 +148,7 @@ public class UtilStorage {
     public static void addToHistory(Context context,
                                     Calendar at, int historyRecordType, int sitOrEventId) {
         if (historyRecordType < 0 || historyRecordType > 2)
-            throw new RuntimeException("bad historyRcordType");
+            throw new RuntimeException("bad historyRecordType");
 
         String dateStr = new SimpleDateFormat("yyyyMMdd", Locale.US).format(at.getTime());
         String timeStr = new SimpleDateFormat("HH:mm:ss", Locale.US).format(at.getTime());
@@ -167,7 +167,8 @@ public class UtilStorage {
                 context.getResources().getInteger(R.integer.history_record_days_max);
         Calendar dateMin = (Calendar) at.clone();
         dateMin.add(Calendar.DAY_OF_MONTH, 1 - historyRecordDaysMax);
-        String dateMinStr = new SimpleDateFormat("yyyyMMdd", Locale.US).format(dateMin);
+        String dateMinStr =
+                new SimpleDateFormat("yyyyMMdd", Locale.US).format(dateMin.getTime());
         db.delete(MainDbHelper.TABLE_HISTORY,
                 "date < ?", new String[] {dateMinStr});
     }

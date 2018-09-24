@@ -3,6 +3,7 @@
 
     <string name="view_all_reminders">View All Reminders</string>
     <string name="view_history">Situations &amp; Events History</string>
+    <string name="fresh_restart">Fresh-Restart the App</string>
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
 

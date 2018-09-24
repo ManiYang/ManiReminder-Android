@@ -318,118 +318,13 @@ public class ReminderBoardLogic {
     }
 
     public void onDeviceBootCompleted() {
-        // perform "fresh start"
+        Log.v("logic", "on device boot completed");
+        freshStart();
+    }
 
-        Log.v("logic", "on device boot complete");
-        List<ScheduleAction> actionsToSchedule = new ArrayList<>();
-
-        Calendar now = Calendar.getInstance();
-        ReminderBehaviorReader reader = new ReminderBehaviorReader();
-
-        // do main reschedule at now
-        reader.addRemindersInvolvingTimeInInstant();
-        actionsToSchedule.addAll(performMainRescheduling(
-                now, reader.remModel1Behaviors, reader.remModel23Behaviors));
-
-        // re-determine started periods
-        List<Integer[]> startedPeriods = new ArrayList<>(); //{rem-id, period-id, period-index}
-        List<Calendar> startedPeriodsStartTime = new ArrayList<>();
-        SparseArray<List<Integer>> remsStartedPeriodIds = new SparseArray<>(); //duplicate data
-        Set<Integer> remM2IdsToOpen = new HashSet<>();
-        SparseArray<Calendar> remM3StartedTime = new SparseArray<>();
-
-        reader.addModel23Reminders();
-        List<UtilStorage.HistoryRecord> historyRecords =
-                UtilStorage.getHistoryRecords(context, null);
-        List<Integer> startedSitIds = UtilStorage.getStartedSituations(context);
-
-        List<Integer> periodIndexesToStart = new ArrayList<>(); //used only temporarily
-        int minPeriodIdNonSitStartEnd = PERIOD_ID_START_FOR_NON_SIT_START_END;
-        for (int i=0; i<reader.remModel23Behaviors.size(); i++) {
-            int remId = reader.remModel23Behaviors.keyAt(i);
-            ReminderDataBehavior behavior = reader.remModel23Behaviors.valueAt(i);
-            ReminderDataBehavior.Period[] periods = behavior.getPeriods();
-
-            periodIndexesToStart.clear();
-            Calendar earliestStartTime = Calendar.getInstance();
-            for (int p=0; p<periods.length; p++) {
-                // find started periods
-                List<Calendar> startedTimes = getPeriodStartedTime(now, periods[p],
-                        historyRecords, startedSitIds);
-                for (Calendar startedTime: startedTimes) {
-                    periodIndexesToStart.add(p);
-                    startedPeriodsStartTime.add(startedTime);
-
-                    if (startedTime.compareTo(earliestStartTime) < 0) {
-                        earliestStartTime = startedTime;
-                    }
-                }
-            }
-
-            if (!periodIndexesToStart.isEmpty()) {
-                List<Integer> periodIds = createIdsForPeriodsToStart(
-                        periodIndexesToStart, minPeriodIdNonSitStartEnd, behavior);
-                for (int j = 0; j < periodIds.size(); j++) {
-                    int periodId = periodIds.get(j);
-                    startedPeriods.add(
-                            new Integer[]{remId, periodId, periodIndexesToStart.get(j)});
-                    if (periodId >= minPeriodIdNonSitStartEnd)
-                        minPeriodIdNonSitStartEnd++;
-                }
-                remsStartedPeriodIds.append(remId, periodIds);
-
-                //
-                if (behavior.isReminderInPeriod()) {
-                    remM2IdsToOpen.add(remId);
-                } else {
-                    remM3StartedTime.append(remId, earliestStartTime);
-                }
-            }
-        }
-
-        // overwrite started periods to DB
-        UtilStorage.writeStartedPeriods(context, remsStartedPeriodIds);
-
-        // schedule ending actions of started periods
-        List<Integer[]> list = new ArrayList<>();
-        for (int i=0; i<startedPeriods.size(); i++) {
-            list.clear();
-            list.add(startedPeriods.get(i));
-            actionsToSchedule.addAll(schedulePeriodsEndings(
-                    list, reader.remModel23Behaviors, startedPeriodsStartTime.get(i)));
-        }
-
-        // update the list of opened reminders (model-2 reminders: open only those in
-        // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
-        Set<Integer> remIdsToRemoveFromOpened = new HashSet<>();
-        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
-        for (int i=0; i<openedRemsOld.size(); i++) {
-            int remId = openedRemsOld.keyAt(i);
-
-            int index = reader.remModel23Behaviors.indexOfKey(remId);
-                    //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
-            if (index >= 0 && reader.remModel23Behaviors.valueAt(index).isReminderInPeriod()) {
-                //(remId is of model 2)
-                if (!remM2IdsToOpen.contains(remId)) {
-                    remIdsToRemoveFromOpened.add(remId);
-                }
-            }
-        }
-        UtilStorage.removeOpenedReminders(context, remIdsToRemoveFromOpened);
-        UtilStorage.addOpenedReminders(context, remM2IdsToOpen);
-
-        // do rescheduling for started model-3 reminders from now
-        actionsToSchedule.addAll(
-                rescheduleReminderRepeats(remM3StartedTime, reader.remModel23Behaviors, now));
-
-        //
-        scheduleNewActions(actionsToSchedule);
-
-        //
-        if (!remM2IdsToOpen.isEmpty()) {
-            issueNotification();
-        }
-        Log.v("logic", "fresh start done");
+    public void freshRestart() {
+        cancelAllAlarms();
+        freshStart();
     }
 
     public void onReminderRemove(int remId) {
@@ -588,6 +483,119 @@ public class ReminderBoardLogic {
 
     //// private tasks ////////////////////////////////////////////////////////////////////////////
 
+    private void freshStart() {
+        List<ScheduleAction> actionsToSchedule = new ArrayList<>();
+
+        Calendar now = Calendar.getInstance();
+        ReminderBehaviorReader reader = new ReminderBehaviorReader();
+
+        // do main reschedule at now
+        reader.addRemindersInvolvingTimeInInstant();
+        actionsToSchedule.addAll(performMainRescheduling(
+                now, reader.remModel1Behaviors, reader.remModel23Behaviors));
+
+        // re-determine started periods
+        List<Integer[]> startedPeriods = new ArrayList<>(); //{rem-id, period-id, period-index}
+        List<Calendar> startedPeriodsStartTime = new ArrayList<>();
+        SparseArray<List<Integer>> remsStartedPeriodIds = new SparseArray<>(); //duplicate data
+        Set<Integer> remM2IdsToOpen = new HashSet<>();
+        SparseArray<Calendar> remM3StartedTime = new SparseArray<>();
+
+        reader.addModel23Reminders();
+        List<UtilStorage.HistoryRecord> historyRecords =
+                UtilStorage.getHistoryRecords(context, null);
+        List<Integer> startedSitIds = UtilStorage.getStartedSituations(context);
+
+        List<Integer> periodIndexesToStart = new ArrayList<>(); //used only temporarily
+        int minPeriodIdNonSitStartEnd = PERIOD_ID_START_FOR_NON_SIT_START_END;
+        for (int i=0; i<reader.remModel23Behaviors.size(); i++) {
+            int remId = reader.remModel23Behaviors.keyAt(i);
+            ReminderDataBehavior behavior = reader.remModel23Behaviors.valueAt(i);
+            ReminderDataBehavior.Period[] periods = behavior.getPeriods();
+
+            periodIndexesToStart.clear();
+            Calendar earliestStartTime = Calendar.getInstance();
+            for (int p=0; p<periods.length; p++) {
+                // find started periods
+                List<Calendar> startedTimes = getPeriodStartedTime(now, periods[p],
+                        historyRecords, startedSitIds);
+                for (Calendar startedTime: startedTimes) {
+                    periodIndexesToStart.add(p);
+                    startedPeriodsStartTime.add(startedTime);
+
+                    if (startedTime.compareTo(earliestStartTime) < 0) {
+                        earliestStartTime = startedTime;
+                    }
+                }
+            }
+
+            if (!periodIndexesToStart.isEmpty()) {
+                List<Integer> periodIds = createIdsForPeriodsToStart(
+                        periodIndexesToStart, minPeriodIdNonSitStartEnd, behavior);
+                for (int j = 0; j < periodIds.size(); j++) {
+                    int periodId = periodIds.get(j);
+                    startedPeriods.add(
+                            new Integer[]{remId, periodId, periodIndexesToStart.get(j)});
+                    if (periodId >= minPeriodIdNonSitStartEnd)
+                        minPeriodIdNonSitStartEnd++;
+                }
+                remsStartedPeriodIds.append(remId, periodIds);
+
+                //
+                if (behavior.isReminderInPeriod()) {
+                    remM2IdsToOpen.add(remId);
+                } else {
+                    remM3StartedTime.append(remId, earliestStartTime);
+                }
+            }
+        }
+
+        // overwrite started periods to DB
+        UtilStorage.writeStartedPeriods(context, remsStartedPeriodIds);
+
+        // schedule ending actions of started periods
+        List<Integer[]> list = new ArrayList<>();
+        for (int i=0; i<startedPeriods.size(); i++) {
+            list.clear();
+            list.add(startedPeriods.get(i));
+            actionsToSchedule.addAll(schedulePeriodsEndings(
+                    list, reader.remModel23Behaviors, startedPeriodsStartTime.get(i)));
+        }
+
+        // update the list of opened reminders (model-2 reminders: open only those in
+        // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
+        Set<Integer> remIdsToRemoveFromOpened = new HashSet<>();
+        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
+        for (int i=0; i<openedRemsOld.size(); i++) {
+            int remId = openedRemsOld.keyAt(i);
+
+            int index = reader.remModel23Behaviors.indexOfKey(remId);
+            //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
+            if (index >= 0 && reader.remModel23Behaviors.valueAt(index).isReminderInPeriod()) {
+                //(remId is of model 2)
+                if (!remM2IdsToOpen.contains(remId)) {
+                    remIdsToRemoveFromOpened.add(remId);
+                }
+            }
+        }
+        UtilStorage.removeOpenedReminders(context, remIdsToRemoveFromOpened);
+        UtilStorage.addOpenedReminders(context, remM2IdsToOpen);
+
+        // do rescheduling for started model-3 reminders from now
+        actionsToSchedule.addAll(
+                rescheduleReminderRepeats(remM3StartedTime, reader.remModel23Behaviors, now));
+
+        // remove existing scheduled actions in DB, and schedule new actions in `actionsToSchedule`
+        db.delete(MainDbHelper.TABLE_SCHEDULED_ACTIONS, null, null);
+        scheduleNewActions(actionsToSchedule);
+
+        //
+        if (!remM2IdsToOpen.isEmpty()) {
+            issueNotification();
+        }
+        Log.v("logic", "fresh start done");
+    }
+
     /**
      * Will consider only reminders given in remM1Behaviors and remM23Behaviors. */
     private List<ScheduleAction> performMainRescheduling(Calendar from,
@@ -685,6 +693,8 @@ public class ReminderBoardLogic {
                 endTime.set(Calendar.MINUTE, hrMin[1]);
                 endTime.set(Calendar.SECOND, 0);
                 endTime.set(Calendar.MILLISECOND, 0);
+            } else { //(situation start-end)
+                continue;
             }
             actions.add(new ScheduleAction().setAsPeriodStop(endTime, remId, periodId));
         }
@@ -948,21 +958,32 @@ public class ReminderBoardLogic {
             }
 
             // cancel alarm
-            Intent intentActions = new Intent(context, AlarmReceiver.class)
-                    .setAction(context.getResources().getString(R.string.action_scheduled_actions));
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
-            ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
-            Log.v("logic", "canceled alarm "+alarmId);
-
-            // delete records
-            UtilStorage.removeScheduledActions(context, alarmId);
+            cancelAlarmAndDeleteRecords(alarmId);
 
             // schedule new alarm with actions in `newActionList`
             if (!newActionList.isEmpty()) {
                 scheduleNewActions(newActionList);
             }
         }
+    }
+
+    private void cancelAllAlarms() {
+        Set<Integer> alarmIds = UtilStorage.getScheduledAlarmIds(context);
+        for (int alarmId: alarmIds) {
+            cancelAlarmAndDeleteRecords(alarmId);
+        }
+    }
+
+    private void cancelAlarmAndDeleteRecords(int alarmId) {
+        Intent intentActions = new Intent(context, AlarmReceiver.class)
+                .setAction(context.getResources().getString(R.string.action_scheduled_actions));
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
+        ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
+        Log.v("logic", "canceled alarm " + alarmId);
+
+        // delete action records in DB
+        UtilStorage.removeScheduledActions(context, alarmId);
     }
 
     //// private tools ////////////////////////////////////////////////////////////////////////////
@@ -1386,7 +1407,7 @@ public class ReminderBoardLogic {
             } else if (instant.isEvent()) {
                 periodStartTimes.addAll(
                         histRecordsFinder.findEventInTimeRange(
-                                instant.getSituationId(), from, at));
+                                instant.getEventId(), from, at));
             } else { // (instant is Time)
                 Calendar tf = (Calendar) at.clone();
                 while (tf.compareTo(from) > 0) {

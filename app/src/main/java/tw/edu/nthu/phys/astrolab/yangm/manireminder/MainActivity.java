@@ -1,7 +1,9 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -58,6 +60,19 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.action_view_history:
                 startActivity(new Intent(this, HistoryViewActivity.class));
+                return true;
+            case R.id.action_fresh_restart:
+                new AlertDialog.Builder(this)
+                        .setTitle("Fresh Restart")
+                        .setMessage("Please confirm.")
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                new ReminderBoardLogic(MainActivity.this).freshRestart();
+                            }
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
