@@ -225,6 +225,14 @@ public class UtilStorage {
             return time;
         }
 
+        public int getType() {
+            return type;
+        }
+
+        public int getSitOrEventId() {
+            return sitOrEventId;
+        }
+
         public boolean isEventWithId(int eventId) {
             return type == HIST_TYPE_EVENT && sitOrEventId == eventId;
         }
@@ -238,17 +246,19 @@ public class UtilStorage {
         }
     }
 
+    /**
+     * @return in descending order (most recent record is first) */
     public static List<HistoryRecord> getHistoryRecords(Context context, @Nullable Calendar since) {
         List<HistoryRecord> records = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_HISTORY,
-                new String[] {"date", "time", "type", "sit_event_id"},
+                new String[] {"_id", "date", "time", "type", "sit_event_id"},
                 null, null,
-                null, null, null);
+                null, null, "_id DESC");
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
-            int dateInt = cursor.getInt(0);
-            String timeStr = cursor.getString(1);
+            int dateInt = cursor.getInt(1);
+            String timeStr = cursor.getString(2);
             Calendar time = Calendar.getInstance();
             try {
                 Date d = new SimpleDateFormat("yyyyMMddHH:mm:ss", Locale.US)
@@ -262,8 +272,8 @@ public class UtilStorage {
                 continue;
             }
 
-            int type = cursor.getInt(2);
-            int sitEventId = cursor.getInt(3);
+            int type = cursor.getInt(3);
+            int sitEventId = cursor.getInt(4);
             records.add(new HistoryRecord(time, type, sitEventId));
         }
         cursor.close();

@@ -861,12 +861,134 @@ public class ReminderBoardLogic {
 
     //// private tools ////////////////////////////////////////////////////////////////////////////
 
+    private class ReminderBehaviorReader {
+
+        private SparseArray<ReminderDataBehavior> remModel1Behaviors = new SparseArray<>();
+        private SparseArray<ReminderDataBehavior> remModel23Behaviors = new SparseArray<>();
+
+        private void clear() {
+            remModel1Behaviors.clear();
+            remModel23Behaviors.clear();
+        }
+
+        /**
+         * @param sitIds cannot be empty */
+        private void addRemindersInvolvingSituations(Set<Integer> sitIds) {
+            if (sitIds.isEmpty()) {
+                throw new RuntimeException("sitIds is empty");
+            }
+            Cursor cursor = queryRemInvolvingSituations(sitIds);
+            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
+            cursor.close();
+            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
+            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+        }
+
+        private void addRemindersInvolvingEvent(int eventId) {
+            Cursor cursor = queryRemInvolvingEvent(eventId);
+            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
+            cursor.close();
+            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
+            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+        }
+
+        private void addRemindersInvolvingTimeInInstant() {
+            Cursor cursor = queryRemInvolvingTimeInInstant();
+            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
+            cursor.close();
+            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
+            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+        }
+
+        private void addReminders(Set<Integer> remIds) {
+            Cursor cursor = queryReminders(remIds);
+            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
+            cursor.close();
+            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
+            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+        }
+
+        // low-level methods //
+        private Cursor queryRemInvolvingSituations(Set<Integer> sitIds) {
+            // returns a cursor containing columns (reminder-id, model, behavior-settings), or null
+            // if sitIds is empty
+
+            if (sitIds.isEmpty())
+                return null;
+
+            StringBuilder builderWhere = new StringBuilder();
+            List<String> whereArgs = new ArrayList<>();
+            boolean first = true;
+            for (int id : sitIds) {
+                if (!first)
+                    builderWhere.append(" OR ");
+                builderWhere.append("involved_sits LIKE ?");
+                whereArgs.add("%," + id + ",%");
+                first = false;
+            }
+            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
+                    new String[]{"_id", "type", "behavior_settings"},
+                    builderWhere.toString(), whereArgs.toArray(new String[0]),
+                    null, null, null);
+        }
+
+        private Cursor queryRemInvolvingEvent(int eventId) {
+            // returns a cursor containing columns (reminder-id, model, behavior-settings)
+            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
+                    new String[]{"_id", "type", "behavior_settings"},
+                    "involved_events LIKE ?", new String[]{"%," + eventId + ",%"},
+                    null, null, null);
+        }
+
+        private Cursor queryRemInvolvingTimeInInstant() {
+            // returns a cursor containing columns (reminder-id, model, behavior-settings)
+            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
+                    new String[]{"_id", "type", "behavior_settings"},
+                    "involve_time_in_start_instant = ?", new String[] {"1"},
+                    null, null, null);
+        }
+
+        private Cursor queryReminders(Set<Integer> remIds) {
+            // returns a cursor containing columns (reminder-id, model, behavior-settings)
+            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
+                    new String[]{"_id", "type", "behavior_settings"},
+                    "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
+                    UtilGeneral.toStringArray(remIds),
+                    null, null, null);
+        }
+
+        private List<SparseArray<ReminderDataBehavior>> groupByModelFromCursor(Cursor cursor) {
+            // returned list --- [0]: model-0 reminders,  [1]: model-1 reminders,
+            //                   [2]: model-2,3 reminders
+            // `cursor` is not closed.
+            List<SparseArray<ReminderDataBehavior>> arrays = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                arrays.add(new SparseArray<ReminderDataBehavior>());
+            }
+
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                int remId = cursor.getInt(0);
+                int model = cursor.getInt(1);
+                ReminderDataBehavior behavior = new ReminderDataBehavior()
+                        .setFromStringRepresentation(cursor.getString(2));
+
+                if (model == 0 || model == 1) {
+                    arrays.get(model).append(remId, behavior);
+                } else if (model == 2 || model == 3) {
+                    arrays.get(2).append(remId, behavior);
+                }
+            }
+            return arrays;
+        }
+    }
+
     /**
      * If `instant` is a Time having a time point within (beginExclusive, end], return the
      * time point. Otherwise, return null.
      * (end - beginExclusive) must < 1 day  */
     private Calendar getInstantTimeWithin(ReminderDataBehavior.Instant instant,
-                                         Calendar beginExclusive, Calendar end) {
+                                          Calendar beginExclusive, Calendar end) {
         if (!instant.isTime()) {
             return null;
         }
@@ -1052,125 +1174,155 @@ public class ReminderBoardLogic {
         return periodIdsToStart;
     }
 
-    private class ReminderBehaviorReader {
+    /**
+     * Determine whether `period` is started at `at`, given the history records and list of
+     * started situations.
+     * If yes, return the start time(s) of the period's instantiation(s) (there can be more than
+     * one instantiations). Otherwise, return an empty list.
+     * @param historyRecords must be in descending order of time */
+    private List<Calendar> getPeriodStartedTime(Calendar at, ReminderDataBehavior.Period period,
+                                                List<UtilStorage.HistoryRecord> historyRecords,
+                                                List<Integer> startedSituations) {
+        List<Calendar> periodStartTimes = new ArrayList<>();
 
-        private SparseArray<ReminderDataBehavior> remModel1Behaviors = new SparseArray<>();
-        private SparseArray<ReminderDataBehavior> remModel23Behaviors = new SparseArray<>();
-
-        private void clear() {
-            remModel1Behaviors.clear();
-            remModel23Behaviors.clear();
-        }
-
-        /**
-         * @param sitIds cannot be empty */
-        private void addRemindersInvolvingSituations(Set<Integer> sitIds) {
-            if (sitIds.isEmpty()) {
-                throw new RuntimeException("sitIds is empty");
+        if (period.isSituationStartEnd()) {
+            int sitId = period.getStartInstant().getSituationId();
+            if (startedSituations.contains(sitId)) {
+                // try to find start of situation `sitId` in `historyRecords`
+                Calendar t = findLatestSituationStartInHistory(sitId, historyRecords);
+                if (t == null) {
+                    // not found in history: return N days ago
+                    final int DAYS_MAX = context.getResources().getInteger(R.integer.history_record_days_max);
+                    t = (Calendar) at.clone();
+                    t.add(Calendar.DAY_OF_MONTH, -DAYS_MAX);
+                }
+                periodStartTimes.add(t);
             }
-            Cursor cursor = queryRemInvolvingSituations(sitIds);
-            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
-            cursor.close();
-            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
-            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
+            return periodStartTimes;
         }
+        else if (period.isTimeRange()) {
+            int atDayOfWeek = at.get(Calendar.DAY_OF_WEEK) - 1;
+            int prevDayOfWeek = atDayOfWeek == 0 ? 6 : (atDayOfWeek - 1);
+            int atMinuteNumber = at.get(Calendar.HOUR_OF_DAY) * 60  + at.get(Calendar.MINUTE);
 
-        private void addRemindersInvolvingEvent(int eventId) {
-            Cursor cursor = queryRemInvolvingEvent(eventId);
-            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
-            cursor.close();
-            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
-            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
-        }
+            ReminderDataBehavior.Time startTime = period.getStartInstant().getTime();
 
-        private void addRemindersInvolvingTimeInInstant() {
-            Cursor cursor = queryRemInvolvingTimeInInstant();
-            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
-            cursor.close();
-            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
-            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
-        }
+            Calendar periodStartTimeOnAtDay = (Calendar) at.clone();
+            periodStartTimeOnAtDay.set(Calendar.HOUR_OF_DAY, startTime.getHour());
+            periodStartTimeOnAtDay.set(Calendar.MINUTE, startTime.getMinute());
+            periodStartTimeOnAtDay.set(Calendar.SECOND, 0);
+            periodStartTimeOnAtDay.set(Calendar.MILLISECOND, 0);
 
-        private void addReminders(Set<Integer> remIds) {
-            Cursor cursor = queryReminders(remIds);
-            List<SparseArray<ReminderDataBehavior>> list = groupByModelFromCursor(cursor);
-            cursor.close();
-            UtilGeneral.sparseArrayPutAll(remModel1Behaviors, list.get(1));
-            UtilGeneral.sparseArrayPutAll(remModel23Behaviors, list.get(2));
-        }
-
-        // low-level methods //
-        private Cursor queryRemInvolvingSituations(Set<Integer> sitIds) {
-            // returns a cursor containing columns (reminder-id, model, behavior-settings), or null
-            // if sitIds is empty
-
-            if (sitIds.isEmpty())
-                return null;
-
-            StringBuilder builderWhere = new StringBuilder();
-            List<String> whereArgs = new ArrayList<>();
-            boolean first = true;
-            for (int id : sitIds) {
-                if (!first)
-                    builderWhere.append(" OR ");
-                builderWhere.append("involved_sits LIKE ?");
-                whereArgs.add("%," + id + ",%");
-                first = false;
-            }
-            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
-                    new String[]{"_id", "type", "behavior_settings"},
-                    builderWhere.toString(), whereArgs.toArray(new String[0]),
-                    null, null, null);
-        }
-
-        private Cursor queryRemInvolvingEvent(int eventId) {
-            // returns a cursor containing columns (reminder-id, model, behavior-settings)
-            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
-                    new String[]{"_id", "type", "behavior_settings"},
-                    "involved_events LIKE ?", new String[]{"%," + eventId + ",%"},
-                    null, null, null);
-        }
-
-        private Cursor queryRemInvolvingTimeInInstant() {
-            // returns a cursor containing columns (reminder-id, model, behavior-settings)
-            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
-                    new String[]{"_id", "type", "behavior_settings"},
-                    "involve_time_in_start_instant = ?", new String[] {"1"},
-                    null, null, null);
-        }
-
-        private Cursor queryReminders(Set<Integer> remIds) {
-            // returns a cursor containing columns (reminder-id, model, behavior-settings)
-            return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
-                    new String[]{"_id", "type", "behavior_settings"},
-                    "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
-                    UtilGeneral.toStringArray(remIds),
-                    null, null, null);
-        }
-
-        private List<SparseArray<ReminderDataBehavior>> groupByModelFromCursor(Cursor cursor) {
-            // returned list --- [0]: model-0 reminders,  [1]: model-1 reminders,
-            //                   [2]: model-2,3 reminders
-            // `cursor` is not closed.
-            List<SparseArray<ReminderDataBehavior>> arrays = new ArrayList<>();
-            for (int i = 0; i < 3; i++) {
-                arrays.add(new SparseArray<ReminderDataBehavior>());
-            }
-
-            cursor.moveToPosition(-1);
-            while (cursor.moveToNext()) {
-                int remId = cursor.getInt(0);
-                int model = cursor.getInt(1);
-                ReminderDataBehavior behavior = new ReminderDataBehavior()
-                        .setFromStringRepresentation(cursor.getString(2));
-
-                if (model == 0 || model == 1) {
-                    arrays.get(model).append(remId, behavior);
-                } else if (model == 2 || model == 3) {
-                    arrays.get(2).append(remId, behavior);
+            int[] endHrMin = period.getEndHrMin();
+            if (endHrMin[0] >= 24) {
+                if (startTime.hasDayOfWeek(atDayOfWeek)) {
+                    if (startTime.getMinuteNumber() <= atMinuteNumber) {
+                        periodStartTimes.add(periodStartTimeOnAtDay);
+                    }
+                }
+                if (startTime.hasDayOfWeek(prevDayOfWeek)) {
+                    if (atMinuteNumber < endHrMin[0] * 60 + endHrMin[1]) {
+                        Calendar t = (Calendar) periodStartTimeOnAtDay.clone();
+                        t.add(Calendar.DAY_OF_MONTH, -1);
+                        periodStartTimes.add(t);
+                    }
+                }
+            } else { //(endHrMin[0] < 24)
+                if (startTime.hasDayOfWeek(atDayOfWeek)) {
+                    if (startTime.getMinuteNumber() <= atMinuteNumber
+                        && atMinuteNumber < endHrMin[0] * 60 + endHrMin[1]) {
+                        periodStartTimes.add(periodStartTimeOnAtDay);
+                    }
                 }
             }
-            return arrays;
+            return periodStartTimes;
+        }
+        else {  //(ending after duration)
+            int duration = period.getDurationMinutes();
+            Calendar from = (Calendar) at.clone();
+            from.add(Calendar.MINUTE, -duration);
+
+            ReminderDataBehavior.Instant instant = period.getStartInstant();
+            if (instant.isSituationStart()) {
+                periodStartTimes.addAll(
+                        findSituationStartHistRecordsInTimeRange(
+                                instant.getSituationId(), historyRecords, from, at));
+            } else if (instant.isSituationEnd()) {
+                periodStartTimes.addAll(
+                        findSituationEndHistRecordsInTimeRange(
+                                instant.getSituationId(), historyRecords, from, at));
+            } else if (instant.isEvent()) {
+                periodStartTimes.addAll(
+                        findEventHistRecordsInTimeRange(
+                                instant.getSituationId(), historyRecords, from, at));
+            } else { // (instant is Time)
+
+            }
+            return periodStartTimes;
         }
     }
+
+    /**
+     * @param historyRecords must be in descending order of time
+     * @return null if not found */
+    private Calendar findLatestSituationStartInHistory(
+                int sitId, List<UtilStorage.HistoryRecord> historyRecords) {
+        for (int i=0; i<historyRecords.size(); i++) {
+            UtilStorage.HistoryRecord record = historyRecords.get(i);
+            if (record.isStartOfSituationWithId(sitId)) {
+                return record.getTime();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param historyRecords must be in descending order of time  */
+    private List<Calendar> findSituationStartHistRecordsInTimeRange(
+            int sitId, List<UtilStorage.HistoryRecord> historyRecords,
+            Calendar fromExclusive, Calendar to) {
+        return findHistRecordsInTimeRange(
+                UtilStorage.HIST_TYPE_SIT_START, sitId, historyRecords, fromExclusive, to);
+    }
+
+    /**
+     * @param historyRecords must be in descending order of time  */
+    private List<Calendar> findSituationEndHistRecordsInTimeRange(
+            int sitId, List<UtilStorage.HistoryRecord> historyRecords,
+            Calendar fromExclusive, Calendar to) {
+        return findHistRecordsInTimeRange(
+                UtilStorage.HIST_TYPE_SIT_END, sitId, historyRecords, fromExclusive, to);
+    }
+
+    /**
+     * @param historyRecords must be in descending order of time  */
+    private List<Calendar> findEventHistRecordsInTimeRange(
+            int eventId, List<UtilStorage.HistoryRecord> historyRecords,
+            Calendar fromExclusive, Calendar to) {
+        return findHistRecordsInTimeRange(
+                UtilStorage.HIST_TYPE_EVENT, eventId, historyRecords, fromExclusive, to);
+    }
+
+    /**
+     * @param historyRecords must be in descending order of time  */
+    private List<Calendar> findHistRecordsInTimeRange(int type, int sitOrEventId,
+                                                      List<UtilStorage.HistoryRecord> historyRecords,
+                                                      Calendar fromExclusive, Calendar to) {
+        List<Calendar> sitStartTimes = new ArrayList<>();
+        for (int i=0; i<historyRecords.size(); i++) {
+            UtilStorage.HistoryRecord record = historyRecords.get(i);
+            Calendar recTime = record.getTime();
+            if (recTime.compareTo(fromExclusive) <= 0) {
+                break;
+            }
+
+            if (record.getSitOrEventId() == sitOrEventId && record.getType() == type) {
+                if (recTime.compareTo(to) <= 0) {
+                    sitStartTimes.add(recTime);
+                }
+            }
+        }
+        return sitStartTimes;
+    }
+
 }

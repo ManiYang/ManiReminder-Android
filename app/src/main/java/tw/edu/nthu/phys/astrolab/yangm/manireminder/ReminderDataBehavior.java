@@ -478,6 +478,10 @@ public class ReminderDataBehavior {
             return minute;
         }
 
+        public int getMinuteNumber() {
+            return hour * 60 + minute;
+        }
+
         public List<Integer> getDaysOfWeek(boolean sundayIs0) {
             List<Integer> list = new ArrayList<>();
             if (sundayIs0 && hasDayOfWeek(0))
