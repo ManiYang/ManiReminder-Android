@@ -83,18 +83,18 @@ public class HistoryViewActivity extends AppCompatActivity {
             int type = cursor.getInt(3);
             int sitOrEventId = cursor.getInt(4);
 
-            String sitOrEventName = (type == UtilStorage.TYPE_EVENT) ?
+            String sitOrEventName = (type == UtilStorage.HIST_TYPE_EVENT) ?
                     allEvents.get(sitOrEventId) : allSits.get(sitOrEventId);
 
             String startEnd = "";
-            if (type == UtilStorage.TYPE_SIT_START)
+            if (type == UtilStorage.HIST_TYPE_SIT_START)
                 startEnd = "start";
-            else if (type == UtilStorage.TYPE_SIT_END)
+            else if (type == UtilStorage.HIST_TYPE_SIT_END)
                 startEnd = "end";
 
             String itemText = String.format("%s.%s %s[%s]%s",
                     dateStr, timeStr,
-                    (type == UtilStorage.TYPE_EVENT ? "event" : "sit"), sitOrEventName, startEnd);
+                    (type == UtilStorage.HIST_TYPE_EVENT ? "event" : "sit"), sitOrEventName, startEnd);
             ((TextView) view).setText(itemText);
         }
     }

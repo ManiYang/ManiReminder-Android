@@ -6,12 +6,15 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.support.annotation.Nullable;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -24,8 +27,6 @@ public class UtilStorage {
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
     public static final String KEY_OPENED_REMINDERS = "opened_reminders";
     public static final String KEY_NEW_ALARM_ID = "new_alarm_id";
-
-    public static final int MAX_RECORDS_IN_HISTORY = 300;
 
     //
     public static int readSharedPrefInt(Context context, String key, int defaultValue) {
@@ -140,20 +141,20 @@ public class UtilStorage {
     }
 
     //
-    public static final int TYPE_SIT_START = 0;
-    public static final int TYPE_SIT_END = 1;
-    public static final int TYPE_EVENT = 2;
+    public static final int HIST_TYPE_SIT_START = 0;
+    public static final int HIST_TYPE_SIT_END = 1;
+    public static final int HIST_TYPE_EVENT = 2;
 
     public static void addToHistory(Context context,
                                     Calendar at, int historyRecordType, int sitOrEventId) {
         if (historyRecordType < 0 || historyRecordType > 2)
             throw new RuntimeException("bad historyRcordType");
 
-        String dateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(at.getTime());
+        String dateStr = new SimpleDateFormat("yyyyMMdd", Locale.US).format(at.getTime());
         String timeStr = new SimpleDateFormat("HH:mm:ss", Locale.US).format(at.getTime());
 
         ContentValues values = new ContentValues();
-        values.put("date", dateStr);
+        values.put("date", Integer.parseInt(dateStr));
         values.put("time", timeStr);
         values.put("type", historyRecordType);
         values.put("sit_event_id", sitOrEventId);
@@ -161,21 +162,112 @@ public class UtilStorage {
         SQLiteDatabase db = getWritableDatabase(context);
         db.insert(MainDbHelper.TABLE_HISTORY, null, values);
 
-        // when number of records exceeds MAX_RECORDS_IN_HISTORY
-        Cursor cursor = db.query(MainDbHelper.TABLE_HISTORY, new String[] {"COUNT(*)", "MIN(_id)"},
-                null, null, null, null, null);
-        if (cursor.moveToFirst()) {
-            int rowCount = cursor.getInt(0);
-            int minId = cursor.getInt(1);
-            cursor.close();
+        //
+        final int historyRecordDaysMax =
+                context.getResources().getInteger(R.integer.history_record_days_max);
+        Calendar dateMin = (Calendar) at.clone();
+        dateMin.add(Calendar.DAY_OF_MONTH, 1 - historyRecordDaysMax);
+        String dateMinStr = new SimpleDateFormat("yyyyMMdd", Locale.US).format(dateMin);
+        db.delete(MainDbHelper.TABLE_HISTORY,
+                "date < ?", new String[] {dateMinStr});
+    }
 
-            if (rowCount > MAX_RECORDS_IN_HISTORY) {
-                db.delete(MainDbHelper.TABLE_HISTORY, "_id < ?",
-                        new String[] {String.valueOf(minId + rowCount - MAX_RECORDS_IN_HISTORY)});
-            }
-        } else {
-            cursor.close();
+    public static void removeHistoryRecordsOfSituation(Context context, int situationId) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_HISTORY,
+                "type IN (?,?) AND sit_event_id = ?",
+                new String[] {Integer.toString(HIST_TYPE_SIT_START),
+                        Integer.toString(HIST_TYPE_SIT_END), Integer.toString(situationId)});
+    }
+
+    public static void removeHistoryRecordsOfEvent(Context context, int eventId) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_HISTORY,
+                "type = ? AND sit_event_id = ?",
+                new String[] {Integer.toString(HIST_TYPE_EVENT), Integer.toString(eventId)});
+    }
+
+    public static class HistoryRecord {
+        private Calendar time;
+        private int type = -1;
+        private int sitOrEventId;
+
+        public HistoryRecord() {}
+
+        public HistoryRecord(Calendar time, int type, int sitOrEventId) {
+            this.time = time;
+            this.type = type;
+            this.sitOrEventId = sitOrEventId;
         }
+
+        public HistoryRecord setAsSituationStart(Calendar at, int sitId) {
+            this.time = at;
+            this.type = HIST_TYPE_SIT_START;
+            this.sitOrEventId = sitId;
+            return this;
+        }
+
+        public HistoryRecord setAsSituationEnd(Calendar at, int sitId) {
+            this.time = at;
+            this.type = HIST_TYPE_SIT_END;
+            this.sitOrEventId = sitId;
+            return this;
+        }
+
+        public HistoryRecord setAsEvent(Calendar at, int eventId) {
+            this.time = at;
+            this.type = HIST_TYPE_EVENT;
+            this.sitOrEventId = eventId;
+            return this;
+        }
+
+        public Calendar getTime() {
+            return time;
+        }
+
+        public boolean isEventWithId(int eventId) {
+            return type == HIST_TYPE_EVENT && sitOrEventId == eventId;
+        }
+
+        public boolean isStartOfSituationWithId(int sitId) {
+            return type == HIST_TYPE_SIT_START && sitOrEventId == sitId;
+        }
+
+        public boolean isEndOfSituationWithId(int sitId) {
+            return type == HIST_TYPE_SIT_END && sitOrEventId == sitId;
+        }
+    }
+
+    public static List<HistoryRecord> getHistoryRecords(Context context, @Nullable Calendar since) {
+        List<HistoryRecord> records = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_HISTORY,
+                new String[] {"date", "time", "type", "sit_event_id"},
+                null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            int dateInt = cursor.getInt(0);
+            String timeStr = cursor.getString(1);
+            Calendar time = Calendar.getInstance();
+            try {
+                Date d = new SimpleDateFormat("yyyyMMddHH:mm:ss", Locale.US)
+                        .parse(Integer.toString(dateInt) + timeStr);
+                time.setTime(d);
+            } catch (ParseException e) {
+                throw new RuntimeException("failed to parse datetime");
+            }
+
+            if (since != null && time.compareTo(since) < 0) {
+                continue;
+            }
+
+            int type = cursor.getInt(2);
+            int sitEventId = cursor.getInt(3);
+            records.add(new HistoryRecord(time, type, sitEventId));
+        }
+        cursor.close();
+        return records;
     }
 
     //

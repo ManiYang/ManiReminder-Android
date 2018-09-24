@@ -4,4 +4,6 @@
     <integer name="tau_main_reschedule">61</integer>
 
     <integer name="notification_id">301</integer>
+
+    <integer name="history_record_days_max">8</integer>
 </resources>

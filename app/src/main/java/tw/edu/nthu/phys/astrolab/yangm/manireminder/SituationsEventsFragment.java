@@ -265,7 +265,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.writeStartedSituations(getContext(), startedSitIds);
 
         // add to history
-        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_START, sitId);
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_SIT_START, sitId);
 
         // start situations in inducedSitsToStart
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
@@ -276,7 +276,7 @@ public class SituationsEventsFragment extends Fragment {
         Toast.makeText(getContext(), "Event triggered", Toast.LENGTH_SHORT).show();
 
         // add to history
-        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_EVENT, eventId);
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_EVENT, eventId);
 
         // trigger event `eventId`
         ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
@@ -295,7 +295,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.writeStartedSituations(getContext(), startedSitIds);
 
         // add to history (situation end)
-        UtilStorage.addToHistory(getContext(), at, UtilStorage.TYPE_SIT_END, sitId);
+        UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_SIT_END, sitId);
 
         //
         Set<Integer> inducedSitsToStop

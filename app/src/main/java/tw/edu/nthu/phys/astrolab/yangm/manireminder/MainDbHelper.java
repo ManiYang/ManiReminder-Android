@@ -150,7 +150,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             // history
             db.execSQL("CREATE TABLE " + TABLE_HISTORY + " ("
                     + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + "date TEXT, "
+                    + "date INTEGER, "
                     + "time TEXT, "
                     + "type INTEGER, "
                     + "sit_event_id INTEGER);");
