@@ -205,6 +205,10 @@ public class MainDbHelper extends SQLiteOpenHelper {
         values.put("_id", remId);
         values.put("type", 0);
         values.put("behavior_settings", "");
+        values.put("involved_sits", "");
+        values.put("involved_events", "");
+        values.put("involve_time_in_start_instant", 0);
+
         check &= db.insert(TABLE_REMINDERS_BEHAVIOR, null, values) != -1;
 
         //
@@ -215,7 +219,6 @@ public class MainDbHelper extends SQLiteOpenHelper {
                     "_id = ?", new String [] {Integer.toString(remId)});
             db.delete(TABLE_REMINDERS_BEHAVIOR,
                     "_id = ?", new String [] {Integer.toString(remId)});
-
             throw new RuntimeException("failed to create new empty reminder in database");
         }
     }

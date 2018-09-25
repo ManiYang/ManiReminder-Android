@@ -28,7 +28,6 @@ import java.util.Set;
  */
 public class SituationsEventsFragment extends Fragment {
 
-
     public SituationsEventsFragment() {
         // Required empty public constructor
     }
@@ -40,8 +39,10 @@ public class SituationsEventsFragment extends Fragment {
     private List<String> allSitsEventsListItem = new ArrayList<>(); //do not re-assign, used by
                                                                     //adapter of list_all_sits_events
 
-    SparseArray<String> allSits;
-    SparseArray<String> allEvents;
+    private SparseArray<String> allSits;
+    private SparseArray<String> allEvents;
+    private boolean startedSitClickFirstTime;
+    private boolean sitEventClickFirstTime;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -57,8 +58,11 @@ public class SituationsEventsFragment extends Fragment {
                 new TextListAdapter.NoSelectionOnClickListener() {
                     @Override
                     public void onClick(String clickedText) {
-                        Toast.makeText(getContext(), "Long click to stop situation",
-                                Toast.LENGTH_SHORT).show();
+                        if (startedSitClickFirstTime) {
+                            Toast.makeText(getContext(), "Long click to stop situation",
+                                    Toast.LENGTH_SHORT).show();
+                            startedSitClickFirstTime = false;
+                        }
                     }
                 }
         );
@@ -86,8 +90,11 @@ public class SituationsEventsFragment extends Fragment {
         listViewAllSitsEvents.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getContext(), "Long click to start/trigger", Toast.LENGTH_SHORT)
-                        .show();
+                if (sitEventClickFirstTime) {
+                    Toast.makeText(getContext(), "Long click to start/trigger", Toast.LENGTH_SHORT)
+                            .show();
+                    sitEventClickFirstTime = false;
+                }
             }
         });
         listViewAllSitsEvents.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -110,31 +117,6 @@ public class SituationsEventsFragment extends Fragment {
         });
 
         Log.v("SituationsEventsFrag", "### onCreateView() done");
-
-        // [temp]
-        /*((Button) view.findViewById(R.id.button_test)).setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-
-
-                        Calendar time = Calendar.getInstance();
-                        time.add(Calendar.SECOND, 5);
-
-                        Intent intent = new Intent(getContext(), AlarmReceiver.class)
-                                .setAction("tw.edu.nthu.phys.astrolab.yangm.manireminder.TASKS")
-                                .putExtra("data", "testing...");
-                        AlarmManager alarmManager =
-                                (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
-                        PendingIntent pendingIntent =
-                                PendingIntent.getBroadcast(getContext(), 1, intent,
-                                        PendingIntent.FLAG_ONE_SHOT);
-                        alarmManager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pendingIntent);
-                    }
-                }
-        );*/
-
         return view;
     }
 
@@ -167,6 +149,11 @@ public class SituationsEventsFragment extends Fragment {
 
         //
         loadAllSitsEventsList(view);
+
+        //
+        startedSitClickFirstTime = true;
+        sitEventClickFirstTime = true;
+
         //Log.v("SituationsEventsFrag", "### onStart() done");
     }
 
@@ -268,8 +255,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_SIT_START, sitId);
 
         // start situations in inducedSitsToStart
-        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.startSituations(inducedSitsToStart, at);
+        new ReminderBoardLogic(getContext()).startSituations(inducedSitsToStart, at);
     }
 
     private void userTriggerEvent(int eventId, Calendar at) {
@@ -279,8 +265,7 @@ public class SituationsEventsFragment extends Fragment {
         UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_EVENT, eventId);
 
         // trigger event `eventId`
-        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.triggerEvent(eventId, at);
+        new ReminderBoardLogic(getContext()).triggerEvent(eventId, at);
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
@@ -301,9 +286,8 @@ public class SituationsEventsFragment extends Fragment {
         Set<Integer> inducedSitsToStop
                 = getInducedSituationsToStart(sitId); //uses current (updated) startedSitIds
 
-        // stop situations in inducedSitsToStop....
-        ReminderBoardLogic boardLogic = new ReminderBoardLogic(getContext());
-        boardLogic.stopSituations(inducedSitsToStop, at);
+        // stop situations in inducedSitsToStop
+        new ReminderBoardLogic(getContext()).stopSituations(inducedSitsToStop, at);
     }
 
     //

@@ -327,17 +327,26 @@ public class ReminderBoardLogic {
         freshStart();
     }
 
-    public void onReminderRemove(int remId) {
-        // todo....
+    public void beforeReminderRemove(int remId) {
+        UtilStorage.removeFromOpenedReminders(context, remId);
+        UtilStorage.removeStartedPeriodsOfReminder(context, remId);
+        cancelScheduledActionsInvolvingReminder(remId);
     }
 
-    public void onNewReminder(int remId) {
-        // todo....
-
+    public void beforeReminderBehaviorUpdate(int remId) {
+        beforeReminderRemove(remId);
     }
 
-    public void onReminderBehaviorUpdate(int remId) {
-        // todo....
+    public void afterReminderBehaviorUpdate(int remId) {
+        // Assume that beforeReminderBehaviorUpdate() was called before update.
+
+        // todo...
+
+
+
+
+
+
     }
 
     public void onSystemTimeChange() {
@@ -578,7 +587,7 @@ public class ReminderBoardLogic {
                 }
             }
         }
-        UtilStorage.removeOpenedReminders(context, remIdsToRemoveFromOpened);
+        UtilStorage.removeFromOpenedReminders(context, remIdsToRemoveFromOpened);
         UtilStorage.addOpenedReminders(context, remM2IdsToOpen);
 
         // do rescheduling for started model-3 reminders from now
@@ -805,7 +814,7 @@ public class ReminderBoardLogic {
         }
 
         // update the list of opened reminders
-        UtilStorage.removeOpenedReminders(context, remindersToClose);
+        UtilStorage.removeFromOpenedReminders(context, remindersToClose);
         UtilStorage.addOpenedReminders(context, remindersToOpen);
 
         // local broadcast
@@ -925,8 +934,8 @@ public class ReminderBoardLogic {
             return;
         }
 
-        // get alarm id's with an action to be canceled
-        Set<Integer> affectedAlarmIds = new HashSet<>();
+        // get actions to be canceled
+        List<Integer[]> actionsToCancel = new ArrayList<>(); //{alarm-id, action-id}
 
         List<Integer> args = new ArrayList<>();
         args.add(ScheduleAction.TYPE_REMINDER_M3_OPEN);
@@ -934,37 +943,77 @@ public class ReminderBoardLogic {
         args.addAll(reminderIds);
 
         SQLiteDatabase db = UtilStorage.getReadableDatabase(context);
-        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS,
+                new String[] {"_id", "alarm_id"},
                 "type IN (?,?) AND "
-                        + "reminder_id IN ("+UtilStorage.placeHolders(reminderIds.size())+")",
+                        + "reminder_id IN ("+UtilStorage.qMarks(reminderIds.size())+")",
                 UtilGeneral.toStringArray(args),
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
-            affectedAlarmIds.add(cursor.getInt(0));
+            int actionId = cursor.getInt(0);
+            int alarmId = cursor.getInt(1);
+            actionsToCancel.add(new Integer[] {alarmId, actionId});
         }
         cursor.close();
 
         //
-        for (int alarmId: affectedAlarmIds) { // for each affected scheduled alarm
-            // get new list of actions
-            List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
-            List<ScheduleAction> newActionList = new ArrayList<>();
-            for (ScheduleAction action: actions) {
-                if (action.getType() != ScheduleAction.TYPE_REMINDER_M3_OPEN
-                    && action.getType() != ScheduleAction.TYPE_RESCHEDULE_M3_REMINDER_REPEATS) {
-                    newActionList.add(action);
-                }
+        cancelScheduledActions(actionsToCancel);
+    }
+
+    private void cancelScheduledActionsInvolvingReminder(int remId) {
+        List<Integer[]> actionsToCancel = new ArrayList<>(); //{alarm-id, action-id}
+        SQLiteDatabase db = UtilStorage.getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS,
+                new String[] {"_id", "alarm_id"},
+                "reminder_id = ?", new String[] {Integer.toString(remId)},
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            int actionId = cursor.getInt(0);
+            int alarmId = cursor.getInt(1);
+            actionsToCancel.add(new Integer[] {alarmId, actionId});
+        }
+        cursor.close();
+
+        //
+        cancelScheduledActions(actionsToCancel);
+    }
+
+    /**
+     * @param actionsToCancel: each element is {alarm-id, action-id} */
+    private void cancelScheduledActions(List<Integer[]> actionsToCancel) {
+        List<Integer> alarmIdList = new ArrayList<>();
+        List<Integer> actionIdList = new ArrayList<>();
+        for (Integer[] ids: actionsToCancel) {
+            alarmIdList.add(ids[0]);
+            actionIdList.add(ids[1]);
+        }
+        SparseArray<List<Integer>> alarmIdToActionIds =
+                UtilGeneral.groupPairs(alarmIdList, actionIdList);
+
+        List<ScheduleAction> newActions = new ArrayList<>();
+        for (int i=0; i<alarmIdToActionIds.size(); i++) {
+            int alarmId = alarmIdToActionIds.keyAt(i);
+            List<Integer> actionIdsToCancel = alarmIdToActionIds.valueAt(i);
+
+            // get actions of `alarmId` that are to stay --> `actionsStayIdData`
+            SparseArray<ScheduleAction> actionsStayIdData =
+                    UtilStorage.getScheduledActionsAndIds(context, alarmId);
+            for (int id: actionIdsToCancel) {
+                actionsStayIdData.delete(id);
             }
 
             // cancel alarm
             cancelAlarmAndDeleteRecords(alarmId);
 
-            // schedule new alarm with actions in `newActionList`
-            if (!newActionList.isEmpty()) {
-                scheduleNewActions(newActionList);
+            // schedule new alarm for actions in `actionsStayIdData`
+            if (actionsStayIdData.size() > 0) {
+                newActions.addAll(UtilGeneral.getValuesOfSparseArray(actionsStayIdData));
             }
         }
+
+        scheduleNewActions(newActions);
     }
 
     private void cancelAllAlarms() {
@@ -1093,7 +1142,7 @@ public class ReminderBoardLogic {
             // returns a cursor containing columns (reminder-id, model, behavior-settings)
             return db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                     new String[]{"_id", "type", "behavior_settings"},
-                    "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
+                    "_id IN ("+UtilStorage.qMarks(remIds.size())+")",
                     UtilGeneral.toStringArray(remIds),
                     null, null, null);
         }

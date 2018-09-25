@@ -110,7 +110,7 @@ public class BoardFragment extends Fragment {
         SparseArray<String> remTitles = new SparseArray<>();
         SQLiteDatabase db = UtilStorage.getReadableDatabase(getContext());
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"_id", "title"},
-                "_id IN ("+UtilStorage.placeHolders(openedRemIds.size())+")",
+                "_id IN ("+UtilStorage.qMarks(openedRemIds.size())+")",
                  UtilGeneral.toStringArray(openedRemIds),
                 null, null, null);
         cursor.moveToPosition(-1);
@@ -124,7 +124,7 @@ public class BoardFragment extends Fragment {
         SparseArray<String> remDescriptions = new SparseArray<>();
 
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_DETAIL, new String[] {"_id", "description"},
-                "_id IN ("+UtilStorage.placeHolders(openedRemIds.size())+")",
+                "_id IN ("+UtilStorage.qMarks(openedRemIds.size())+")",
                  UtilGeneral.toStringArray(openedRemIds),
                 null, null, null);
         cursor.moveToPosition(-1);

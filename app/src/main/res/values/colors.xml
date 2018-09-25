@@ -8,8 +8,10 @@
     <color name="colorPrimaryDark">#623062</color>
     <color name="colorAccent">#3FBBBB</color>
 
-    <color name="selectedItemBack">#F0E8F0</color>
+    <!-- <color name="selectedItemBack">#F0E8F0</color> -->
+    <color name="selectedItemBack">#DDF5CC</color>
     <color name="editRegionBack">#E8F0E8</color>
 
-    <color name="boardItemSelectedBack">#FFE0FF</color>
+    <!-- <color name="boardItemSelectedBack">#FFE0FF</color> -->
+    <color name="boardItemSelectedBack">#CCF0BB</color>
 </resources>

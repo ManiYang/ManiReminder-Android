@@ -109,7 +109,19 @@ public class UtilStorage {
         return count;
     }
 
-    //
+    public static String qMarks(int n) {
+        StringBuilder builder = new StringBuilder();
+        for (int i=0; i<n; i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append('?');
+        }
+        return builder.toString();
+    }
+
+
+    //// situations & events ////
     public static SparseArray<String> getAllSituations(Context context) {
         SQLiteDatabase db = getReadableDatabase(context);
         SparseArray<String> allSits = new SparseArray<>();
@@ -140,7 +152,7 @@ public class UtilStorage {
         return allEvents;
     }
 
-    //
+    //// history ////
     public static final int HIST_TYPE_SIT_START = 0;
     public static final int HIST_TYPE_SIT_END = 1;
     public static final int HIST_TYPE_EVENT = 2;
@@ -281,7 +293,8 @@ public class UtilStorage {
         return records;
     }
 
-    //
+
+    //// started periods ////
     public static List<List<Integer>> getRemindersStartedPeriodIds(Context context,
                                                                    List<Integer> remIds) {
         List<List<Integer>> remsStartedPeriodIds = new ArrayList<>();
@@ -294,7 +307,7 @@ public class UtilStorage {
 
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null,
-                "_id IN ("+UtilStorage.placeHolders(remIds.size())+")",
+                "_id IN ("+UtilStorage.qMarks(remIds.size())+")",
                 UtilGeneral.toStringArray(remIds),
                 null, null, null);
         cursor.moveToPosition(-1);
@@ -327,26 +340,36 @@ public class UtilStorage {
             return;
 
         SQLiteDatabase db = getWritableDatabase(context);
-        List<Integer> idsExist = getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
+        List<Integer> remIdsExist =
+                getIdsInTable(context, MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS);
         ContentValues values = new ContentValues();
         for (int i=0; i<remsStartedPeriodIds.size(); i++) {
-            int id = remsStartedPeriodIds.keyAt(i);
+            int remId = remsStartedPeriodIds.keyAt(i);
 
-            Set<Integer> periods = remsStartedPeriodIds.valueAt(i);
+            Set<Integer> periodIds = remsStartedPeriodIds.valueAt(i);
             String startedPeriodsStr =
-                    UtilGeneral.joinIntegerList(",", new ArrayList<>(periods));
+                    UtilGeneral.joinIntegerList(",", new ArrayList<>(periodIds));
 
             values.clear();
-            if (idsExist.contains(id)) {
-                // update record
-                values.put("started_periods", startedPeriodsStr);
-                db.update(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, values,
-                        "_id = ?", new String[] {String.valueOf(id)});
+            if (remIdsExist.contains(remId)) {
+                if (periodIds.isEmpty()) {
+                    // delete record
+                    db.delete(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS,
+                            "_id = ?", new String[] {Integer.toString(remId)});
+                } else {
+                    // update record
+                    values.put("started_periods", startedPeriodsStr);
+                    db.update(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, values,
+                            "_id = ?", new String[]{String.valueOf(remId)});
+                }
             } else {
-                // insert record
-                values.put("_id", id);
-                values.put("started_periods", startedPeriodsStr);
-                db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, null, values);
+                if (!periodIds.isEmpty()) {
+                    // insert record
+                    values.put("_id", remId);
+                    values.put("started_periods", startedPeriodsStr);
+                    db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS,
+                            null, values);
+                }
             }
         }
     }
@@ -361,6 +384,9 @@ public class UtilStorage {
         for (int i=0; i<remsStartedPeriodIds.size(); i++) {
             int remId = remsStartedPeriodIds.keyAt(i);
             List<Integer> periodIds = remsStartedPeriodIds.valueAt(i);
+            if (periodIds.isEmpty()) {
+                continue;
+            }
 
             values.clear();
             values.put("_id", remId);
@@ -369,7 +395,14 @@ public class UtilStorage {
         }
     }
 
-    //
+    public static void removeStartedPeriodsOfReminder(Context context, int remId) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS,
+                "_id = ?", new String[] {Integer.toString(remId)});
+    }
+
+
+    //// scheduled actions ////
     public static void addScheduledActions(
             Context context, int alarmId, List<ScheduleAction> actions) {
         if (actions.isEmpty()) {
@@ -392,6 +425,19 @@ public class UtilStorage {
                 "alarm_id = ?", new String[] {Integer.toString(alarmId)});
     }
 
+    public static Set<Integer> getScheduledAlarmIds(Context context) {
+        Set<Integer> alarmIds = new HashSet<>();
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
+                null, null, "alarm_id", null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            alarmIds.add(cursor.getInt(0));
+        }
+        cursor.close();
+        return alarmIds;
+    }
+
     public static List<ScheduleAction> getScheduledActions(Context context, int alarmId) {
         List<ScheduleAction> actions = new ArrayList<>();
 
@@ -403,6 +449,25 @@ public class UtilStorage {
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
             actions.add(new ScheduleAction().setFromCursor(cursor));
+        }
+        cursor.close();
+        return actions;
+    }
+
+    /**
+     * @return action-id to ScheduleAction  */
+    public static SparseArray<ScheduleAction> getScheduledActionsAndIds(Context context,
+                                                                        int alarmId) {
+        SparseArray<ScheduleAction> actions = new SparseArray<>();
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS,
+                new String[] {"type", "time", "reminder_id",
+                              "period_index_or_id", "repeat_start_time", "_id"},
+                "alarm_id = ?", new String[] {Integer.toString(alarmId)},
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            actions.append(cursor.getInt(5), new ScheduleAction().setFromCursor(cursor));
         }
         cursor.close();
         return actions;
@@ -422,32 +487,8 @@ public class UtilStorage {
         return count;
     }
 
-    public static Set<Integer> getScheduledAlarmIds(Context context) {
-        Set<Integer> alarmIds = new HashSet<>();
-        SQLiteDatabase db = getReadableDatabase(context);
-        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"alarm_id"},
-                null, null, "alarm_id", null, null);
-        cursor.moveToPosition(-1);
-        while (cursor.moveToNext()) {
-            alarmIds.add(cursor.getInt(0));
-        }
-        cursor.close();
-        return alarmIds;
-    }
 
-    //
-    public static String placeHolders(int n) {
-        StringBuilder builder = new StringBuilder();
-        for (int i=0; i<n; i++) {
-            if (i > 0) {
-                builder.append(',');
-            }
-            builder.append('?');
-        }
-        return builder.toString();
-    }
-
-    //
+    //// opened reminders ////
     public static SparseBooleanArray getOpenedReminders(Context context) {
         SparseBooleanArray rems = new SparseBooleanArray();
 
@@ -462,6 +503,16 @@ public class UtilStorage {
         }
         cursor.close();
         return rems;
+    }
+
+    public static boolean isReminderOpened(Context context, int remId) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_OPENED_REMINDERS, new String[] {"_id"},
+                "_id = ?", new String[] {Integer.toString(remId)},
+                null, null, null);
+        boolean opened = cursor.getCount() > 0;
+        cursor.close();
+        return opened;
     }
 
     /** Reminders will be added with highlight = 1.
@@ -510,11 +561,17 @@ public class UtilStorage {
                 "_id = ?", new String[] {Integer.toString(remId)});
     }
 
-    public static void removeOpenedReminders(Context context, Set<Integer> remIdsToRemove) {
+    public static void removeFromOpenedReminders(Context context, Set<Integer> remIdsToRemove) {
         SQLiteDatabase db = getWritableDatabase(context);
         for (int remId: remIdsToRemove) {
             db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
                     "_id = ?", new String[] {Integer.toString(remId)});
         }
+    }
+
+    public static void removeFromOpenedReminders(Context context, int remId) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
+                "_id = ?", new String[] {Integer.toString(remId)});
     }
 }

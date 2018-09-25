@@ -33,6 +33,7 @@ public class UtilGeneral {
         return -1;
     }
 
+
     //// split / join ////
 
     /**
@@ -114,6 +115,7 @@ public class UtilGeneral {
         return false;
     }
 
+
     //// SparseArray ////
 
     /**
@@ -129,6 +131,14 @@ public class UtilGeneral {
 
     public static ArrayList<String> getValuesOfSparseStringArray(SparseArray<String> array) {
         ArrayList<String> list = new ArrayList<>();
+        for (int i = 0; i < array.size(); i++) {
+            list.add(array.valueAt(i));
+        }
+        return list;
+    }
+
+    public static <T> ArrayList<T> getValuesOfSparseArray(SparseArray<T> array) {
+        ArrayList<T> list = new ArrayList<>();
         for (int i = 0; i < array.size(); i++) {
             list.add(array.valueAt(i));
         }
@@ -214,6 +224,7 @@ public class UtilGeneral {
         return array;
     }
 
+
     //// sets ////
     public static <T> Set<T> setDifference(Set<T> set1, Collection<T> collection2) {
         Set<T> diff = new HashSet<>(set1);
@@ -260,6 +271,7 @@ public class UtilGeneral {
         return setDifference(set1, collection2).isEmpty();
     }
 
+
     //// arrays ////
     public static <T> String[] toStringArray(List<T> list) {
         String[] array = new String [list.size()];
@@ -279,6 +291,26 @@ public class UtilGeneral {
         return array;
     }
 
+    /**
+     * `keys` and `values` must be of the same size.
+     * @return SparseArray sa such that sa[k] = {values[i]: keys[i]=k}  */
+    public static <T> SparseArray<List<T>> groupPairs(List<Integer> keys, List<T> values) {
+        if (keys.size() != values.size()) {
+            throw new RuntimeException("`keys` and `values` have different sizes");
+        }
 
+        SparseArray<List<T>> array = new SparseArray<>();
+        for (int i=0; i<keys.size(); i++) {
+            int k = keys.get(i);
+            T v = values.get(i);
 
+            int index = array.indexOfKey(k);
+            if (index < 0) {
+                array.append(k, new ArrayList<T>());
+                index = array.indexOfKey(k);
+            }
+            array.valueAt(index).add(v);
+        }
+        return array;
+    }
 }

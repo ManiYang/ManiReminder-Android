@@ -2,6 +2,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,6 +13,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.text.InputType;
 import android.util.Log;
 import android.util.SparseArray;
@@ -80,28 +82,9 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         loadReminderData();
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (db != null) {
-            db.close();
-        }
-    }
-
     //
     public void setReminderId(int reminderId) {
         this.reminderId = reminderId;
-    }
-
-    public void removeReminder() { // called by DetailActivity
-        if (db == null) {
-            return;
-        }
-
-        db.delete(MainDbHelper.TABLE_REMINDERS_BRIEF,
-                "_id = ?", new String[] {Integer.toString(reminderId)});
-        db.delete(MainDbHelper.TABLE_REMINDERS_DETAIL,
-                "_id = ?", new String[] {Integer.toString(reminderId)});
     }
 
     //
@@ -280,9 +263,24 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     break;
 
                 case R.id.container_behavior_settings:
-                    startEditActivity("behavior",
-                            behaviorData.getDisplayString(allSituations, allEvents),
-                            false, true);
+                    if (UtilStorage.isReminderOpened(getContext(), reminderId)) {
+                        new AlertDialog.Builder(getContext()).setTitle("Warning")
+                                .setMessage("The reminder is currently opened. "
+                                        + "It may be closed after you update its behavior settings.")
+                                .setNegativeButton(R.string.cancel, null)
+                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        startEditActivity("behavior",
+                                                behaviorData.getDisplayString(allSituations, allEvents),
+                                                false, true);
+                                    }
+                                }).show();
+                    } else {
+                        startEditActivity("behavior",
+                                behaviorData.getDisplayString(allSituations, allEvents),
+                                false, true);
+                    }
                     break;
             }
         }
@@ -401,8 +399,6 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.v("DetailFragment", "=== onActivityResult");
-
         switch (requestCode) {
             case REQUEST_CODE_EDIT:
                 if (resultCode == EditActivity.RESULT_CODE_OK) {
@@ -461,6 +457,10 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     throw new RuntimeException("new all-situations and all-events should be given");
                 }
 
+                boolean wasOpened = UtilStorage.isReminderOpened(getContext(), reminderId);
+                new ReminderBoardLogic(getContext()).beforeReminderBehaviorUpdate(reminderId);
+
+                //
                 allSituations = UtilGeneral.parseAsSparseStringArray(newAllSitsDict);
                 allEvents = UtilGeneral.parseAsSparseStringArray(newAllEventsDict);
                 boolean b = saveAllSituationsEventsToDb(allSituations, allEvents, db);
@@ -491,6 +491,9 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     Toast.makeText(getContext(), "Could not update database", Toast.LENGTH_LONG)
                             .show();
                 }
+
+                //
+                new ReminderBoardLogic(getContext()).afterReminderBehaviorUpdate(reminderId);
                 break;
             }
         }

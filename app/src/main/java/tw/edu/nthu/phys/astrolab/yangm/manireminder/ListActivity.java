@@ -3,8 +3,6 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,11 +12,10 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 public class ListActivity extends AppCompatActivity {
 
-    private SQLiteDatabase db;
+//    private SQLiteDatabase db;
     private Cursor cursorRemindersBrief;
     private SparseArray<String> allTags;
 
@@ -29,36 +26,24 @@ public class ListActivity extends AppCompatActivity {
 
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        // open database
-        SQLiteOpenHelper mainDbHelper = new MainDbHelper(this);
-        try {
-            db = mainDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            db = null;
-            Toast.makeText(this, "Database unavailable", Toast.LENGTH_LONG).show();
-        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
 
-        // read database
-        if (db != null) {
-            cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
-                    null, null, null, null, null);
-            allTags = UtilReminder.getAllTagsFromDb(db);
-            populateList();
-        }
+        SQLiteDatabase db = UtilStorage.getReadableDatabase(this);
+        cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
+                null, null, null, null, null);
+        allTags = UtilReminder.getAllTagsFromDb(db);
+        populateList();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (db != null) {
+        if (cursorRemindersBrief != null) {
             cursorRemindersBrief.close();
-            db.close();
         }
     }
 
@@ -115,9 +100,7 @@ public class ListActivity extends AppCompatActivity {
     }
 
     private void actionCreateReminder() {
-        if (db == null) {
-            return;
-        }
+        SQLiteDatabase db = UtilStorage.getWritableDatabase(this);
 
         // get largest reminder ID
         int largestId;
