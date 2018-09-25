@@ -25,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -457,7 +458,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     throw new RuntimeException("new all-situations and all-events should be given");
                 }
 
-                boolean wasOpened = UtilStorage.isReminderOpened(getContext(), reminderId);
+                Calendar now = Calendar.getInstance();
                 new ReminderBoardLogic(getContext()).beforeReminderBehaviorUpdate(reminderId);
 
                 //
@@ -493,7 +494,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 }
 
                 //
-                new ReminderBoardLogic(getContext()).afterReminderBehaviorUpdate(reminderId);
+                new ReminderBoardLogic(getContext())
+                        .afterReminderBehaviorUpdate(reminderId, behavior, now);
                 break;
             }
         }

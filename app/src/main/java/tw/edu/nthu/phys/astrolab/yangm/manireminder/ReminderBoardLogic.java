@@ -328,25 +328,72 @@ public class ReminderBoardLogic {
     }
 
     public void beforeReminderRemove(int remId) {
-        UtilStorage.removeFromOpenedReminders(context, remId);
-        UtilStorage.removeStartedPeriodsOfReminder(context, remId);
         cancelScheduledActionsInvolvingReminder(remId);
+        UtilStorage.removeStartedPeriodsOfReminder(context, remId);
+        UtilStorage.removeFromOpenedReminders(context, remId);
     }
 
     public void beforeReminderBehaviorUpdate(int remId) {
         beforeReminderRemove(remId);
     }
 
-    public void afterReminderBehaviorUpdate(int remId) {
+    public void afterReminderBehaviorUpdate(int remId, ReminderDataBehavior newBehavior,
+                                            Calendar updateAt) {
         // Assume that beforeReminderBehaviorUpdate() was called before update.
 
-        // todo...
+        if (newBehavior.hasNoBoardControl()) {
+            return;
+        }
 
+        List<ScheduleAction> actionsToSchedule = new ArrayList<>();
+        Calendar nextMainRescheduleTime = UtilStorage.getMainReschedulingTime(context);
 
+        if (newBehavior.isTodoAtInstants()) { //(is model-1)
+            // schedule opening of reminder within (updateAt, nextMainRescheduleTime]
+            if (nextMainRescheduleTime.compareTo(updateAt) > 0) {
+                actionsToSchedule.addAll(scheduleM1ReminderOpenings(
+                        remId, newBehavior, updateAt, nextMainRescheduleTime));
+            }
+        } else { //(is model-2 or 3)
+            // schedule future period starts within (updateAt, nextMainRescheduleTime]
+            if (nextMainRescheduleTime.compareTo(updateAt) > 0) {
+                actionsToSchedule.addAll(scheduleM23ReminderPeriodStarts(
+                        remId, newBehavior, updateAt, nextMainRescheduleTime));
+            }
 
+            // determine whether each period is started now
+            List<UtilStorage.HistoryRecord> historyRecords =
+                    UtilStorage.getHistoryRecords(context, null); // in descending order
+            List<Integer> startedSitIds = UtilStorage.getStartedSituations(context);
 
+            StartedPeriodsInfo periodsInfo = findStartedPeriodsWithIdsForM23Reminder(
+                    updateAt, remId, newBehavior, historyRecords, startedSitIds);
 
+            //
+            if (!periodsInfo.ids.isEmpty()) {
+                if (newBehavior.isReminderInPeriod()) {
+                    // open the reminder
+                    UtilStorage.addOpenedReminders(context, Collections.singleton(remId));
+                    issueNotification();
+                } else {
+                    // repeating (schedule repeats and next reschedule)
+                    actionsToSchedule.addAll(scheduleReminderRepeatsAndNextReschedule(
+                            remId, updateAt, periodsInfo.earliestStartTime,
+                            newBehavior.getRepeatEveryMinutes(),
+                            newBehavior.getRepeatOffsetMinutes()));
+                }
+            }
 
+            // add actions for period endings
+            actionsToSchedule.addAll(periodsInfo.actions);
+
+            // update list of started periods in DB
+            UtilStorage.updateReminderStartedPeriodIds(context, remId, periodsInfo.ids);
+        }
+
+        //
+        scheduleNewActions(actionsToSchedule);
+        Log.v("logic", "afterReminderBehaviorUpdate() done");
     }
 
     public void onSystemTimeChange() {
@@ -503,73 +550,40 @@ public class ReminderBoardLogic {
         actionsToSchedule.addAll(performMainRescheduling(
                 now, reader.remModel1Behaviors, reader.remModel23Behaviors));
 
-        // re-determine started periods
-        List<Integer[]> startedPeriods = new ArrayList<>(); //{rem-id, period-id, period-index}
-        List<Calendar> startedPeriodsStartTime = new ArrayList<>();
-        SparseArray<List<Integer>> remsStartedPeriodIds = new SparseArray<>(); //duplicate data
+        // re-determine started periods among all model-2,3 reminders
+        SparseArray<List<Integer>> remIdToStartedPeriodIds = new SparseArray<>();
         Set<Integer> remM2IdsToOpen = new HashSet<>();
-        SparseArray<Calendar> remM3StartedTime = new SparseArray<>();
+        SparseArray<Calendar> remM3IdToStartedTime = new SparseArray<>();
 
         reader.addModel23Reminders();
         List<UtilStorage.HistoryRecord> historyRecords =
-                UtilStorage.getHistoryRecords(context, null);
+                UtilStorage.getHistoryRecords(context, null); //in desc. order of time
         List<Integer> startedSitIds = UtilStorage.getStartedSituations(context);
 
-        List<Integer> periodIndexesToStart = new ArrayList<>(); //used only temporarily
-        int minPeriodIdNonSitStartEnd = PERIOD_ID_START_FOR_NON_SIT_START_END;
         for (int i=0; i<reader.remModel23Behaviors.size(); i++) {
             int remId = reader.remModel23Behaviors.keyAt(i);
             ReminderDataBehavior behavior = reader.remModel23Behaviors.valueAt(i);
-            ReminderDataBehavior.Period[] periods = behavior.getPeriods();
 
-            periodIndexesToStart.clear();
-            Calendar earliestStartTime = Calendar.getInstance();
-            for (int p=0; p<periods.length; p++) {
-                // find started periods
-                List<Calendar> startedTimes = getPeriodStartedTime(now, periods[p],
-                        historyRecords, startedSitIds);
-                for (Calendar startedTime: startedTimes) {
-                    periodIndexesToStart.add(p);
-                    startedPeriodsStartTime.add(startedTime);
+            StartedPeriodsInfo periodsInfo = findStartedPeriodsWithIdsForM23Reminder(
+                    now, remId, behavior, historyRecords, startedSitIds);
 
-                    if (startedTime.compareTo(earliestStartTime) < 0) {
-                        earliestStartTime = startedTime;
-                    }
-                }
-            }
+            remIdToStartedPeriodIds.append(remId, periodsInfo.ids);
 
-            if (!periodIndexesToStart.isEmpty()) {
-                List<Integer> periodIds = createIdsForPeriodsToStart(
-                        periodIndexesToStart, minPeriodIdNonSitStartEnd, behavior);
-                for (int j = 0; j < periodIds.size(); j++) {
-                    int periodId = periodIds.get(j);
-                    startedPeriods.add(
-                            new Integer[]{remId, periodId, periodIndexesToStart.get(j)});
-                    if (periodId >= minPeriodIdNonSitStartEnd)
-                        minPeriodIdNonSitStartEnd++;
-                }
-                remsStartedPeriodIds.append(remId, periodIds);
-
-                //
+            // opened / repeating started
+            if (!periodsInfo.ids.isEmpty()) {
                 if (behavior.isReminderInPeriod()) {
                     remM2IdsToOpen.add(remId);
                 } else {
-                    remM3StartedTime.append(remId, earliestStartTime);
+                    remM3IdToStartedTime.append(remId, periodsInfo.earliestStartTime);
                 }
             }
+
+            // add actions for period endings
+            actionsToSchedule.addAll(periodsInfo.actions);
         }
 
         // overwrite started periods to DB
-        UtilStorage.writeStartedPeriods(context, remsStartedPeriodIds);
-
-        // schedule ending actions of started periods
-        List<Integer[]> list = new ArrayList<>();
-        for (int i=0; i<startedPeriods.size(); i++) {
-            list.clear();
-            list.add(startedPeriods.get(i));
-            actionsToSchedule.addAll(schedulePeriodsEndings(
-                    list, reader.remModel23Behaviors, startedPeriodsStartTime.get(i)));
-        }
+        UtilStorage.writeStartedPeriods(context, remIdToStartedPeriodIds);
 
         // update the list of opened reminders (model-2 reminders: open only those in
         // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
@@ -579,7 +593,7 @@ public class ReminderBoardLogic {
             int remId = openedRemsOld.keyAt(i);
 
             int index = reader.remModel23Behaviors.indexOfKey(remId);
-            //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
+                    //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
             if (index >= 0 && reader.remModel23Behaviors.valueAt(index).isReminderInPeriod()) {
                 //(remId is of model 2)
                 if (!remM2IdsToOpen.contains(remId)) {
@@ -592,7 +606,7 @@ public class ReminderBoardLogic {
 
         // do rescheduling for started model-3 reminders from now
         actionsToSchedule.addAll(
-                rescheduleReminderRepeats(remM3StartedTime, reader.remModel23Behaviors, now));
+                rescheduleReminderRepeats(remM3IdToStartedTime, reader.remModel23Behaviors, now));
 
         // remove existing scheduled actions in DB, and schedule new actions in `actionsToSchedule`
         db.delete(MainDbHelper.TABLE_SCHEDULED_ACTIONS, null, null);
@@ -605,8 +619,71 @@ public class ReminderBoardLogic {
         Log.v("logic", "fresh start done");
     }
 
+    private class StartedPeriodsInfo {
+        private List<Integer> ids;
+        private List<ScheduleAction> actions;
+        private Calendar earliestStartTime; // can be null
+
+        StartedPeriodsInfo(List<Integer> ids,
+                                  List<ScheduleAction> actions, Calendar earliestStartTime) {
+            this.ids = ids;
+            this.actions = actions;
+            this.earliestStartTime = earliestStartTime;
+        }
+    }
+
     /**
-     * Will consider only reminders given in remM1Behaviors and remM23Behaviors. */
+     * Find period instantiations for a reminder of model 2 or 3, create period (instance) ID's for
+     * them, and schedule ending actions for periods ending with duration or time.
+     *
+     * The period ID for periods other than situation start-end will start from
+     * PERIOD_ID_START_FOR_NON_SIT_START_END (regardless of any existing period ID's of the
+     * reminder).
+     * @param historyRecords must be in descending order of time
+     */
+    private StartedPeriodsInfo findStartedPeriodsWithIdsForM23Reminder(
+                Calendar at, int remId, ReminderDataBehavior behavior,
+                List<UtilStorage.HistoryRecord> historyRecords, List<Integer> startedSitIds) {
+        if (!behavior.isReminderInPeriod() && !behavior.isTodoRepeatedlyInPeriod()) {
+            throw new RuntimeException("reminder is not of model 2 or 3");
+        }
+
+        // find periods that is in started state at `at` and their start time
+        List<Integer> startedPeriodIndexes = new ArrayList<>();
+        List<Calendar> periodStartTimes = new ArrayList<>();
+
+        ReminderDataBehavior.Period[] periods = behavior.getPeriods();
+        for (int p=0; p<periods.length; p++) {
+            List<Calendar> startTimes = getPeriodStartedTime(at, periods[p],
+                    historyRecords, startedSitIds);
+
+            startedPeriodIndexes.addAll(Collections.nCopies(startTimes.size(), p));
+            periodStartTimes.addAll(startTimes);
+        }
+
+        // get period ID's for the started periods found
+        List<Integer> startedPeriodIds = createIdsForPeriodsToStart(
+                startedPeriodIndexes, new ArrayList<Integer>(), behavior);
+
+        // schedule ending of periods (instantiations) that ends with time/duration
+        List<ScheduleAction> actions = new ArrayList<>();
+        for (int i=0; i<startedPeriodIndexes.size(); i++) {
+            ScheduleAction action = scheduleEndingOfPeriod(remId, startedPeriodIds.get(i),
+                    startedPeriodIndexes.get(i), behavior, periodStartTimes.get(i));
+            if (action != null) {
+                actions.add(action);
+            }
+        }
+
+        //
+        Calendar earliestStartTime =
+                periodStartTimes.isEmpty() ? null : Collections.min(periodStartTimes);
+        return new StartedPeriodsInfo(startedPeriodIds, actions, earliestStartTime);
+    }
+
+    /**
+     * Consider only reminders given in remM1Behaviors and remM23Behaviors.
+     */
     private List<ScheduleAction> performMainRescheduling(Calendar from,
                                          SparseArray<ReminderDataBehavior> remM1Behaviors,
                                          SparseArray<ReminderDataBehavior> remM23Behaviors) {
@@ -621,41 +698,15 @@ public class ReminderBoardLogic {
         // schedule opening times of model-1 reminders
         for (int i=0; i<remM1Behaviors.size(); i++) {
             int remId = remM1Behaviors.keyAt(i);
-
-            List<Calendar> openAt = new ArrayList<>();
             ReminderDataBehavior behavior = remM1Behaviors.valueAt(i);
-            if (!behavior.isTodoAtInstants()) {
-                throw new RuntimeException("reminder is not of model-1");
-            }
-            ReminderDataBehavior.Instant[] instants = behavior.getInstants();
-            for (ReminderDataBehavior.Instant instant: instants) {
-                Calendar timeFound = getInstantTimeWithin(instant, from, to); //(from to]
-                if (timeFound != null && !openAt.contains(timeFound)) {
-                    openAt.add(timeFound);
-                }
-            }
-
-            for (Calendar t: openAt) {
-                actions.add(new ScheduleAction().setAsModel1ReminderOpen(t, remId));
-            }
+            actions.addAll(scheduleM1ReminderOpenings(remId, behavior, from, to));
         }
 
         // schedule starts of periods of model-2,3 reminders
         for (int i=0; i<remM23Behaviors.size(); i++) {
             int remId = remM23Behaviors.keyAt(i);
-
             ReminderDataBehavior behavior = remM23Behaviors.valueAt(i);
-            if (!behavior.isReminderInPeriod() && !behavior.isTodoRepeatedlyInPeriod()) {
-                throw new RuntimeException("reminder is not of model-2 or 3");
-            }
-            ReminderDataBehavior.Period[] periods = behavior.getPeriods();
-            for (int p=0; p<periods.length; p++) {
-                ReminderDataBehavior.Instant instant = periods[p].getStartInstant();
-                Calendar timeFound = getInstantTimeWithin(instant, from, to); //(from, to]
-                if (timeFound != null) {
-                    actions.add(new ScheduleAction().setAsPeriodStart(timeFound, remId, p));
-                }
-            }
+            actions.addAll(scheduleM23ReminderPeriodStarts(remId, behavior, from, to));
         }
 
         // schedule next main reschedule
@@ -666,48 +717,113 @@ public class ReminderBoardLogic {
     }
 
     /**
-     * @param remindersPeriods: Each element must be {reminder-id, period-id, period-index}  */
+     * (to - from) must be < 1 day
+     */
+    private List<ScheduleAction> scheduleM1ReminderOpenings(
+                int remId, ReminderDataBehavior behavior, Calendar from, Calendar to) {
+        if (!behavior.isTodoAtInstants()) {
+            throw new RuntimeException("reminder is not of model-1");
+        }
+
+        List<Calendar> openAt = new ArrayList<>();
+        ReminderDataBehavior.Instant[] instants = behavior.getInstants();
+        for (ReminderDataBehavior.Instant instant: instants) {
+            Calendar timeFound = getInstantTimeWithin(instant, from, to); //(from to]
+            if (timeFound != null && !openAt.contains(timeFound)) {
+                openAt.add(timeFound);
+            }
+        }
+
+        List<ScheduleAction> actions = new ArrayList<>();
+        for (Calendar t: openAt) {
+            actions.add(new ScheduleAction().setAsModel1ReminderOpen(t, remId));
+        }
+        return actions;
+    }
+
+    /**
+     * (to - from) must be < 1 day
+     */
+    private List<ScheduleAction> scheduleM23ReminderPeriodStarts(
+                int remId, ReminderDataBehavior behavior, Calendar from, Calendar to) {
+        if (!behavior.isReminderInPeriod() && !behavior.isTodoRepeatedlyInPeriod()) {
+            throw new RuntimeException("reminder is not of model-2 or 3");
+        }
+
+        List<ScheduleAction> actions = new ArrayList<>();
+        ReminderDataBehavior.Period[] periods = behavior.getPeriods();
+        for (int p=0; p<periods.length; p++) {
+            ReminderDataBehavior.Instant instant = periods[p].getStartInstant();
+            Calendar timeFound = getInstantTimeWithin(instant, from, to); //(from, to]
+            if (timeFound != null) {
+                actions.add(new ScheduleAction().setAsPeriodStart(timeFound, remId, p));
+            }
+        }
+        return actions;
+    }
+
+    /**
+     * Create ending actions for the periods that end with duration or time.
+     * @param remindersPeriods: Each element must be {reminder-id, period-id, period-index}
+     */
     private List<ScheduleAction> schedulePeriodsEndings(
                 List<Integer[]> remindersPeriods,
                 SparseArray<ReminderDataBehavior> remindersBehaviors, Calendar periodStartAt) {
         List<ScheduleAction> actions = new ArrayList<>();
         for (Integer[] remIdPeriodId: remindersPeriods) {
             int remId = remIdPeriodId[0];
-            int periodId = remIdPeriodId[1];
-            int periodIndex = remIdPeriodId[2];
-
             ReminderDataBehavior behavior = remindersBehaviors.get(remId);
             if (behavior == null) {
                 throw new RuntimeException("`remId` not found in remindersBehaviors");
             }
-            ReminderDataBehavior.Period period = behavior.getPeriods()[periodIndex];
 
-            Calendar endTime = (Calendar) periodStartAt.clone();
-            if (period.isEndingAfterDuration()) {
-                endTime.add(Calendar.MINUTE, period.getDurationMinutes());
-                if (endTime.get(Calendar.SECOND) >= 30) {
-                    endTime.add(Calendar.MINUTE, 1);
-                }
-                endTime.set(Calendar.SECOND, 0);
-                endTime.set(Calendar.MILLISECOND, 0);
-            } else if (period.isTimeRange()) {
-                int[] hrMin = period.getEndHrMin();
-
-                int hr = hrMin[0];
-                if (hr >= 24) {
-                    endTime.add(Calendar.DAY_OF_MONTH, 1);
-                    hr -= 24;
-                }
-                endTime.set(Calendar.HOUR, hr);
-                endTime.set(Calendar.MINUTE, hrMin[1]);
-                endTime.set(Calendar.SECOND, 0);
-                endTime.set(Calendar.MILLISECOND, 0);
-            } else { //(situation start-end)
-                continue;
+            ScheduleAction action = scheduleEndingOfPeriod(
+                    remId, remIdPeriodId[1], remIdPeriodId[2], behavior, periodStartAt);
+            if (action != null) {
+                actions.add(action);
             }
-            actions.add(new ScheduleAction().setAsPeriodStop(endTime, remId, periodId));
         }
         return actions;
+    }
+
+    /**
+     * Create a scheduled action for the ending of the period, if the period ends with duration or
+     * time.
+     * @return null if the period is situation start-end
+     */
+    private ScheduleAction scheduleEndingOfPeriod(
+            int remId, int periodId, int periodIndex,
+            ReminderDataBehavior behavior, Calendar periodStartAt) {
+        if (!behavior.isReminderInPeriod() && !behavior.isTodoRepeatedlyInPeriod()) {
+            throw new RuntimeException("reminder is not of model 2 or 3");
+        }
+
+        ReminderDataBehavior.Period period = behavior.getPeriods()[periodIndex];
+        if (period.isSituationStartEnd())
+            return null;
+
+        Calendar endTime = (Calendar) periodStartAt.clone();
+        if (period.isEndingAfterDuration()) {
+            endTime.add(Calendar.MINUTE, period.getDurationMinutes());
+            if (endTime.get(Calendar.SECOND) >= 30) {
+                endTime.add(Calendar.MINUTE, 1);
+            }
+            endTime.set(Calendar.SECOND, 0);
+            endTime.set(Calendar.MILLISECOND, 0);
+        } else if (period.isTimeRange()) {
+            int[] hrMin = period.getEndHrMin();
+
+            int hr = hrMin[0];
+            if (hr >= 24) {
+                endTime.add(Calendar.DAY_OF_MONTH, 1);
+                hr -= 24;
+            }
+            endTime.set(Calendar.HOUR, hr);
+            endTime.set(Calendar.MINUTE, hrMin[1]);
+            endTime.set(Calendar.SECOND, 0);
+            endTime.set(Calendar.MILLISECOND, 0);
+        }
+        return new ScheduleAction().setAsPeriodStop(endTime, remId, periodId);
     }
 
     private class RemindersToOpenAndScheduleActions {
@@ -981,7 +1097,8 @@ public class ReminderBoardLogic {
     }
 
     /**
-     * @param actionsToCancel: each element is {alarm-id, action-id} */
+     * @param actionsToCancel: each element is {alarm-id, action-id}
+     */
     private void cancelScheduledActions(List<Integer[]> actionsToCancel) {
         List<Integer> alarmIdList = new ArrayList<>();
         List<Integer> actionIdList = new ArrayList<>();
@@ -1176,7 +1293,8 @@ public class ReminderBoardLogic {
     /**
      * If `instant` is a Time having a time point within (beginExclusive, end], return the
      * time point. Otherwise, return null.
-     * (end - beginExclusive) must < 1 day  */
+     * (end - beginExclusive) must < 1 day.
+     */
     private Calendar getInstantTimeWithin(ReminderDataBehavior.Instant instant,
                                           Calendar beginExclusive, Calendar end) {
         if (!instant.isTime()) {
@@ -1290,7 +1408,9 @@ public class ReminderBoardLogic {
         return false;
     }
 
-    /** returns {i: periods[i] gets started when all of `sitIds` start} */
+    /**
+     * @return {i: periods[i] gets started when all of `sitIds` start}
+     */
     private List<Integer> getPeriodIndexesToStartOnSitsStart(ReminderDataBehavior.Period[] periods,
                                                              Set<Integer> sitIds) {
         List<Integer> periodIndexesToStart = new ArrayList<>();
@@ -1302,7 +1422,9 @@ public class ReminderBoardLogic {
         return periodIndexesToStart;
     }
 
-    /** returns {i: periods[i] gets started when all of `sitIds` end} */
+    /**
+     * @return {i: periods[i] gets started when all of `sitIds` end}
+     */
     private List<Integer> getPeriodIndexesToStartOnSitsEnd(ReminderDataBehavior.Period[] periods,
                                                            Set<Integer> sitIds) {
         List<Integer> periodIndexesToStart = new ArrayList<>();
@@ -1314,7 +1436,9 @@ public class ReminderBoardLogic {
         return periodIndexesToStart;
     }
 
-    /** returns {i: periods[i] gets stopped when all of `sitIds` end} */
+    /**
+     *  @return {i: periods[i] gets stopped when all of `sitIds` end}
+     */
     private List<Integer> getPeriodIndexesToEndOnSitsEnd(ReminderDataBehavior.Period[] periods,
                                                          Set<Integer> sitIds) {
         List<Integer> periodIndexesToEnd = new ArrayList<>();
@@ -1327,7 +1451,9 @@ public class ReminderBoardLogic {
         return periodIndexesToEnd;
     }
 
-    /** returns {i: periods[i] gets started when `eventId` happens} */
+    /**
+     * @return {i: periods[i] gets started when `eventId` happens}
+     */
     private List<Integer> getPeriodIndexesToStartOnEvent(ReminderDataBehavior.Period[] periods,
                                                          int eventId) {
         List<Integer> periodIndexesToStart = new ArrayList<>();
@@ -1340,10 +1466,13 @@ public class ReminderBoardLogic {
     }
 
     /**
-     * Assign an period ID to every period in `periodIndexesToStart`.
+     * Assign an period ID to every period instantiations in `periodIndexesToStart`.
      * If the period is a situation start-end, its ID will be (period index)*(-1).
-     * For the other kinds of periods, the ID will be >= 100, will be unique to each period
-     * instantiation, and will be distinct from all started period instantiations.  */
+     * For the other kinds of periods, the ID will be >= PERIOD_ID_START_FOR_NON_SIT_START_END,
+     * and will be unique to every period instantiation.
+     * @param startedPeriodIds: already existing period instantiations of the reminder considered
+     * @param behavior: for the reminder considered
+     */
     private List<Integer> createIdsForPeriodsToStart(List<Integer> periodIndexesToStart,
                                                      List<Integer> startedPeriodIds,
                                                      ReminderDataBehavior behavior) {
@@ -1351,20 +1480,14 @@ public class ReminderBoardLogic {
                 PERIOD_ID_START_FOR_NON_SIT_START_END
                 : Math.max(PERIOD_ID_START_FOR_NON_SIT_START_END,
                         Collections.max(startedPeriodIds) + 1);
-        return createIdsForPeriodsToStart(
-                periodIndexesToStart, newPeriodIdMinForNonSitStartEnd, behavior);
-    }
 
-    /** see above */
-    private List<Integer> createIdsForPeriodsToStart(List<Integer> periodIndexesToStart,
-                                                     int newPeriodIdMinForNonSitStartEnd,
-                                                     ReminderDataBehavior behavior) {
         List<Integer> periodIdsToStart = new ArrayList<>();
         for (int i=0; i<periodIndexesToStart.size(); i++) {
             int periodIndex = periodIndexesToStart.get(i);
+
             int periodId;
             if (behavior.getPeriods()[periodIndex].isSituationStartEnd()) {
-                periodId = -periodIndex; // id <= 0 for sit. start-end
+                periodId = -periodIndex;
             } else {
                 periodId = newPeriodIdMinForNonSitStartEnd;
                 newPeriodIdMinForNonSitStartEnd++;
@@ -1375,11 +1498,12 @@ public class ReminderBoardLogic {
     }
 
     /**
-     * Determine whether `period` is started at `at`, given the history records and list of
+     * Determine whether `period` is in started state at `at`, given the history records and list of
      * started situations.
      * If yes, return the start time(s) of the period's instantiation(s) (there can be more than
      * one instantiations). Otherwise, return an empty list.
-     * @param historyRecords must be in descending order of time */
+     * @param historyRecords must be in descending order of time
+     */
     private List<Calendar> getPeriodStartedTime(Calendar at, ReminderDataBehavior.Period period,
                                                 List<UtilStorage.HistoryRecord> historyRecords,
                                                 List<Integer> startedSituations) {

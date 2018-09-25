@@ -152,6 +152,7 @@ public class UtilStorage {
         return allEvents;
     }
 
+
     //// history ////
     public static final int HIST_TYPE_SIT_START = 0;
     public static final int HIST_TYPE_SIT_END = 1;
@@ -260,7 +261,8 @@ public class UtilStorage {
     }
 
     /**
-     * @return in descending order (most recent record is first) */
+     * @return in descending order (most recent record is first)
+     */
     public static List<HistoryRecord> getHistoryRecords(Context context, @Nullable Calendar since) {
         List<HistoryRecord> records = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase(context);
@@ -374,6 +376,14 @@ public class UtilStorage {
         }
     }
 
+    /** update the list of started periods for the specified reminder */
+    public static void updateReminderStartedPeriodIds(Context context, int remId,
+                                                      List<Integer> startedPeriodIDs) {
+        SparseArray<Set<Integer>> sa = new SparseArray<>();
+        sa.append(remId, new HashSet<>(startedPeriodIDs));
+        updateRemindersStartedPeriodIds(context, sa);
+    }
+
     /** update whole table (removing original data first) */
     public static void writeStartedPeriods(Context context,
                                            SparseArray<List<Integer>> remsStartedPeriodIds) {
@@ -455,7 +465,8 @@ public class UtilStorage {
     }
 
     /**
-     * @return action-id to ScheduleAction  */
+     * @return action-id to ScheduleAction
+     */
     public static SparseArray<ScheduleAction> getScheduledActionsAndIds(Context context,
                                                                         int alarmId) {
         SparseArray<ScheduleAction> actions = new SparseArray<>();
@@ -487,6 +498,28 @@ public class UtilStorage {
         return count;
     }
 
+    public static Calendar getMainReschedulingTime(Context context) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"_id", "time"},
+                "type = ?",
+                new String[] {Integer.toString(ScheduleAction.TYPE_MAIN_RESCHEDULE)},
+                null, null, null);
+        if (!cursor.moveToPosition(0)) {
+            throw new RuntimeException("main reschedule not found");
+        }
+        String timeStr = cursor.getString(1);
+        cursor.close();
+
+        Date date;
+        try {
+            date = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.US).parse(timeStr);
+        } catch (ParseException e) {
+            throw new RuntimeException("failed to parse scheduled time of action");
+        }
+        Calendar t = Calendar.getInstance();
+        t.setTime(date);
+        return t;
+    }
 
     //// opened reminders ////
     public static SparseBooleanArray getOpenedReminders(Context context) {
@@ -515,8 +548,10 @@ public class UtilStorage {
         return opened;
     }
 
-    /** Reminders will be added with highlight = 1.
-     *  If a reminder already exists, it will be updated with highlight = 1. */
+    /**
+     * Reminders will be added with highlight = 1.
+     * If a reminder already exists, it will be updated with highlight = 1.
+     */
     public static void addOpenedReminders(Context context, Set<Integer> remIdsToAdd) {
         SparseBooleanArray remsOld = getOpenedReminders(context);
 
