@@ -7,6 +7,7 @@ import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -79,6 +80,8 @@ public class DetailActivity extends AppCompatActivity {
                 "_id = ?", new String[] {Integer.toString(reminderId)});
         db.delete(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
                 "_id = ?", new String[] {Integer.toString(reminderId)});
+
+        Log.v("mainlog", String.format("rem %d removed", reminderId));
 
         //
         Toast.makeText(DetailActivity.this,

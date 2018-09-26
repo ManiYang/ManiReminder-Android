@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <integer name="tau_m3_reschedule">9</integer>
-    <integer name="tau_main_reschedule">61</integer>
+    <integer name="tau_m3_reschedule">29</integer>
+    <integer name="tau_main_reschedule">52</integer>
 
     <integer name="notification_id">301</integer>
 

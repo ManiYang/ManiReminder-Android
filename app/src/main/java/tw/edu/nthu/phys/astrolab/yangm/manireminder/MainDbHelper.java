@@ -221,5 +221,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
                     "_id = ?", new String [] {Integer.toString(remId)});
             throw new RuntimeException("failed to create new empty reminder in database");
         }
+
+        Log.v("mainlog", String.format("new rem created (id %d)", remId));
     }
 }

@@ -458,6 +458,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     throw new RuntimeException("new all-situations and all-events should be given");
                 }
 
+                Log.v("mainlog", String.format("rem %d behavior settings updated", reminderId));
+
                 Calendar now = Calendar.getInstance();
                 new ReminderBoardLogic(getContext()).beforeReminderBehaviorUpdate(reminderId);
 

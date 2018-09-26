@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -55,13 +56,21 @@ public class BoardFragment extends Fragment {
                 v.setSelected(!v.isSelected());
                 remindersIdData.get(remId).toggleHighlight();
                 UtilStorage.toggleHighlightOfOpenedReminder(getContext(), remId);
+                cancelNotification();
             }
 
             @Override
             public void onLongClick(View v, int remId) {
                 // [temp]
-                Toast.makeText(getContext(), String.format("long-clicked rem %d", remId),
-                        Toast.LENGTH_SHORT).show();
+                int model = UtilStorage.getReminderModel(getContext(), remId);
+                if (model == 1 || model == 3) {
+                    UtilStorage.removeFromOpenedReminders(getContext(), remId);
+                    loadData();
+                    cancelNotification();
+                } else {
+                    Toast.makeText(getContext(), "can't close this reminder manually",
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -154,5 +163,10 @@ public class BoardFragment extends Fragment {
         BoardListAdapter adapter = (BoardListAdapter)
                 ((RecyclerView) view.findViewById(R.id.board_recycler)).getAdapter();
         adapter.notifyDataSetChanged();
+    }
+
+    private void cancelNotification() {
+        int notificationId = getContext().getResources().getInteger(R.integer.notification_id);
+        NotificationManagerCompat.from(getContext()).cancel(notificationId);
     }
 }

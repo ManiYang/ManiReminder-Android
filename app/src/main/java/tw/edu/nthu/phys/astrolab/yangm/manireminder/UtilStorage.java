@@ -122,6 +122,21 @@ public class UtilStorage {
     }
 
 
+    //// reminders ////
+    public static int getReminderModel(Context context, int remId) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, new String[] {"type"},
+                "_id = ?", new String[] {Integer.toString(remId)},
+                null, null, null);
+        int model = -1;
+        if (cursor.moveToPosition(0)) {
+            model = cursor.getInt(0);
+        }
+        cursor.close();
+        return model;
+    }
+
+
     //// situations & events ////
     public static SparseArray<String> getAllSituations(Context context) {
         SQLiteDatabase db = getReadableDatabase(context);
@@ -369,7 +384,7 @@ public class UtilStorage {
                             "_id = ?", new String[]{String.valueOf(remId)});
 
                     Log.v("mainlog", String.format(Locale.US,
-                            "rem started periods updated (rem %d, period id %s)",
+                            "rem started periods updated (rem %d, period-ids %s)",
                             remId, startedPeriodsStr));
                 }
             } else {
@@ -381,7 +396,7 @@ public class UtilStorage {
                             null, values);
 
                     Log.v("mainlog", String.format(Locale.US,
-                            "rem started periods updated (rem %d, period id %s)",
+                            "rem started periods updated (rem %d, period-ids %s)",
                             remId, startedPeriodsStr));
                 }
             }
@@ -532,6 +547,7 @@ public class UtilStorage {
         t.setTime(date);
         return t;
     }
+
 
     //// opened reminders ////
     public static SparseBooleanArray getOpenedReminders(Context context) {

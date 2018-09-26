@@ -82,7 +82,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // setup an empty list_all_sits_events
         ArrayAdapter<String> adapterAllSitsEvents = new ArrayAdapter<>(
-                getContext(), R.layout.text_list_item_plain, allSitsEventsListItem);
+                getContext(), R.layout.text_list_item_plain_taller, allSitsEventsListItem);
 
         ListView listViewAllSitsEvents = view.findViewById(R.id.list_all_sits_events);
         listViewAllSitsEvents.setAdapter(adapterAllSitsEvents);

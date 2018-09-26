@@ -21,6 +21,8 @@ import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static boolean firstStart = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,10 +35,11 @@ public class MainActivity extends AppCompatActivity {
         ((TabLayout) findViewById(R.id.tabs)).setupWithViewPager(pager);
 
         //
-        createNotificationChannel();
-
-        //
-        new ReminderBoardLogic(this).onAppStart();
+        if (firstStart) {
+            createNotificationChannel();
+            new ReminderBoardLogic(this).onAppStart();
+        }
+        firstStart = false;
     }
 
     @Override

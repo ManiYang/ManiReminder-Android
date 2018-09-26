@@ -78,7 +78,7 @@ public class HistoryViewActivity extends AppCompatActivity {
 
         @Override
         public void bindView(View view, Context context, Cursor cursor) {
-            String dateStr = cursor.getString(1);
+            String dateStr = cursor.getString(1).substring(4);
             String timeStr = cursor.getString(2);
             int type = cursor.getInt(3);
             int sitOrEventId = cursor.getInt(4);

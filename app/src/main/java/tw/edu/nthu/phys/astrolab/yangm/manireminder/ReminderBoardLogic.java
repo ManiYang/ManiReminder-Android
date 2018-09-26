@@ -299,31 +299,17 @@ public class ReminderBoardLogic {
     }
 
     public void onAppStart() {
-        Log.v("logic", "app start");
-        boolean haveScheduledActions =
-                UtilStorage.getRowCountInTable(context, MainDbHelper.TABLE_SCHEDULED_ACTIONS) > 0;
-        if (haveScheduledActions) {
-            // check that exactly one of the scheduled actions is main reschedule
-            if (UtilStorage.countMainSchedulingInScheduledActions(context) != 1) {
-                throw new RuntimeException("more than one main reschedule found");
-            }
-        } else {
-            // schedule model-1 reminder opening, period start, and main reschedule
-            Log.v("logic", "app run first time after installation");
-            ReminderBehaviorReader reader = new ReminderBehaviorReader();
-            reader.addRemindersInvolvingTimeInInstant();
-            List<ScheduleAction> actions = performMainRescheduling(Calendar.getInstance(),
-                    reader.remModel1Behaviors, reader.remModel23Behaviors);
-            scheduleNewActions(actions);
-        }
+        Log.v("mainlog", "app new start");
+        freshStart();
     }
 
     public void onDeviceBootCompleted() {
-        Log.v("logic", "on device boot completed");
+        Log.v("mainlog", "device boot completed");
         freshStart();
     }
 
     public void freshRestart() {
+        Log.v("mainlog", "fresh restart");
         cancelAllAlarms();
         freshStart();
     }
@@ -820,7 +806,7 @@ public class ReminderBoardLogic {
                 endTime.add(Calendar.DAY_OF_MONTH, 1);
                 hr -= 24;
             }
-            endTime.set(Calendar.HOUR, hr);
+            endTime.set(Calendar.HOUR_OF_DAY, hr);
             endTime.set(Calendar.MINUTE, hrMin[1]);
             endTime.set(Calendar.SECOND, 0);
             endTime.set(Calendar.MILLISECOND, 0);
