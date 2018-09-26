@@ -3,6 +3,7 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import java.util.List;
 
@@ -15,6 +16,11 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         // get actions associated to `alarmId`
         List<ScheduleAction> actions = UtilStorage.getScheduledActions(context, alarmId);
+
+        for (ScheduleAction action: actions) {
+            Log.v("mainlog", String.format("action received: alarm %d, %s",
+                    alarmId, action.getDisplayString()));
+        }
 
         // delete the actions in DB
         UtilStorage.removeScheduledActions(context, alarmId);

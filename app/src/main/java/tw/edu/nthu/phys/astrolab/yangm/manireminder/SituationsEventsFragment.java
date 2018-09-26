@@ -237,6 +237,8 @@ public class SituationsEventsFragment extends Fragment {
             return;
         }
 
+        Log.v("mainlog", String.format("sit start: %d (%s)", sitId, allSits.get(sitId)));
+
         // determine which induced situations (not yet started) to start once `sitId` is started
         Set<Integer> inducedSitsToStart =
                 getInducedSituationsToStart(sitId); //uses current (original) startedSitIds
@@ -260,6 +262,8 @@ public class SituationsEventsFragment extends Fragment {
 
     private void userTriggerEvent(int eventId, Calendar at) {
         Toast.makeText(getContext(), "Event triggered", Toast.LENGTH_SHORT).show();
+        Log.v("mainlog", String.format("event triggered: %d (%s)",
+                eventId, allEvents.get(eventId)));
 
         // add to history
         UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_EVENT, eventId);
@@ -269,6 +273,9 @@ public class SituationsEventsFragment extends Fragment {
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
+        Log.v("mainlog", String.format("sit stop: %d (%s)",
+                startedSitIndex, allSits.get(startedSitIndex)));
+
         // remove started situations
         int sitId = startedSitIds.remove(startedSitIndex);
         startedSitNames.remove(startedSitIndex);

@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 
@@ -358,11 +359,18 @@ public class UtilStorage {
                     // delete record
                     db.delete(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS,
                             "_id = ?", new String[] {Integer.toString(remId)});
+
+                    Log.v("mainlog", String.format(Locale.US,
+                            "rem started periods removed (rem %d)", remId));
                 } else {
                     // update record
                     values.put("started_periods", startedPeriodsStr);
                     db.update(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS, values,
                             "_id = ?", new String[]{String.valueOf(remId)});
+
+                    Log.v("mainlog", String.format(Locale.US,
+                            "rem started periods updated (rem %d, period id %s)",
+                            remId, startedPeriodsStr));
                 }
             } else {
                 if (!periodIds.isEmpty()) {
@@ -371,6 +379,10 @@ public class UtilStorage {
                     values.put("started_periods", startedPeriodsStr);
                     db.insert(MainDbHelper.TABLE_REMINDERS_STARTED_PERIODS,
                             null, values);
+
+                    Log.v("mainlog", String.format(Locale.US,
+                            "rem started periods updated (rem %d, period id %s)",
+                            remId, startedPeriodsStr));
                 }
             }
         }
@@ -579,6 +591,11 @@ public class UtilStorage {
                 db.insert(MainDbHelper.TABLE_OPENED_REMINDERS, null, values);
             }
         }
+
+        for (int remId: remIdsToAdd) {
+            Log.v("mainlog",
+                    String.format(Locale.US, "rem %d open (DB update)", remId));
+        }
     }
 
     public static void toggleHighlightOfOpenedReminder(Context context, int remId) {
@@ -599,14 +616,24 @@ public class UtilStorage {
     public static void removeFromOpenedReminders(Context context, Set<Integer> remIdsToRemove) {
         SQLiteDatabase db = getWritableDatabase(context);
         for (int remId: remIdsToRemove) {
-            db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
+            int count = db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
                     "_id = ?", new String[] {Integer.toString(remId)});
+
+            if (count != 0) {
+                Log.v("mainlog",
+                        String.format(Locale.US, "rem %d close (DB update)", remId));
+            }
         }
     }
 
     public static void removeFromOpenedReminders(Context context, int remId) {
         SQLiteDatabase db = getWritableDatabase(context);
-        db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
+        int count = db.delete(MainDbHelper.TABLE_OPENED_REMINDERS,
                 "_id = ?", new String[] {Integer.toString(remId)});
+
+        if (count != 0) {
+            Log.v("mainlog",
+                    String.format(Locale.US, "rem %d close (DB update)", remId));
+        }
     }
 }

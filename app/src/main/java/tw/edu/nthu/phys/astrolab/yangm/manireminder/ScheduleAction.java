@@ -199,21 +199,22 @@ public class ScheduleAction {
             case -1:
                 return "not set";
             case TYPE_MAIN_RESCHEDULE:
-                return timeStr + " main reschedule";
+                return timeStr + ", main reschedule";
             case TYPE_PERIOD_START:
-                return String.format(Locale.US, "%s period start (rem %d, period-index %d)",
+                return String.format(Locale.US, "%s, period start (rem %d, period-index %d)",
                         timeStr, reminderId, periodIndexOrId);
             case TYPE_PERIOD_STOP:
-                return String.format(Locale.US, "%s period stop (rem %d, period-id %d)",
+                return String.format(Locale.US, "%s, period stop (rem %d, period-id %d)",
                         timeStr, reminderId, periodIndexOrId);
             case TYPE_REMINDER_M1_OPEN:
-                return timeStr + " open model-1 reminder " + Integer.toString(reminderId);
+                return timeStr + ", open m1 rem " + Integer.toString(reminderId);
             case TYPE_REMINDER_M3_OPEN:
-                return timeStr + " open model-3 reminder " + Integer.toString(reminderId);
+                return timeStr + ", open m3 rem " + Integer.toString(reminderId);
             case TYPE_RESCHEDULE_M3_REMINDER_REPEATS:
-                return timeStr + " reschedule for model-3 rem " + Integer.toString(reminderId)
-                        + " started " + new SimpleDateFormat("MM/dd.HH:mm:ss", Locale.US)
-                        .format(repeatStartAt.getTime());
+                return String.format(Locale.US, "%s, reschedule for m3 rem %d started %s",
+                        timeStr, reminderId,
+                        new SimpleDateFormat("MM/dd.HH:mm:ss", Locale.US)
+                                .format(repeatStartAt.getTime()));
             default:
                 return "";
         }

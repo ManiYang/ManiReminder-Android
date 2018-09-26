@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class ReminderBoardLogic {
@@ -331,6 +332,7 @@ public class ReminderBoardLogic {
         cancelScheduledActionsInvolvingReminder(remId);
         UtilStorage.removeStartedPeriodsOfReminder(context, remId);
         UtilStorage.removeFromOpenedReminders(context, remId);
+        Log.v("logic", "beforeReminderRemove() done");
     }
 
     public void beforeReminderBehaviorUpdate(int remId) {
@@ -1039,8 +1041,8 @@ public class ReminderBoardLogic {
 
         // [log]
         for (ScheduleAction action: actions) {
-            Log.v("logic", String.format("scheduled action: alarm-id %d, %s", alarmId,
-                    action.getDisplayString()));
+            Log.v("mainlog", String.format("action scheduled: alarm %d, %s",
+                    alarmId, action.getDisplayString()));
         }
     }
 
@@ -1146,10 +1148,11 @@ public class ReminderBoardLogic {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
         ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
-        Log.v("logic", "canceled alarm " + alarmId);
 
         // delete action records in DB
         UtilStorage.removeScheduledActions(context, alarmId);
+
+        Log.v("mainlog", String.format(Locale.US, "alarm %d canceled", alarmId));
     }
 
     //// private tools ////////////////////////////////////////////////////////////////////////////
