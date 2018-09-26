@@ -209,7 +209,7 @@ public class UtilStorage {
             while ((line = reader.readLine()) != null) {
                 line = line.replaceAll("\\\\n", "\n")
                         .replaceAll("\\\\\\\\", "\\\\");
-                String[] strings = line.split("\t");
+                String[] strings = line.split("\t", -1);
 
                 values.clear();
                 for (int c=0; c<columnNames.length; c++) {

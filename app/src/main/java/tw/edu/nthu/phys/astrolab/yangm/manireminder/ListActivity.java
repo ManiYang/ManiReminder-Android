@@ -153,6 +153,8 @@ public class ListActivity extends AppCompatActivity {
                 .putExtra(DetailActivity.EXTRA_REMINDER_ID, newId));
     }
 
+    private static final String BACKUP_DIRECTORY = "/ManiReminder/backup/";
+
     private void actionBackupRemData() {
         if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             Toast.makeText(this, "Could not access external storage",
@@ -160,8 +162,7 @@ public class ListActivity extends AppCompatActivity {
             return;
         }
 
-        File dir = new File(Environment.getExternalStorageDirectory() + "/Android/data/"
-                + "tw.edu.nthu.phys.astrolab.yangm.manireminder/files/Reminders/");
+        File dir = new File(Environment.getExternalStorageDirectory() + BACKUP_DIRECTORY);
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
                 Toast.makeText(this, "Could not create directory", Toast.LENGTH_SHORT)
@@ -223,8 +224,7 @@ public class ListActivity extends AppCompatActivity {
             return;
         }
 
-        File dir = new File(Environment.getExternalStorageDirectory() + "/Android/data/"
-                + "tw.edu.nthu.phys.astrolab.yangm.manireminder/files/Reminders/");
+        File dir = new File(Environment.getExternalStorageDirectory() + BACKUP_DIRECTORY);
         if (! new File(dir, "reminder_brief.csv").exists()) {
             Toast.makeText(this, "Could not find backup data", Toast.LENGTH_SHORT)
                     .show();
