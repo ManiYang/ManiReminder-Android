@@ -273,12 +273,13 @@ public class SituationsEventsFragment extends Fragment {
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
-        Log.v("mainlog", String.format("sit stop: %d (%s)",
-                startedSitIndex, allSits.get(startedSitIndex)));
 
         // remove started situations
         int sitId = startedSitIds.remove(startedSitIndex);
         startedSitNames.remove(startedSitIndex);
+
+        Log.v("mainlog", String.format("sit stop: %d (%s)",
+                startedSitIndex, allSits.get(sitId)));
 
         TextListAdapter adapter = (TextListAdapter)
                 ((RecyclerView) view.findViewById(R.id.recycler_started_situations)).getAdapter();

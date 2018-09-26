@@ -9,4 +9,16 @@
         android:title="@string/create_reminder"
         android:orderInCategory="1"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_backup_reminder_data"
+        android:title="Backup Reminder Data"
+        android:orderInCategory="20"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_restore_rem_data_from_backup"
+        android:title="Restore Reminder Data"
+        android:orderInCategory="21"
+        app:showAsAction="never" />
 </menu>

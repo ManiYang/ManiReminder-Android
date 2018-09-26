@@ -1536,7 +1536,7 @@ public class ReminderBoardLogic {
                     }
                 }
                 if (startTime.hasDayOfWeek(prevDayOfWeek)) {
-                    if (atMinuteNumber < endHrMin[0] * 60 + endHrMin[1]) {
+                    if (atMinuteNumber < (endHrMin[0] - 24) * 60 + endHrMin[1]) {
                         Calendar t = (Calendar) periodStartTimeOnAtDay.clone();
                         t.add(Calendar.DAY_OF_MONTH, -1);
                         periodStartTimes.add(t);

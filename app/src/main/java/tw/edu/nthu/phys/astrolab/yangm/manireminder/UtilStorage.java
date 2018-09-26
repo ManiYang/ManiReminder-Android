@@ -11,9 +11,15 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
@@ -119,6 +125,113 @@ public class UtilStorage {
             builder.append('?');
         }
         return builder.toString();
+    }
+
+    /**
+     * replace '\\' by "\\\\" and '\n' by "\\n"; use \t as column separator
+     * @return true if done
+     */
+    public static boolean dumpTableToCsv(Context context, String table, File outputFile) {
+        FileWriter writer = null;
+        Cursor cursor = null;
+        boolean done = true;
+        try {
+            writer = new FileWriter(outputFile);
+
+            SQLiteDatabase db = getReadableDatabase(context);
+            cursor = db.query(table, null, null, null,
+                    null, null, null);
+
+            // write header (column names)
+            String[] columnNames = cursor.getColumnNames();
+
+            writer.write(UtilGeneral.joinStringList("\t", Arrays.asList(columnNames)));
+            writer.write('\n');
+
+            // write data rows
+            int Ncols = cursor.getColumnCount();
+            List<String> strList = new ArrayList<>();
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                strList.clear();
+                for (int c=0; c<Ncols; c++) {
+                    strList.add(cursor.getString(c));
+                }
+                String line = UtilGeneral.joinStringList("\t", strList)
+                        .replaceAll("\\\\", "\\\\\\\\")
+                        .replaceAll("\n", "\\\\n");
+                writer.write(line + "\n");
+            }
+
+            //
+            writer.flush();
+        } catch (IOException e) {
+            done = false;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    done = false;
+                }
+            }
+        }
+        return done;
+    }
+
+    public static boolean overwriteTableFromCsv(Context context, String table, File inputFile) {
+        // get column names
+        SQLiteDatabase db = getWritableDatabase(context);
+        Cursor cursor = db.query(table, null,null, null,
+                null, null, null, "1");
+        String[] columnNames = cursor.getColumnNames();
+        cursor.close();
+
+        //
+        db.delete(table, null, null);
+
+        BufferedReader reader = null;
+        boolean done = true;
+        try {
+            reader = new BufferedReader(new FileReader(inputFile));
+
+            // first line
+            String line = reader.readLine();
+            if (line.split("\t").length != columnNames.length) {
+                throw new RuntimeException("Inconsistent column numbers");
+            }
+
+            //
+            ContentValues values = new ContentValues();
+            while ((line = reader.readLine()) != null) {
+                line = line.replaceAll("\\\\n", "\n")
+                        .replaceAll("\\\\\\\\", "\\\\");
+                String[] strings = line.split("\t");
+
+                values.clear();
+                for (int c=0; c<columnNames.length; c++) {
+                    values.put(columnNames[c], strings[c]);
+                }
+                db.insert(table, null, values);
+            }
+        } catch (IOException e) {
+            done = false;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            done = false;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    done = false;
+                }
+            }
+        }
+        return done;
     }
 
 

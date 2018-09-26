@@ -1107,7 +1107,8 @@ public class EditRemBehaviorFragment extends Fragment
                     .show();
         }
         if (isSituation) {
-            newSitEvent = newSitEvent.replaceAll(" *: *", ":");
+            newSitEvent = newSitEvent.replaceAll(" *: *", ":")
+                    .replaceAll("：", ":");
         }
 
         SparseArray<String> allSitOrEvents = isSituation ? allSits : allEvents;
