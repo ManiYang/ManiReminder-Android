@@ -25,7 +25,7 @@
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".DetailActivity"
-            android:label="Reminder Details"
+            android:label="Reminder Settings"
             android:parentActivityName=".ListActivity" />
         <activity
             android:name=".EditActivity"

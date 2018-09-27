@@ -15,6 +15,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+
 public class InteractActivity extends AppCompatActivity {
 
     public static final String EXTRA_REMINDER_ID = "reminder_id";
@@ -37,6 +41,14 @@ public class InteractActivity extends AppCompatActivity {
             public void onClick(View v) {
                 UtilStorage.removeFromOpenedReminders(InteractActivity.this, reminderId);
                 finish();
+            }
+        });
+
+        // button "time stamp"
+        findViewById(R.id.button_time_stamp).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onButtonTimeStampClick();
             }
         });
     }
@@ -129,6 +141,14 @@ public class InteractActivity extends AppCompatActivity {
         } else {
             return cursor;
         }
+    }
+
+    private void onButtonTimeStampClick() {
+        String timeStamp = "<" + new SimpleDateFormat("MM/dd EEE HH:mm", Locale.US)
+                .format(Calendar.getInstance().getTime()) + ">\n";
+
+        EditText editQuickNote = findViewById(R.id.quick_notes);
+        editQuickNote.getText().insert(editQuickNote.getSelectionStart(), timeStamp);
     }
 
     // option menu
