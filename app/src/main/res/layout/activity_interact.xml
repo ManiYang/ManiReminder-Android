@@ -42,6 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="2dp"
+                android:layout_marginStart="8dp"
                 android:textColor="#303030"
                 android:textSize="16sp"
                 tools:text="Reminder description" />
@@ -53,6 +54,12 @@
                 android:padding="2dp"
                 android:orientation="horizontal">
 
+                <Button
+                    android:id="@+id/button_close_reminder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/close_reminder"
+                    android:textAllCaps="false" />
             </LinearLayout>
 
             <LinearLayout
@@ -87,6 +94,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="2dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/shape_rect_border_white_back"
                 android:hint="@string/hint_add_quick_note"
                 android:inputType="text|textMultiLine"

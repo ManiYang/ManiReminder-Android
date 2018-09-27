@@ -1,5 +1,6 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -8,7 +9,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,6 +30,15 @@ public class InteractActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        // button "close reminder"
+        findViewById(R.id.button_close_reminder).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                UtilStorage.removeFromOpenedReminders(InteractActivity.this, reminderId);
+                finish();
+            }
+        });
     }
 
     @Override
@@ -52,14 +64,54 @@ public class InteractActivity extends AppCompatActivity {
         }
         String remTitle = cursor.getString(0);
         cursor.close();
+
         ((TextView) findViewById(R.id.reminder_title)).setText(remTitle);
 
+        // "close reminder" button
+        cursor = readTable(
+                db, MainDbHelper.TABLE_REMINDERS_BEHAVIOR, reminderId, new String[] {"type"});
+        if (cursor == null) {
+            return;
+        }
+        int remModel = cursor.getInt(0);
+        cursor.close();
 
+        findViewById(R.id.button_close_reminder).
+                setVisibility((remModel == 2) ? View.GONE : View.VISIBLE);
 
+        // description and quick notes
+        cursor = readTable(db, MainDbHelper.TABLE_REMINDERS_DETAIL, reminderId,
+                new String[] {"description", "quick_notes"});
+        if (cursor == null) {
+            return;
+        }
+        String description = cursor.getString(0);
+        String quickNotes = cursor.getString(1);
+        if (quickNotes == null) {
+            quickNotes = "";
+        }
+        cursor.close();
 
-        // todo ...
+        ((TextView) findViewById(R.id.reminder_description)).setText(description);
+        ((EditText) findViewById(R.id.quick_notes)).setText(quickNotes);
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
 
+        saveQuickNotes();
+    }
+
+    private void saveQuickNotes() {
+        String quickNotes = ((EditText) findViewById(R.id.quick_notes)).getText().toString();
+
+        ContentValues values = new ContentValues();
+        values.put("quick_notes", quickNotes);
+
+        SQLiteDatabase db = UtilStorage.getWritableDatabase(this);
+        db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
+                "_id = ?", new String[] {Integer.toString(reminderId)});
     }
 
     /**

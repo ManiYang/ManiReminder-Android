@@ -9,7 +9,7 @@ import android.util.Log;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -41,7 +41,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
 
     //
     private void updateDb(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1) {
+        if (oldVersion < 2) {
             Log.v("MainDbHelper", "### creating tables (1)");
 
             // reminder brief
@@ -64,15 +64,18 @@ public class MainDbHelper extends SQLiteOpenHelper {
             // reminder detail
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_DETAIL + " ("
                     + "_id INTEGER PRIMARY KEY, "
-                    + "description TEXT );");
-            values = new ContentValues();
+                    + "description TEXT, "
+                    + "quick_note TEXT);");
+            values.clear();
             values.put("_id", 0);
             values.put("description", "This is a reminder for testing only.");
+            values.put("quick_note", "");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
 
-            values = new ContentValues();
+            values.clear();
             values.put("_id", 1);
             values.put("description", "Also for testing.");
+            values.put("quick_notes", "");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
 
 
@@ -144,9 +147,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
             if (check == -1) {
                 throw new RuntimeException("failed to insert a row to table " + TABLE_EVENTS);
             }
-        }
 
-        if (oldVersion < 2) {
             // history
             db.execSQL("CREATE TABLE " + TABLE_HISTORY + " ("
                     + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -176,6 +177,11 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE TABLE " + TABLE_OPENED_REMINDERS + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "highlight INTEGER);");
+        }
+
+        if (oldVersion == 2) {
+            // add column "quick_note" to reminder detail
+            db.execSQL("ALTER TABLE " + TABLE_REMINDERS_DETAIL + " ADD quick_notes TEXT;");
         }
     }
 

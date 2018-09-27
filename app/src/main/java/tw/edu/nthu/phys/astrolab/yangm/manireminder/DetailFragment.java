@@ -68,6 +68,9 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
         view.findViewById(R.id.container_behavior_settings).setOnClickListener(viewsOnClickListener);
 
+        view.findViewById(R.id.label_quick_notes).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.quick_notes).setOnClickListener(viewsOnClickListener);
+
         return view;
     }
 
@@ -139,9 +142,14 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         if (description.isEmpty()) {
             description = NONE_INDICATOR;
         }
+        String quickNotes = cursor.getString(2);
+        if (quickNotes == null || quickNotes.isEmpty()) {
+            quickNotes = NONE_INDICATOR;
+        }
         cursor.close();
 
         ((TextView) view.findViewById(R.id.description)).setText(description);
+        ((TextView) view.findViewById(R.id.quick_notes)).setText(quickNotes);
 
         // get and load behavior settings data
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, null,
@@ -283,6 +291,12 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                                 false, true);
                     }
                     break;
+
+                case R.id.label_quick_notes:
+                case R.id.quick_notes:
+                    showSimpleTextEditDialog("quick_notes", R.id.quick_notes,
+                            InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+                    break;
             }
         }
     };
@@ -338,6 +352,16 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 ((TextView) view.findViewById(R.id.description)).setText(newText);
                 ContentValues values = new ContentValues();
                 values.put("description", newText);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
+                        "_id = ?", new String[]{Integer.toString(reminderId)});
+                doneDbUpdate = (check == 1);
+                break;
+            }
+            case "dialog_edit_quick_notes": {
+                // update quick notes
+                ((TextView) view.findViewById(R.id.quick_notes)).setText(newText);
+                ContentValues values = new ContentValues();
+                values.put("quick_notes", newText);
                 int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
                         "_id = ?", new String[]{Integer.toString(reminderId)});
                 doneDbUpdate = (check == 1);
