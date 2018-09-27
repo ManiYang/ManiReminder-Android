@@ -6,6 +6,7 @@
     <string name="fresh_restart">Fresh-Restart the App</string>
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
+    <string name="view_reminder_settings">View Reminder Settings</string>
 
     <string name="dialog_title_confirm_remove">Confirm removal</string>
     <string name="dialog_msg_confirm_remove">Are you sure to remove this reminder?</string>
@@ -28,6 +29,7 @@
     <string name="start">Start</string>
     <string name="board">Board</string>
     <string name="situations_and_events">Situations &amp; Events</string>
+    <string name="insert_time_stamp">Time Stamp</string>
 
     <string name="Mon">Mon</string>
     <string name="Tue">Tue</string>
@@ -68,6 +70,8 @@
     <string name="label_set">set</string>
     <string name="label_next_day">Next Day</string>
     <string name="label_started_situations">Started situations:</string>
+    <string name="label_quick_notes">Quick notes:</string>
+    <string name="hint_add_quick_note">add quick notes</string>
 
     <string name="todo_at_instants">Todo at Instants</string>
     <string name="remind_during_periods">Remind during Periods</string>

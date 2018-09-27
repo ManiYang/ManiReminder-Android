@@ -19,7 +19,6 @@ import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import java.util.List;
 
@@ -61,7 +60,12 @@ public class BoardFragment extends Fragment {
 
             @Override
             public void onLongClick(View v, int remId) {
+                Intent intent = new Intent(getContext(), InteractActivity.class);
+                intent.putExtra(InteractActivity.EXTRA_REMINDER_ID, remId);
+                startActivity(intent);
+
                 // [temp]
+                /*
                 int model = UtilStorage.getReminderModel(getContext(), remId);
                 if (model == 1 || model == 3) {
                     UtilStorage.removeFromOpenedReminders(getContext(), remId);
@@ -71,6 +75,7 @@ public class BoardFragment extends Fragment {
                     Toast.makeText(getContext(), "can't close this reminder manually",
                             Toast.LENGTH_SHORT).show();
                 }
+                */
             }
         });
 
