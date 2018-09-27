@@ -32,8 +32,8 @@ public class UtilStorage {
     public static final String PREFERENCE_FILE =
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
-    public static final String KEY_OPENED_REMINDERS = "opened_reminders";
     public static final String KEY_NEW_ALARM_ID = "new_alarm_id";
+    public static final String KEY_APP_VERSION_CODE = "app_version_code";
 
     //
     public static int readSharedPrefInt(Context context, String key, int defaultValue) {
@@ -46,6 +46,22 @@ public class UtilStorage {
         SharedPreferences sharedPref =
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
         sharedPref.edit().putInt(key, value).commit();
+    }
+
+    //
+
+    /**
+     * @param versionCode version code to update to
+     * @return whether the stored version code does get updated
+     */
+    public static boolean updateAppVersionCode(Context context, int versionCode) {
+        int versionCodeStored = readSharedPrefInt(context, KEY_APP_VERSION_CODE, -1);
+        if (versionCodeStored != versionCode) {
+            writeSharedPrefInt(context, KEY_APP_VERSION_CODE, versionCode);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     //
@@ -638,6 +654,9 @@ public class UtilStorage {
         return count;
     }
 
+    /**
+     * @return null if main rescheduling not found
+     */
     public static Calendar getMainReschedulingTime(Context context) {
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS, new String[] {"_id", "time"},
@@ -645,7 +664,8 @@ public class UtilStorage {
                 new String[] {Integer.toString(ScheduleAction.TYPE_MAIN_RESCHEDULE)},
                 null, null, null);
         if (!cursor.moveToPosition(0)) {
-            throw new RuntimeException("main reschedule not found");
+            cursor.close();
+            return null;
         }
         String timeStr = cursor.getString(1);
         cursor.close();
@@ -659,6 +679,26 @@ public class UtilStorage {
         Calendar t = Calendar.getInstance();
         t.setTime(date);
         return t;
+    }
+
+    /**
+     * @return -1 if not found
+     */
+    public static int getMainReschedulingAlarmId(Context context) {
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SCHEDULED_ACTIONS,
+                new String[] {"_id", "alarm_id"},
+                "type = ?",
+                new String[] {Integer.toString(ScheduleAction.TYPE_MAIN_RESCHEDULE)},
+                null, null, null);
+        if (!cursor.moveToPosition(0)) {
+            cursor.close();
+            return -1;
+        } else {
+            int alarmId = cursor.getInt(1);
+            cursor.close();
+            return alarmId;
+        }
     }
 
 

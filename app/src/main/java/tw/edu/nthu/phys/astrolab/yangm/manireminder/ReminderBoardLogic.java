@@ -298,9 +298,36 @@ public class ReminderBoardLogic {
         helper1.takeEffect(at, reader.remModel23Behaviors, reader.remModel1Behaviors);
     }
 
-    public void onAppStart() {
-        Log.v("mainlog", "app new start");
-        freshStart();
+    public void onMainActivityFirstStart() {
+        Log.v("mainlog", "main activity first-time start");
+
+        //
+        boolean isAppVersionUpdated =
+                UtilStorage.updateAppVersionCode(context, BuildConfig.VERSION_CODE);
+        Log.v("mainlog", "isAppVersionUpdated = " + isAppVersionUpdated);
+
+        // determine whether to perform fresh start or not
+        boolean mainRescheduleExistsInDb = UtilStorage.getMainReschedulingAlarmId(context) != -1;
+        boolean checkMainScheduleAlarm = checkMainScheduleAlarm();
+
+        Log.v("mainlog", "mainRescheduleExistsInDb() = " + mainRescheduleExistsInDb);
+        Log.v("mainlog", "checkMainScheduleAlarm() = " + checkMainScheduleAlarm);
+
+        boolean toFreshStart = false;
+        if (!mainRescheduleExistsInDb) {
+            // App install first time, or App uninstalled and then installed
+            toFreshStart = true;
+        } else {
+            if (!checkMainScheduleAlarm || isAppVersionUpdated) {
+                // scheduled alarms were killed (after App force stop or update)
+                toFreshStart = true;
+            }
+        }
+
+        //
+        if (toFreshStart) {
+            freshStart();
+        }
     }
 
     public void onDeviceBootCompleted() {
@@ -335,6 +362,9 @@ public class ReminderBoardLogic {
 
         List<ScheduleAction> actionsToSchedule = new ArrayList<>();
         Calendar nextMainRescheduleTime = UtilStorage.getMainReschedulingTime(context);
+        if (nextMainRescheduleTime == null) {
+            throw new RuntimeException("main rescheduling not found in DB");
+        }
 
         if (newBehavior.isTodoAtInstants()) { //(is model-1)
             // schedule opening of reminder within (updateAt, nextMainRescheduleTime]
@@ -604,7 +634,7 @@ public class ReminderBoardLogic {
         if (!remM2IdsToOpen.isEmpty()) {
             issueNotification();
         }
-        Log.v("logic", "fresh start done");
+        Log.v("mainlog", "fresh-start done");
     }
 
     private class StartedPeriodsInfo {
@@ -1013,7 +1043,7 @@ public class ReminderBoardLogic {
                 .setAction(context.getResources().getString(R.string.action_scheduled_actions))
                 .putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
+                context, alarmId, intentActions, PendingIntent.FLAG_UPDATE_CURRENT);
 
         // set alarm using alarmId
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -1030,6 +1060,19 @@ public class ReminderBoardLogic {
             Log.v("mainlog", String.format("action scheduled: alarm %d, %s",
                     alarmId, action.getDisplayString()));
         }
+    }
+
+    private boolean checkMainScheduleAlarm() {
+        int alarmIdMainReschedule = UtilStorage.getMainReschedulingAlarmId(context);
+        if (alarmIdMainReschedule == -1) {
+            return false;
+        }
+
+        Intent intentActions = new Intent(context, AlarmReceiver.class)
+                .setAction(context.getResources().getString(R.string.action_scheduled_actions));
+        PendingIntent pendingIntentProbe = PendingIntent.getBroadcast(
+                context, alarmIdMainReschedule, intentActions, PendingIntent.FLAG_NO_CREATE);
+        return pendingIntentProbe != null;
     }
 
     private void stopRepeatingReminders(Set<Integer> reminderIds,
@@ -1132,7 +1175,7 @@ public class ReminderBoardLogic {
         Intent intentActions = new Intent(context, AlarmReceiver.class)
                 .setAction(context.getResources().getString(R.string.action_scheduled_actions));
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, alarmId, intentActions, PendingIntent.FLAG_ONE_SHOT);
+                context, alarmId, intentActions, PendingIntent.FLAG_UPDATE_CURRENT);
         ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pendingIntent);
 
         // delete action records in DB
