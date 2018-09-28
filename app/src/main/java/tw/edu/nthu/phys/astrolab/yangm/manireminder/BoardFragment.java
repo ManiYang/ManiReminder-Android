@@ -113,6 +113,14 @@ public class BoardFragment extends Fragment {
                 .unregisterReceiver(updateBroadcastReceiver);
     }
 
+    public void updateView() {
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+        loadData();
+    }
+
     private void loadData() {
         // read opened reminders (ID's)
         SparseBooleanArray openedRems = UtilStorage.getOpenedReminders(getContext());

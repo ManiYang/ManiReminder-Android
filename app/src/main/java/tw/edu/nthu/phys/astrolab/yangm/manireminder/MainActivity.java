@@ -12,9 +12,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -72,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 new ReminderBoardLogic(MainActivity.this).freshRestart();
+                                if (boardFragment != null) {
+                                    boardFragment.updateView();
+                                }
                             }
                         })
                         .setNegativeButton(R.string.cancel, null)
@@ -83,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //
+    private BoardFragment boardFragment;
+
     private class MainPagerAdapter extends FragmentPagerAdapter {
         MainPagerAdapter(FragmentManager fm) {
             super(fm);
@@ -97,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             switch (position) {
                 case 0:
-                    return new BoardFragment();
+                    boardFragment = new BoardFragment();
+                    return boardFragment;
                 case 1:
                     return new SituationsEventsFragment();
                 default:
