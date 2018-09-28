@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">ManiReminder</string>
+    <string name="app_name">Mani-Reminder</string>
 
     <string name="view_all_reminders">View All Reminders</string>
     <string name="view_history">Situations &amp; Events History</string>
     <string name="fresh_restart">Fresh-Restart the App</string>
+    <string name="filter">Filter</string>
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
     <string name="view_reminder_settings">View Reminder Settings</string>
@@ -73,6 +74,7 @@
     <string name="label_started_situations">Started situations:</string>
     <string name="label_quick_notes">Quick notes:</string>
     <string name="hint_add_quick_note">add quick notes</string>
+    <string name="label_filter">Filter: </string>
 
     <string name="todo_allcap">TODO</string>
 

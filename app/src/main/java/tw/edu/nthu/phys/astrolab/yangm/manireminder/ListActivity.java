@@ -26,7 +26,6 @@ import java.io.File;
 
 public class ListActivity extends AppCompatActivity {
 
-//    private SQLiteDatabase db;
     private Cursor cursorRemindersBrief;
     private SparseArray<String> allTags;
 
@@ -47,7 +46,10 @@ public class ListActivity extends AppCompatActivity {
         cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
                 null, null, null, null, null);
         allTags = UtilReminder.getAllTagsFromDb(db);
-        populateList();
+
+        FilterSpec filterSpec = new FilterSpec().readFromStorage();
+        setFilterSpecView(filterSpec);
+        populateList(filterSpec);
     }
 
     @Override
@@ -58,7 +60,7 @@ public class ListActivity extends AppCompatActivity {
         }
     }
 
-    private void populateList() {
+    private void populateList(FilterSpec filterSpec) {
         // get reminders brief data from database
         int nRows = cursorRemindersBrief.getCount();
         Log.v("ListActivity", "### Number of reminders: "+Integer.toString(nRows));
@@ -105,9 +107,18 @@ public class ListActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_filter_none:
+                userSetFilterNone();
+                return true;
+
+            case R.id.action_filter_quick_notes:
+                userSetFilterHavingQuickNotes();
+                return true;
+
             case R.id.action_create_reminder:
                 actionCreateReminder();
                 return true;
+
             case R.id.action_backup_reminder_data:
                 if (Build.VERSION.SDK_INT >= 23) {
                     if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -120,9 +131,11 @@ public class ListActivity extends AppCompatActivity {
                     actionBackupRemData();
                 }
                 return true;
+
             case R.id.action_restore_rem_data_from_backup:
                 actionRestoreRemData();
                 return true;
+
             default:
                 return super.onOptionsItemSelected(item);
             }
@@ -292,4 +305,76 @@ public class ListActivity extends AppCompatActivity {
                 break;
         }
     }
+
+
+    // filters
+    private void setFilterSpecView(FilterSpec spec) {
+//        ((TextView) findViewById(R.id.filter_name)).setText("None");
+//        ((TextView) findViewById(R.id.filter_name)).setText("Having Quick Notes");
+
+    }
+
+    private void userSetFilterNone() {
+
+
+    }
+
+    private void userSetFilterHavingQuickNotes() {
+
+
+    }
+
+    private class FilterSpec {
+        private boolean havingQuickNotes;
+
+        FilterSpec() {
+            clear();
+        }
+
+        private FilterSpec readFromStorage() {
+            String specStr = UtilStorage.readSharedPrefString(ListActivity.this,
+                    UtilStorage.KEY_ALL_REM_LIST_FILTER_SPEC, "");
+
+            clear();
+            if (specStr.trim().isEmpty()) {
+                return this;
+            }
+
+            if (specStr.equals("quick_notes")) {
+                havingQuickNotes = true;
+            }
+            return this;
+        }
+
+        private void clear() {
+            havingQuickNotes = false;
+        }
+
+        private FilterSpec addFilterHavingQuickNotes() {
+            havingQuickNotes = true;
+            return this;
+        }
+
+        //
+        private boolean hasFilterHavingQuickNotes() {
+            return havingQuickNotes;
+        }
+
+        private void writeToStorage() {
+            String specStr;
+            if (!havingQuickNotes) {
+                specStr = "";
+            } else {
+                specStr = "quick_notes";
+            }
+
+            UtilStorage.writeSharedPrefString(ListActivity.this,
+                    UtilStorage.KEY_ALL_REM_LIST_FILTER_SPEC, specStr);
+        }
+    }
+
+
+
+
+
 }

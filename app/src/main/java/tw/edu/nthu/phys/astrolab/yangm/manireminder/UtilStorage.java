@@ -33,6 +33,7 @@ public class UtilStorage {
             "tw.edu.nthu.phys.astrolab.yangm.manireminder.simple_data";
     public static final String KEY_STARTED_SITUATIONS = "started_situations";
     public static final String KEY_NEW_ALARM_ID = "new_alarm_id";
+    public static final String KEY_ALL_REM_LIST_FILTER_SPEC = "all_rem_list_filter_spec";
     public static final String KEY_APP_VERSION_CODE = "app_version_code";
 
     //
@@ -46,6 +47,18 @@ public class UtilStorage {
         SharedPreferences sharedPref =
                 context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
         sharedPref.edit().putInt(key, value).commit();
+    }
+
+    public static String readSharedPrefString(Context context, String key, String defaultValue) {
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        return sharedPref.getString(key, defaultValue);
+    }
+
+    public static void writeSharedPrefString(Context context, String key, String value) {
+        SharedPreferences sharedPref =
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE);
+        sharedPref.edit().putString(key, value).commit();
     }
 
     //
