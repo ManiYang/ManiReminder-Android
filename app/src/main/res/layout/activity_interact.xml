@@ -33,6 +33,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/label_rem_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/label_description" />

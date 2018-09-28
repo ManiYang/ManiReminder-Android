@@ -33,7 +33,7 @@
             android:parentActivityName=".DetailActivity" />
         <activity
             android:name=".HistoryViewActivity"
-            android:label="@string/view_history"
+            android:label="Situation/Event History"
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".InteractActivity"

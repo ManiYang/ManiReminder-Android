@@ -104,7 +104,15 @@ public class InteractActivity extends AppCompatActivity {
         }
         cursor.close();
 
-        ((TextView) findViewById(R.id.reminder_description)).setText(description);
+        TextView textViewDescription = findViewById(R.id.reminder_description);
+        if (description.isEmpty()) {
+            findViewById(R.id.label_rem_description).setVisibility(View.GONE);
+            textViewDescription.setVisibility(View.GONE);
+        } else {
+            findViewById(R.id.label_rem_description).setVisibility(View.VISIBLE);
+            textViewDescription.setVisibility(View.VISIBLE);
+            textViewDescription.setText(description);
+        }
         ((EditText) findViewById(R.id.quick_notes)).setText(quickNotes);
     }
 

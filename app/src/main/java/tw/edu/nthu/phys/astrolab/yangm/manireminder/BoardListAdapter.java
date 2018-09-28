@@ -71,7 +71,15 @@ public class BoardListAdapter
 
         CardView cardView = holder.cardView;
         ((TextView) cardView.findViewById(R.id.rem_title)).setText(data.getTitle());
-        ((TextView) cardView.findViewById(R.id.rem_description)).setText(data.getDescription());
+
+        TextView textViewDescription = cardView.findViewById(R.id.rem_description);
+        if (data.getDescription().isEmpty()) {
+            textViewDescription.setVisibility(View.GONE);
+        } else {
+            textViewDescription.setVisibility(View.VISIBLE);
+            textViewDescription.setText(data.getDescription());
+        }
+
         cardView.setSelected(data.isHighlighted());
 
         if (itemListener != null) {
