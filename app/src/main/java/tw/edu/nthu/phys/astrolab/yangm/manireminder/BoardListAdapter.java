@@ -19,11 +19,13 @@ public class BoardListAdapter
         private String title;
         private String description;
         private boolean highlight;
+        private boolean isTodo;
 
-        public ReminderData(String title, String description, boolean highlight) {
+        public ReminderData(String title, String description, boolean highlight, boolean isTodo) {
             this.title = title;
             this.description = description;
             this.highlight = highlight;
+            this.isTodo = isTodo;
         }
 
         public String getTitle() {
@@ -36,6 +38,10 @@ public class BoardListAdapter
 
         public boolean isHighlighted() {
             return highlight;
+        }
+
+        public boolean isTodo() {
+            return isTodo;
         }
 
         public void toggleHighlight() {
@@ -79,6 +85,8 @@ public class BoardListAdapter
             textViewDescription.setVisibility(View.VISIBLE);
             textViewDescription.setText(data.getDescription());
         }
+
+        cardView.findViewById(R.id.todo).setVisibility(data.isTodo ? View.VISIBLE : View.GONE);
 
         cardView.setSelected(data.isHighlighted());
 

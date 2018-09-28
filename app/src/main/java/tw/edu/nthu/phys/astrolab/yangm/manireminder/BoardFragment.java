@@ -16,6 +16,7 @@ import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
+import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -155,6 +156,19 @@ public class BoardFragment extends Fragment {
         }
         cursor.close();
 
+        // read reminder model types
+        SparseIntArray remModelTypes = new SparseIntArray();
+
+        cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, new String[] {"_id", "type"},
+                "_id IN ("+UtilStorage.qMarks(openedRemIds.size())+")",
+                UtilGeneral.toStringArray(openedRemIds),
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            remModelTypes.append(cursor.getInt(0), cursor.getInt(1));
+        }
+        cursor.close();
+
         // update `remindersIdData`
         remindersIdData.clear();
         for (int i=0; i<openedRems.size(); i++) {
@@ -162,11 +176,13 @@ public class BoardFragment extends Fragment {
             String title = remTitles.get(remId);
             String description = remDescriptions.get(remId);
             boolean highlight = openedRems.valueAt(i);
-            if (title == null || description == null) {
+            int model = remModelTypes.get(remId, -1);
+            if (title == null || description == null || model == -1) {
                 throw new RuntimeException("failed to get reminder data");
             }
             remindersIdData.append(remId,
-                    new BoardListAdapter.ReminderData(title, description, highlight));
+                    new BoardListAdapter.ReminderData(
+                            title, description, highlight, (model == 1 || model == 3)));
         }
 
         // notify adapter about data change

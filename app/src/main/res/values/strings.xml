@@ -74,6 +74,8 @@
     <string name="label_quick_notes">Quick notes:</string>
     <string name="hint_add_quick_note">add quick notes</string>
 
+    <string name="todo_allcap">TODO</string>
+
     <string name="todo_at_instants">Todo at Instants</string>
     <string name="remind_during_periods">Remind during Periods</string>
     <string name="todo_repeatedly_during_periods">Todo Repeatedly during Periods</string>

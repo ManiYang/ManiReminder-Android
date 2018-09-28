@@ -6,8 +6,8 @@ android {
         applicationId "tw.edu.nthu.phys.astrolab.yangm.manireminder"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 8
-        versionName "0.8"
+        versionCode 9
+        versionName "0.9"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
