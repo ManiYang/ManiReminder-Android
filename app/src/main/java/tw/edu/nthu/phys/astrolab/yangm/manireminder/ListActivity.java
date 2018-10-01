@@ -20,14 +20,18 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public class ListActivity extends AppCompatActivity {
 
-    private Cursor cursorRemindersBrief;
+//    private Cursor cursorRemindersBrief;
     private SparseArray<String> allTags;
+    BriefListAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,49 +40,12 @@ public class ListActivity extends AppCompatActivity {
 
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-    }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-
+        //
         SQLiteDatabase db = UtilStorage.getReadableDatabase(this);
-        cursorRemindersBrief = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, null,
-                null, null, null, null, null);
         allTags = UtilReminder.getAllTagsFromDb(db);
 
-        FilterSpec filterSpec = new FilterSpec().readFromStorage();
-        setFilterSpecView(filterSpec);
-        populateList(filterSpec);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (cursorRemindersBrief != null) {
-            cursorRemindersBrief.close();
-        }
-    }
-
-    private void populateList(FilterSpec filterSpec) {
-        // get reminders brief data from database
-        int nRows = cursorRemindersBrief.getCount();
-        Log.v("ListActivity", "### Number of reminders: "+Integer.toString(nRows));
-
-        int[] ids = new int[nRows];
-        String[] titles = new String[nRows];
-        String[] tagsStrings = new String[nRows];
-
-        for(int p=0; p<nRows; p++) {
-            cursorRemindersBrief.moveToPosition(p);
-            ids[p] = cursorRemindersBrief.getInt(0);
-            titles[p] = cursorRemindersBrief.getString(1);
-            tagsStrings[p] = UtilReminder.buildTagsString(
-                    cursorRemindersBrief.getString(2), allTags);
-        }
-
-        // create BriefListAdapter with data
-        BriefListAdapter adapter = new BriefListAdapter(ids, titles, tagsStrings);
+        adapter = new BriefListAdapter(allTags);
         adapter.setItemClickListener(new BriefListAdapter.ItemClickListener() {
             @Override
             public void onClick(int reminderId) {
@@ -88,10 +55,59 @@ public class ListActivity extends AppCompatActivity {
             }
         });
 
-        // prepare brief_list_recycler
         RecyclerView briefListRecycler = findViewById(R.id.brief_list_recycler);
         briefListRecycler.setAdapter(adapter);
         briefListRecycler.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        FilterSpec filterSpec = new FilterSpec().readFromStorage();
+        setFilterSpecView(filterSpec);
+        populateList(filterSpec);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        adapter.closeCursor();
+    }
+
+    private void populateList(FilterSpec filterSpec) {
+        Log.v("ListActivity", "#### populateList() start");
+
+        adapter.closeCursor();
+
+        // query DB according to filter spec
+        SQLiteDatabase db = UtilStorage.getReadableDatabase(this);
+
+        Cursor cursor;
+        String tableRemBrief = MainDbHelper.TABLE_REMINDERS_BRIEF;
+        String tableRemDetail = MainDbHelper.TABLE_REMINDERS_DETAIL;
+        if (filterSpec.hasFilterHavingQuickNotes()) {
+            cursor = db.rawQuery("SELECT b._id, b.title, b.tags "
+                    + "FROM " + tableRemBrief + " b INNER JOIN " + tableRemDetail + " d "
+                    + "ON b._id = d._id "
+                    + "WHERE d.quick_notes != '';",
+                    null);
+        } else {
+            cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF,
+                    new String[]{"_id", "title", "tags"},
+                    null, null, null, null, null);
+        }
+
+        // assign new cursor to adapter
+        adapter.setCursor(cursor);
+
+        RecyclerView briefListRecycler = findViewById(R.id.brief_list_recycler);
+        if (briefListRecycler.getAdapter() == null) {
+            briefListRecycler.setAdapter(adapter);
+            briefListRecycler.setLayoutManager(new LinearLayoutManager(this));
+        } else {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     // option menu //
@@ -145,17 +161,9 @@ public class ListActivity extends AppCompatActivity {
         SQLiteDatabase db = UtilStorage.getWritableDatabase(this);
 
         // get largest reminder ID
-        int largestId;
-        if (cursorRemindersBrief.getCount() == 0) {
-            largestId = -1;
-        } else {
-            Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"MAX(_id)"},
-                    null, null, null, null, null);
-            cursor.moveToFirst();
-            largestId = cursor.getInt(0);
-            cursor.close();
-        }
-        Log.v("ListActivity", "### largestId = "+Integer.toString(largestId));
+        List<Integer> idList = UtilStorage.getIdsInTable(
+                this, MainDbHelper.TABLE_REMINDERS_BRIEF);
+        int largestId = idList.isEmpty() ? (-1) : Collections.max(idList);
 
         // create new empty reminder in database
         int newId = largestId + 1;
@@ -217,18 +225,18 @@ public class ListActivity extends AppCompatActivity {
                         if (Build.VERSION.SDK_INT >= 23) {
                             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                                     == PackageManager.PERMISSION_GRANTED) {
-                                restoreRemData();
+                                restoreRemDataFromBackup();
                             } else {
                                 requestReadExternalStoragePermission(REQUEST_CODE_FOR_RESTORE_DATA);
                             }
                         } else {
-                            restoreRemData();
+                            restoreRemDataFromBackup();
                         }
                     }
                 }).show();
     }
 
-    private void restoreRemData() {
+    private void restoreRemDataFromBackup() {
         String state = Environment.getExternalStorageState();
         if (!state.equals(Environment.MEDIA_MOUNTED)
                 && !state.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
@@ -297,7 +305,7 @@ public class ListActivity extends AppCompatActivity {
                 break;
             case REQUEST_CODE_FOR_RESTORE_DATA:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    restoreRemData();
+                    restoreRemDataFromBackup();
                 } else {
                     Toast.makeText(this, "storage-reading permission denied",
                             Toast.LENGTH_SHORT).show();
@@ -309,19 +317,38 @@ public class ListActivity extends AppCompatActivity {
 
     // filters
     private void setFilterSpecView(FilterSpec spec) {
-//        ((TextView) findViewById(R.id.filter_name)).setText("None");
-//        ((TextView) findViewById(R.id.filter_name)).setText("Having Quick Notes");
-
+        if (spec.havingQuickNotes) {
+            ((TextView) findViewById(R.id.filter_name)).setText("Having Quick Notes");
+        } else {
+            ((TextView) findViewById(R.id.filter_name)).setText("None");
+        }
     }
 
     private void userSetFilterNone() {
+        FilterSpec filterSpec = new FilterSpec().readFromStorage();
+        if (filterSpec.isEmpty()) {
+            return;
+        }
 
+        filterSpec.clear();
 
+        setFilterSpecView(filterSpec);
+        populateList(filterSpec);
+        filterSpec.writeToStorage();
     }
 
     private void userSetFilterHavingQuickNotes() {
+        FilterSpec filterSpec = new FilterSpec().readFromStorage();
+        if (filterSpec.hasFilterHavingQuickNotes()) {
+            return;
+        }
 
+        filterSpec.clear();
+        filterSpec.addFilterHavingQuickNotes();
 
+        setFilterSpecView(filterSpec);
+        populateList(filterSpec);
+        filterSpec.writeToStorage();
     }
 
     private class FilterSpec {
@@ -356,6 +383,10 @@ public class ListActivity extends AppCompatActivity {
         }
 
         //
+        private boolean isEmpty() {
+            return !havingQuickNotes;
+        }
+
         private boolean hasFilterHavingQuickNotes() {
             return havingQuickNotes;
         }
@@ -372,9 +403,4 @@ public class ListActivity extends AppCompatActivity {
                     UtilStorage.KEY_ALL_REM_LIST_FILTER_SPEC, specStr);
         }
     }
-
-
-
-
-
 }

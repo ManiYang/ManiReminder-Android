@@ -65,11 +65,11 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_DETAIL + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "description TEXT, "
-                    + "quick_note TEXT);");
+                    + "quick_notes TEXT);");
             values.clear();
             values.put("_id", 0);
             values.put("description", "This is a reminder for testing only.");
-            values.put("quick_note", "");
+            values.put("quick_notes", "");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
 
             values.clear();

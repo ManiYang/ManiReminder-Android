@@ -1,8 +1,10 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
+import android.database.Cursor;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,22 +13,39 @@ import android.widget.TextView;
 public class BriefListAdapter
         extends RecyclerView.Adapter<BriefListAdapter.ViewHolder> {
 
-    private int[] reminderIds;
-    private String[] titles;
-    private String[] tagStrings;
+    private Cursor cursor; // {"_id", "title", "tags"}
+
+    private SparseArray<String> allTags;
     private ItemClickListener itemClickListener;
 
-    public BriefListAdapter(int[] reminderIds, String[] titles, String[] tagStrings) {
-        this.reminderIds = reminderIds;
-        this.titles = titles;
-        this.tagStrings = tagStrings;
+    public BriefListAdapter(SparseArray<String> allTags) {
+        this.allTags = allTags;
+    }
+
+    public void setCursor(Cursor cursor) {
+        this.cursor = cursor;
+    }
+
+    public void closeCursor() {
+        if (cursor != null) {
+            cursor.close();
+        }
+        cursor = null;
     }
 
     @Override
     public int getItemCount() {
-        return reminderIds.length;
+        if (cursor != null) {
+            return cursor.getCount();
+        } else
+            return 0;
     }
 
+    public void setItemClickListener(ItemClickListener listener) {
+        this.itemClickListener = listener;
+    }
+
+    //
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -37,12 +56,17 @@ public class BriefListAdapter
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        if (!cursor.moveToPosition(position)) {
+            return;
+        }
+
         CardView cardView = holder.cardView;
+        ((TextView) cardView.findViewById(R.id.item_title)).setText(cursor.getString(1));
 
-        ((TextView) cardView.findViewById(R.id.item_title)).setText(titles[position]);
-        ((TextView) cardView.findViewById(R.id.item_tags)).setText(tagStrings[position]);
+        String tagsStr = UtilReminder.buildTagsString(cursor.getString(2), allTags);
+        ((TextView) cardView.findViewById(R.id.item_tags)).setText(tagsStr);
 
-        final int reminderId = reminderIds[position];
+        final int reminderId = cursor.getInt(0);
         cardView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -51,11 +75,6 @@ public class BriefListAdapter
                 }
             }
         });
-    }
-
-    //
-    public void setItemClickListener(ItemClickListener listener) {
-        this.itemClickListener = listener;
     }
 
     //
