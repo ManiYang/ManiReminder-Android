@@ -10,4 +10,5 @@
     android:paddingTop="2dp"
     android:paddingBottom="1dp"
     android:scrollbars="vertical"
+    android:background="@color/background1"
     app:layout_behavior="@string/appbar_scrolling_view_behavior" />

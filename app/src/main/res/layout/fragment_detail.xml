@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -136,11 +137,34 @@
         android:layout_marginTop="4dp"
         android:layout_marginBottom="6dp" />
 
-    <TextView
-        android:id="@+id/label_quick_notes"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/label_quick_notes" />
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/label_quick_notes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:text="@string/label_quick_notes" />
+
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/button_remove_quick_notes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="-6dp"
+            android:contentDescription="Remove Quick Notes"
+            android:paddingBottom="7dp"
+            android:paddingTop="7dp"
+            android:src="@mipmap/ic_delete_black_24" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/quick_notes"

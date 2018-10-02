@@ -71,6 +71,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         view.findViewById(R.id.label_quick_notes).setOnClickListener(viewsOnClickListener);
         view.findViewById(R.id.quick_notes).setOnClickListener(viewsOnClickListener);
 
+        view.findViewById(R.id.button_remove_quick_notes).setOnClickListener(buttonsOnClickListener);
+
         return view;
     }
 
@@ -250,7 +252,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         }
     }
 
-    // OnClick listener for all views
+    // OnClick listener for views
     private View.OnClickListener viewsOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -301,6 +303,26 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         }
     };
 
+    // OnClick listener for buttons
+    private View.OnClickListener buttonsOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.button_remove_quick_notes:
+                    new AlertDialog.Builder(getContext()).setTitle("Remove quick notes")
+                            .setMessage("Are you sure?").setCancelable(true)
+                            .setNegativeButton(R.string.cancel, null)
+                            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    actionDeleteQuickNotes();
+                                }
+                            }).show();
+                    break;
+            }
+        }
+    };
+
     // SimpleTextEditDialog //
     private void showSimpleTextEditDialog(
             String fieldName, int associateTextViewId, int textInputType) {
@@ -339,6 +361,10 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         switch (dialog.getTag()) {
             case "dialog_edit_title": {
                 // update title
+                newText = newText.trim();
+                if (newText.isEmpty()) {
+                    newText = "Untitled";
+                }
                 ((TextView) view.findViewById(R.id.title)).setText(newText);
                 ContentValues values = new ContentValues();
                 values.put("title", newText);
@@ -349,7 +375,9 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
             }
             case "dialog_edit_description": {
                 // update description
-                ((TextView) view.findViewById(R.id.description)).setText(newText);
+                newText = newText.trim();
+                ((TextView) view.findViewById(R.id.description)).setText(
+                        newText.isEmpty() ? NONE_INDICATOR : newText);
                 ContentValues values = new ContentValues();
                 values.put("description", newText);
                 int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
@@ -359,7 +387,9 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
             }
             case "dialog_edit_quick_notes": {
                 // update quick notes
-                ((TextView) view.findViewById(R.id.quick_notes)).setText(newText);
+                newText = newText.trim();
+                ((TextView) view.findViewById(R.id.quick_notes)).setText(
+                        newText.isEmpty() ? NONE_INDICATOR : newText);
                 ContentValues values = new ContentValues();
                 values.put("quick_notes", newText);
                 int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
@@ -577,5 +607,20 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
             }
         }
         return ids;
+    }
+
+    private void actionDeleteQuickNotes() {
+        TextView quickNotes = getView().findViewById(R.id.quick_notes);
+        if (quickNotes.getText().length() == 0
+                || quickNotes.getText().toString().equals(NONE_INDICATOR)) {
+            return;
+        }
+
+        quickNotes.setText(NONE_INDICATOR);
+
+        ContentValues values = new ContentValues();
+        values.put("quick_notes", "");
+        db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
+                "_id = ?", new String[]{Integer.toString(reminderId)});
     }
 }
