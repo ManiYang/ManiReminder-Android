@@ -17,7 +17,6 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.util.SparseArray;
-import android.util.SparseBooleanArray;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -606,9 +605,11 @@ public class ReminderBoardLogic {
         // update the list of opened reminders (model-2 reminders: open only those in
         // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
         Set<Integer> remIdsToRemoveFromOpened = new HashSet<>();
-        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
-        for (int i=0; i<openedRemsOld.size(); i++) {
-            int remId = openedRemsOld.keyAt(i);
+        List<Integer> openedRemsOld = UtilStorage.getOpenedRemindersList(context);
+//        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
+        for (int remId: openedRemsOld) {
+//        for (int i=0; i<openedRemsOld.size(); i++) {
+//            int remId = openedRemsOld.keyAt(i);
 
             int index = reader.remModel23Behaviors.indexOfKey(remId);
                     //(note that reader.remModel23Behaviors contains all model-2,3 reminders)

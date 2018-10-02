@@ -15,12 +15,12 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.util.SparseArray;
-import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.util.Calendar;
 import java.util.List;
 
 
@@ -124,12 +124,11 @@ public class BoardFragment extends Fragment {
 
     private void loadData() {
         // read opened reminders (ID's)
-        SparseBooleanArray openedRems = UtilStorage.getOpenedReminders(getContext());
-        List<Integer> openedRemIds = UtilGeneral.getKeysOfSparseBooleanArray(openedRems);
+        SparseArray<UtilStorage.OpenedRemindersInfo> openedRems =
+                UtilStorage.getOpenedReminders(getContext());
+        List<Integer> openedRemIds = UtilGeneral.getKeysOfSparseArray(openedRems);
 
         // read reminder titles
-        String whereArgIds = UtilGeneral.joinIntegerList(", ", openedRemIds);
-
         SparseArray<String> remTitles = new SparseArray<>();
         SQLiteDatabase db = UtilStorage.getReadableDatabase(getContext());
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BRIEF, new String[] {"_id", "title"},
@@ -175,14 +174,15 @@ public class BoardFragment extends Fragment {
             int remId = openedRems.keyAt(i);
             String title = remTitles.get(remId);
             String description = remDescriptions.get(remId);
-            boolean highlight = openedRems.valueAt(i);
+            boolean highlight = openedRems.valueAt(i).highlight;
+            Calendar openTime = openedRems.valueAt(i).openTime;
             int model = remModelTypes.get(remId, -1);
             if (title == null || description == null || model == -1) {
                 throw new RuntimeException("failed to get reminder data");
             }
             remindersIdData.append(remId,
                     new BoardListAdapter.ReminderData(
-                            title, description, highlight, (model == 1 || model == 3)));
+                            title, description, highlight, (model == 1 || model == 3), openTime));
         }
 
         // notify adapter about data change

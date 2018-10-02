@@ -27,9 +27,18 @@
                 android:id="@+id/todo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
                 android:text="@string/todo_allcap"
                 android:textSize="11sp"
                 android:textStyle="bold|italic" />
+
+            <TextView
+                android:id="@+id/open_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="hh:mm" />
         </LinearLayout>
 
         <TextView

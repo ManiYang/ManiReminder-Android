@@ -9,6 +9,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+
 public class BoardListAdapter
         extends RecyclerView.Adapter<BoardListAdapter.ViewHolder> {
 
@@ -20,12 +24,15 @@ public class BoardListAdapter
         private String description;
         private boolean highlight;
         private boolean isTodo;
+        private Calendar openTime;  //can be null
 
-        public ReminderData(String title, String description, boolean highlight, boolean isTodo) {
+        public ReminderData(String title, String description,
+                            boolean highlight, boolean isTodo, Calendar openTime) {
             this.title = title;
             this.description = description;
             this.highlight = highlight;
             this.isTodo = isTodo;
+            this.openTime = openTime;
         }
 
         public String getTitle() {
@@ -86,7 +93,18 @@ public class BoardListAdapter
             textViewDescription.setText(data.getDescription());
         }
 
-        cardView.findViewById(R.id.todo).setVisibility(data.isTodo ? View.VISIBLE : View.GONE);
+        if (data.isTodo) {
+            cardView.findViewById(R.id.todo).setVisibility(View.VISIBLE);
+            cardView.findViewById(R.id.open_time).setVisibility(View.VISIBLE);
+            if (data.openTime != null) {
+                ((TextView) cardView.findViewById(R.id.open_time)).setText(
+                        new SimpleDateFormat("HH:mm", Locale.US)
+                                .format(data.openTime.getTime()));
+            }
+        } else {
+            cardView.findViewById(R.id.todo).setVisibility(View.GONE);
+            cardView.findViewById(R.id.open_time).setVisibility(View.GONE);
+        }
 
         cardView.setSelected(data.isHighlighted());
 

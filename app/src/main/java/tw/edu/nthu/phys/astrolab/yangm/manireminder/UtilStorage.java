@@ -9,7 +9,6 @@ import android.database.sqlite.SQLiteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseArray;
-import android.util.SparseBooleanArray;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -716,20 +715,50 @@ public class UtilStorage {
 
 
     //// opened reminders ////
-    public static SparseBooleanArray getOpenedReminders(Context context) {
-        SparseBooleanArray rems = new SparseBooleanArray();
+    public static List<Integer> getOpenedRemindersList(Context context) {
+        List<Integer> list = new ArrayList<>();
 
         SQLiteDatabase db = getReadableDatabase(context);
         Cursor cursor = db.query(MainDbHelper.TABLE_OPENED_REMINDERS,
-                new String[] {"_id", "highlight"},
+                new String[] {"_id"},
                 null, null,
                 null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
-            rems.append(cursor.getInt(0), cursor.getInt(1) == 1);
+            list.add(cursor.getInt(0));
         }
         cursor.close();
-        return rems;
+        return list;
+    }
+
+    public static class OpenedRemindersInfo {
+        public boolean highlight;
+        public Calendar openTime; // can be null
+
+        public OpenedRemindersInfo(boolean highlight, Calendar openTime) {
+            this.highlight = highlight;
+            this.openTime = openTime;
+        }
+    }
+
+    public static SparseArray<OpenedRemindersInfo> getOpenedReminders(Context context) {
+        SparseArray<OpenedRemindersInfo> array = new SparseArray<>();
+
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_OPENED_REMINDERS,
+                new String[] {"_id", "highlight", "open_time"},
+                null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            String timeStr = cursor.getString(2);
+            Calendar t = (timeStr == null) ? null :
+                    UtilDatetime.timeFromString(timeStr, UtilDatetime.OPTION_COMPACT);
+            array.append(cursor.getInt(0),
+                    new OpenedRemindersInfo(cursor.getInt(1) == 1, t));
+        }
+        cursor.close();
+        return array;
     }
 
     public static boolean isReminderOpened(Context context, int remId) {
@@ -743,12 +772,33 @@ public class UtilStorage {
     }
 
     /**
-     * Reminders will be added with highlight = 1.
-     * If a reminder already exists, it will be updated with highlight = 1.
+     * Reminders will be added with highlight = 1 and open_time = (current time).
+     * If a reminder already exists, it will be updated with highlight = 1 and
+     * open_time = (current time).
      */
     public static void addOpenedReminders(Context context, Set<Integer> remIdsToAdd) {
-        SparseBooleanArray remsOld = getOpenedReminders(context);
+        Calendar now = Calendar.getInstance();
+        List<Integer> remsOld = getOpenedRemindersList(context);
+        SQLiteDatabase db = getWritableDatabase(context);
+        for (int remId: remIdsToAdd) {
+            if (remsOld.indexOf(remId) != -1) {
+                // update
+                ContentValues values = new ContentValues();
+                values.put("highlight", 1);
+                values.put("open_time", UtilDatetime.timeToString(now, UtilDatetime.OPTION_COMPACT));
+                db.update(MainDbHelper.TABLE_OPENED_REMINDERS, values,
+                        "_id = ?", new String[] {Integer.toString(remId)});
+            } else {
+                // insert
+                ContentValues values = new ContentValues();
+                values.put("_id", remId);
+                values.put("highlight", 1);
+                values.put("open_time", UtilDatetime.timeToString(now, UtilDatetime.OPTION_COMPACT));
+                db.insert(MainDbHelper.TABLE_OPENED_REMINDERS, null, values);
+            }
+        }
 
+        /*
         // update
         for (int i=0; i<remsOld.size(); i++) {
             int remId = remsOld.keyAt(i);
@@ -772,8 +822,9 @@ public class UtilStorage {
                 values.put("highlight", 1);
                 db.insert(MainDbHelper.TABLE_OPENED_REMINDERS, null, values);
             }
-        }
+        }*/
 
+        //
         for (int remId: remIdsToAdd) {
             Log.v("mainlog",
                     String.format(Locale.US, "rem %d open (DB update)", remId));
@@ -781,12 +832,12 @@ public class UtilStorage {
     }
 
     public static void toggleHighlightOfOpenedReminder(Context context, int remId) {
-        SparseBooleanArray rems = getOpenedReminders(context);
-        int index = rems.indexOfKey(remId);
+        SparseArray<OpenedRemindersInfo>  remsInfo = getOpenedReminders(context);
+        int index = remsInfo.indexOfKey(remId);
         if (index < 0) {
             throw new RuntimeException("`remId` not found in opened reminders");
         }
-        int newHighlight = rems.valueAt(index) ? 0 : 1;
+        int newHighlight = remsInfo.valueAt(index).highlight ? 0 : 1;
 
         ContentValues values = new ContentValues();
         values.put("highlight", newHighlight);

@@ -9,7 +9,7 @@ import android.util.Log;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -176,12 +176,13 @@ public class MainDbHelper extends SQLiteOpenHelper {
             // opened reminders
             db.execSQL("CREATE TABLE " + TABLE_OPENED_REMINDERS + " ("
                     + "_id INTEGER PRIMARY KEY, "
-                    + "highlight INTEGER);");
+                    + "highlight INTEGER, "
+                    + "open_time TEXT);");
         }
 
-        if (oldVersion == 2) {
-            // add column "quick_note" to reminder detail
-            db.execSQL("ALTER TABLE " + TABLE_REMINDERS_DETAIL + " ADD quick_notes TEXT;");
+        if (oldVersion == 3) {
+            // add column "open_time" to opened reminder
+            db.execSQL("ALTER TABLE " + TABLE_OPENED_REMINDERS + " ADD open_time TEXT;");
         }
     }
 
