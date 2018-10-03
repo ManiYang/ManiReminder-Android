@@ -39,6 +39,10 @@
             android:name=".InteractActivity"
             android:label=""
             android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".EditSitsEventsActivity"
+            android:label="Edit Situation/Event"
+            android:parentActivityName=".MainActivity" />
 
         <receiver
             android:name=".AlarmReceiver"
@@ -47,12 +51,12 @@
                 <action android:name="@string/action_scheduled_actions" />
             </intent-filter>
         </receiver>
-
         <receiver android:name=".BootCompletedIntentReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
 
     </application>
 

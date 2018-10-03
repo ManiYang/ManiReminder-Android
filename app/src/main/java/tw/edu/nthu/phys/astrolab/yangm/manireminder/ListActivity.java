@@ -6,11 +6,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -216,8 +218,8 @@ public class ListActivity extends AppCompatActivity {
 
     private void actionRestoreRemData() {
         new AlertDialog.Builder(this).setTitle("Warning")
-                .setMessage("Are you sure to overwrite current reminder data with last backup, "
-                        + "and do a fresh restart?")
+                .setMessage("Are you sure to overwrite current reminder data with last backup? "
+                        + "Reminders currently opened may be closed.")
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                     @Override
@@ -269,6 +271,10 @@ public class ListActivity extends AppCompatActivity {
             Toast.makeText(this, "Could not restore reminder data", Toast.LENGTH_SHORT)
                     .show();
         } else {
+            // close all reminders
+            UtilStorage.clearOpenedReminders(this);
+
+            // do a fresh restart
             new ReminderBoardLogic(this).freshRestart();
             Toast.makeText(this, "restored reminder data from backup",
                     Toast.LENGTH_SHORT).show();
@@ -319,8 +325,12 @@ public class ListActivity extends AppCompatActivity {
     private void setFilterSpecView(FilterSpec spec) {
         if (spec.havingQuickNotes) {
             ((TextView) findViewById(R.id.filter_name)).setText("Having Quick Notes");
+            ((TextView) findViewById(R.id.filter_name)).setTextColor(
+                    ContextCompat.getColor(this, R.color.colorPrimary));
+
         } else {
             ((TextView) findViewById(R.id.filter_name)).setText("None");
+            ((TextView) findViewById(R.id.filter_name)).setTextColor(Color.BLACK);
         }
     }
 

@@ -869,4 +869,9 @@ public class UtilStorage {
                     String.format(Locale.US, "rem %d close (DB update)", remId));
         }
     }
+
+    public static void clearOpenedReminders(Context context) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_OPENED_REMINDERS, null, null);
+    }
 }

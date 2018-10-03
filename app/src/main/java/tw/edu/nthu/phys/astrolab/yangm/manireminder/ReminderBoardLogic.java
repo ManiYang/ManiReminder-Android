@@ -606,11 +606,7 @@ public class ReminderBoardLogic {
         // `remM2IdsToOpen`, close the others; model-1,3 reminders stay opened/closed)
         Set<Integer> remIdsToRemoveFromOpened = new HashSet<>();
         List<Integer> openedRemsOld = UtilStorage.getOpenedRemindersList(context);
-//        SparseBooleanArray openedRemsOld = UtilStorage.getOpenedReminders(context);
         for (int remId: openedRemsOld) {
-//        for (int i=0; i<openedRemsOld.size(); i++) {
-//            int remId = openedRemsOld.keyAt(i);
-
             int index = reader.remModel23Behaviors.indexOfKey(remId);
                     //(note that reader.remModel23Behaviors contains all model-2,3 reminders)
             if (index >= 0 && reader.remModel23Behaviors.valueAt(index).isReminderInPeriod()) {

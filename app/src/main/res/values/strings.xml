@@ -8,6 +8,7 @@
     <string name="create_reminder">Create Reminder</string>
     <string name="remove_reminder">Remove This Reminder</string>
     <string name="view_reminder_settings">View Reminder Settings</string>
+    <string name="edit_sits_events">Edit Situations &amp; Events</string>
 
     <string name="dialog_title_confirm_remove">Confirm removal</string>
     <string name="dialog_msg_confirm_remove">Are you sure to remove this reminder?</string>

@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_view_all_reminders:
                 startActivity(new Intent(this, ListActivity.class));
                 return true;
+            case R.id.action_edit_sits_events:
+                startActivity(new Intent(this, EditSitsEventsActivity.class));
+                return true;
             case R.id.action_view_history:
                 startActivity(new Intent(this, HistoryViewActivity.class));
                 return true;
