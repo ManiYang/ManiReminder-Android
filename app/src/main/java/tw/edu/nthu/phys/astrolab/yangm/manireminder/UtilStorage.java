@@ -280,10 +280,12 @@ public class UtilStorage {
 
     //// situations & events ////
     public static SparseArray<String> getAllSituations(Context context) {
-        SQLiteDatabase db = getReadableDatabase(context);
         SparseArray<String> allSits = new SparseArray<>();
-        Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS, null,
-                null, null, null, null, null);
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                new String[] {"sit_event_id", "name"},
+                "is_situation = 1", null,
+                null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
             int id = cursor.getInt(0);
@@ -295,10 +297,12 @@ public class UtilStorage {
     }
 
     public static SparseArray<String> getAllEvents(Context context) {
-        SQLiteDatabase db = getReadableDatabase(context);
         SparseArray<String> allEvents = new SparseArray<>();
-        Cursor cursor = db.query(MainDbHelper.TABLE_EVENTS, null,
-                null, null, null, null, null);
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                new String[] {"sit_event_id", "name"},
+                "is_situation = 0", null,
+                null, null, null);
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
             int id = cursor.getInt(0);
@@ -307,6 +311,33 @@ public class UtilStorage {
         }
         cursor.close();
         return allEvents;
+    }
+
+    public static boolean overwriteAllSituationsEvents(
+            SQLiteDatabase db, SparseArray<String> allSits, SparseArray<String> allEvents) {
+        db.delete(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, null);
+        ContentValues values = new ContentValues();
+        for (int i=0; i<allSits.size(); i++) {
+            values.clear();
+            values.put("is_situation", 1);
+            values.put("sit_event_id", allSits.keyAt(i));
+            values.put("name", allSits.valueAt(i));
+            long check = db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
+            if (check == -1) {
+                return false;
+            }
+        }
+        for (int i=0; i<allEvents.size(); i++) {
+            values.clear();
+            values.put("is_situation", 0);
+            values.put("sit_event_id", allEvents.keyAt(i));
+            values.put("name", allEvents.valueAt(i));
+            long check = db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
+            if (check == -1) {
+                return false;
+            }
+        }
+        return true;
     }
 
 

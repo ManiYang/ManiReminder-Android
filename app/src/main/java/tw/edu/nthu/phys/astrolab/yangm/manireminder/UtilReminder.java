@@ -89,5 +89,4 @@ public class UtilReminder {
         result.add(sitId);
         return result;
     }
-
 }

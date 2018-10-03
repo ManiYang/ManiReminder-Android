@@ -203,10 +203,8 @@ public class ListActivity extends AppCompatActivity {
                         new File(dir, "reminder_behavior.csv"))
                 && UtilStorage.dumpTableToCsv(this, MainDbHelper.TABLE_TAGS,
                         new File(dir, "tags.csv"))
-                && UtilStorage.dumpTableToCsv(this, MainDbHelper.TABLE_SITUATIONS,
-                        new File(dir, "situations.csv"))
-                && UtilStorage.dumpTableToCsv(this, MainDbHelper.TABLE_EVENTS,
-                        new File(dir, "events.csv"));
+                && UtilStorage.dumpTableToCsv(this, MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                        new File(dir, "situations_events.csv"));
         if (!check) {
             Toast.makeText(this, "Could not write to files", Toast.LENGTH_SHORT)
                     .show();
@@ -263,10 +261,8 @@ public class ListActivity extends AppCompatActivity {
                         new File(dir, "reminder_behavior.csv"))
                 && UtilStorage.overwriteTableFromCsv(this, MainDbHelper.TABLE_TAGS,
                         new File(dir, "tags.csv"))
-                && UtilStorage.overwriteTableFromCsv(this, MainDbHelper.TABLE_SITUATIONS,
-                        new File(dir, "situations.csv"))
-                && UtilStorage.overwriteTableFromCsv(this, MainDbHelper.TABLE_EVENTS,
-                        new File(dir, "events.csv"));
+                && UtilStorage.overwriteTableFromCsv(this, MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                        new File(dir, "situations_events.csv"));
         if (!check) {
             Toast.makeText(this, "Could not restore reminder data", Toast.LENGTH_SHORT)
                     .show();

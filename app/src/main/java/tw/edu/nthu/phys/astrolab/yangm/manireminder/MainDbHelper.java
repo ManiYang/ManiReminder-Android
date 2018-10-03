@@ -2,22 +2,25 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 6;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
     public static final String TABLE_REMINDERS_BEHAVIOR = "reminders_behavior_settings";
     public static final String TABLE_REMINDERS_STARTED_PERIODS = "reminders_started_periods";
     public static final String TABLE_TAGS = "tags";
-    public static final String TABLE_SITUATIONS = "situations";
-    public static final String TABLE_EVENTS = "events";
+    public static final String TABLE_SITUATIONS_EVENTS = "situations_events";
     public static final String TABLE_HISTORY = "history";
     public static final String TABLE_SCHEDULED_ACTIONS = "scheduled_actions";
     public static final String TABLE_OPENED_REMINDERS = "opened_reminders";
@@ -124,28 +127,27 @@ public class MainDbHelper extends SQLiteOpenHelper {
             values.put("name", "testing1");
             db.insert(TABLE_TAGS, null, values);
 
-            // situations
-            db.execSQL("CREATE TABLE " + TABLE_SITUATIONS + " ("
-                    + "_id INTEGER PRIMARY KEY, "
+            // situations and events
+            db.execSQL("CREATE TABLE " + TABLE_SITUATIONS_EVENTS + " ("
+                    + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "is_situation INTEGER, "
+                    + "sit_event_id INTEGER, "
                     + "name TEXT );");
-            values = new ContentValues();
-            values.put("_id", 0);
+            values.clear();
+            values.put("is_situation", 1);
+            values.put("sit_event_id", 0);
             values.put("name", "Situation0");
-            check = db.insert(TABLE_SITUATIONS, null, values);
+            check = db.insert(TABLE_SITUATIONS_EVENTS, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table " + TABLE_SITUATIONS);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_SITUATIONS_EVENTS);
             }
-
-            // events
-            db.execSQL("CREATE TABLE " + TABLE_EVENTS + " ("
-                    + "_id INTEGER PRIMARY KEY, "
-                    + "name TEXT );");
-            values = new ContentValues();
-            values.put("_id", 0);
+            values.clear();
+            values.put("is_situation", 0);
+            values.put("sit_event_id", 0);
             values.put("name", "Event0");
-            check = db.insert(TABLE_EVENTS, null, values);
+            check = db.insert(TABLE_SITUATIONS_EVENTS, null, values);
             if (check == -1) {
-                throw new RuntimeException("failed to insert a row to table " + TABLE_EVENTS);
+                throw new RuntimeException("failed to insert a row to table " + TABLE_SITUATIONS_EVENTS);
             }
 
             // history
@@ -184,6 +186,61 @@ public class MainDbHelper extends SQLiteOpenHelper {
             // add column "open_time" to opened reminder
             db.execSQL("ALTER TABLE " + TABLE_OPENED_REMINDERS + " ADD open_time TEXT;");
         }
+        else if (oldVersion == 4 || oldVersion == 5) {
+            Log.v("MainDbHelper", "#### oldVersion=4,5");
+
+            final String TABLE_SITUATIONS = "situations";
+            final String TABLE_EVENTS = "events";
+
+            List<ContentValues> rows = new ArrayList<>();
+
+            // read situations table and events table
+            Cursor cursor = db.query(TABLE_SITUATIONS, null, null, null,
+            null, null, null);
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+
+                ContentValues values = new ContentValues();
+                values.put("is_situation", 1);
+                values.put("sit_event_id", id);
+                values.put("name", name);
+                rows.add(values);
+            }
+            cursor.close();
+
+            cursor = db.query(TABLE_EVENTS, null, null, null,
+                    null, null, null);
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+
+                ContentValues values = new ContentValues();
+                values.put("is_situation", 0);
+                values.put("sit_event_id", id);
+                values.put("name", name);
+                rows.add(values);
+            }
+            cursor.close();
+
+            // drop situations table and events table
+            db.execSQL("DROP TABLE " + TABLE_SITUATIONS);
+            db.execSQL("DROP TABLE " + TABLE_EVENTS);
+
+            // create table
+            db.execSQL("CREATE TABLE " + TABLE_SITUATIONS_EVENTS + " ("
+                    + "_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "is_situation INTEGER, "
+                    + "sit_event_id INTEGER, "
+                    + "name TEXT );");
+
+            // add data
+            for (ContentValues values: rows) {
+                db.insert(TABLE_SITUATIONS_EVENTS, null, values);
+            }
+        }
     }
 
     //
@@ -205,6 +262,7 @@ public class MainDbHelper extends SQLiteOpenHelper {
         values.clear();
         values.put("_id", remId);
         values.put("description", "");
+        values.put("quick_notes", "");
         check &= db.insert(TABLE_REMINDERS_DETAIL, null, values) != -1;
 
         // behavior data

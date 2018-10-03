@@ -520,7 +520,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 //
                 allSituations = UtilGeneral.parseAsSparseStringArray(newAllSitsDict);
                 allEvents = UtilGeneral.parseAsSparseStringArray(newAllEventsDict);
-                boolean b = saveAllSituationsEventsToDb(allSituations, allEvents, db);
+//                boolean b = saveAllSituationsEventsToDb(allSituations, allEvents, db);
+                boolean b = UtilStorage.overwriteAllSituationsEvents(db, allSituations, allEvents);
                 if (!b) {
                     Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
                             .show();
@@ -571,6 +572,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         return true;
     }
 
+    /*
     private boolean saveAllSituationsEventsToDb(
             SparseArray<String> allSits, SparseArray<String> allEvents, SQLiteDatabase db) {
         db.delete(MainDbHelper.TABLE_SITUATIONS, null, null);
@@ -594,7 +596,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         }
 
         return true;
-    }
+    }*/
 
     private ArrayList<Integer> getTagIds(List<String> tags, SparseArray<String> allTags) {
         ArrayList<Integer> ids = new ArrayList<>();
