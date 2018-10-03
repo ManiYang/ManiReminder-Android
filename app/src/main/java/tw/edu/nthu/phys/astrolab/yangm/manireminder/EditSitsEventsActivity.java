@@ -7,13 +7,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class EditSitsEventsActivity extends AppCompatActivity {
+public class EditSitsEventsActivity extends AppCompatActivity
+        implements SitsEventsListAdapter.OnStartDragListener {
+
+    private ItemTouchHelper itemTouchHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,7 +29,6 @@ public class EditSitsEventsActivity extends AppCompatActivity {
 
         loadData();
     }
-
 
     private void loadData() {
         // get all sits/events
@@ -67,11 +70,16 @@ public class EditSitsEventsActivity extends AppCompatActivity {
                     false, eventName, eventsCounts.valueAt(i)));
         }
 
-        //
+        // set up RecyclerView
+        SitsEventsListAdapter adapter =
+                new SitsEventsListAdapter(sitsEventsData, this);
+
         RecyclerView recycler = findViewById(R.id.recycler_sits_events);
-        SitsEventsListAdapter adapter = new SitsEventsListAdapter(sitsEventsData);
         recycler.setAdapter(adapter);
         recycler.setLayoutManager(new LinearLayoutManager(this));
+
+        itemTouchHelper = new ItemTouchHelper(new ItemTouchHelperCallback(adapter));
+        itemTouchHelper.attachToRecyclerView(recycler);
     }
 
     private void addToCounts(SparseIntArray idsCounts, String ids) {
@@ -88,5 +96,11 @@ public class EditSitsEventsActivity extends AppCompatActivity {
                 idsCounts.put(id, idsCounts.valueAt(index) + 1);
             }
         }
+    }
+
+    //
+    @Override
+    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
+        itemTouchHelper.startDrag(viewHolder);
     }
 }
