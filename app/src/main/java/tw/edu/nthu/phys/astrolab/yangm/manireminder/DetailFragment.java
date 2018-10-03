@@ -520,7 +520,6 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 //
                 allSituations = UtilGeneral.parseAsSparseStringArray(newAllSitsDict);
                 allEvents = UtilGeneral.parseAsSparseStringArray(newAllEventsDict);
-//                boolean b = saveAllSituationsEventsToDb(allSituations, allEvents, db);
                 boolean b = UtilStorage.overwriteAllSituationsEvents(db, allSituations, allEvents);
                 if (!b) {
                     Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)

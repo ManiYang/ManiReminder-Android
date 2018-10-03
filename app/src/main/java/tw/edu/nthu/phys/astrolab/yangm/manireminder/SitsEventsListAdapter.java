@@ -21,13 +21,27 @@ public class SitsEventsListAdapter extends RecyclerView.Adapter<SitsEventsListAd
 
     public static class SitEventInfo {
         private boolean isSituation;
+        private int sitOrEventId;
         private String name;
         private int remsCount;
 
-        public SitEventInfo(boolean isSituation, String name, int remsCount) {
+        public SitEventInfo(boolean isSituation, int sitOrEventId, String name, int remsCount) {
             this.isSituation = isSituation;
             this.name = name;
+            this.sitOrEventId = sitOrEventId;
             this.remsCount = remsCount;
+        }
+
+        public boolean isSituation() {
+            return isSituation;
+        }
+
+        public int getSitOrEventId() {
+            return sitOrEventId;
+        }
+
+        public String getName() {
+            return name;
         }
     }
 
@@ -39,6 +53,10 @@ public class SitsEventsListAdapter extends RecyclerView.Adapter<SitsEventsListAd
                                  OnStartDragListener onStartDragListener) {
         this.sitEventsData = sitEventsData;
         this.onStartDragListener = onStartDragListener;
+    }
+
+    public List<SitEventInfo> getSitEventsData() {
+        return sitEventsData;
     }
 
     //

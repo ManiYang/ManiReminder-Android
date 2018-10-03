@@ -8,7 +8,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import java.util.ArrayList;
@@ -17,6 +16,7 @@ import java.util.List;
 public class EditSitsEventsActivity extends AppCompatActivity
         implements SitsEventsListAdapter.OnStartDragListener {
 
+    private SitsEventsListAdapter adapter;
     private ItemTouchHelper itemTouchHelper;
 
     @Override
@@ -30,14 +30,27 @@ public class EditSitsEventsActivity extends AppCompatActivity
         loadData();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveSitsEvents();
+    }
+
+    //
     private void loadData() {
         // get all sits/events
-        SparseArray<String> allSits = UtilStorage.getAllSituations(this);
-        SparseArray<String> allEvents = UtilStorage.getAllEvents(this);
+        List<UtilStorage.SitOrEvent> allSitsEvents = UtilStorage.getAllSitsEvents(this);
 
         // get reminder counts of sits/events from DB
         SparseIntArray sitsCounts = new SparseIntArray();
         SparseIntArray eventsCounts = new SparseIntArray();
+        for (UtilStorage.SitOrEvent sitEvent: allSitsEvents) {
+            if (sitEvent.isSituation) {
+                sitsCounts.append(sitEvent.id, 0);
+            } else {
+                eventsCounts.append(sitEvent.id, 0);
+            }
+        }
 
         SQLiteDatabase db = UtilStorage.getReadableDatabase(this);
         Cursor cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR,
@@ -57,22 +70,16 @@ public class EditSitsEventsActivity extends AppCompatActivity
         // prepare data for adapter
         List<SitsEventsListAdapter.SitEventInfo> sitsEventsData = new ArrayList<>();
 
-        for (int i=0; i<sitsCounts.size(); i++) {
-            int sitId = sitsCounts.keyAt(i);
-            String sitName = allSits.get(sitId);
+        for (UtilStorage.SitOrEvent sitEvent: allSitsEvents) {
+            boolean isSit = sitEvent.isSituation;
+            int id = sitEvent.id;
             sitsEventsData.add(new SitsEventsListAdapter.SitEventInfo(
-                    true, sitName, sitsCounts.valueAt(i)));
-        }
-        for (int i=0; i<eventsCounts.size(); i++) {
-            int eventId = eventsCounts.keyAt(i);
-            String eventName = allEvents.get(eventId);
-            sitsEventsData.add(new SitsEventsListAdapter.SitEventInfo(
-                    false, eventName, eventsCounts.valueAt(i)));
+                    isSit, id, sitEvent.name,
+                    isSit ? sitsCounts.get(id) : eventsCounts.get(id)));
         }
 
         // set up RecyclerView
-        SitsEventsListAdapter adapter =
-                new SitsEventsListAdapter(sitsEventsData, this);
+        adapter = new SitsEventsListAdapter(sitsEventsData, this);
 
         RecyclerView recycler = findViewById(R.id.recycler_sits_events);
         recycler.setAdapter(adapter);
@@ -96,6 +103,17 @@ public class EditSitsEventsActivity extends AppCompatActivity
                 idsCounts.put(id, idsCounts.valueAt(index) + 1);
             }
         }
+    }
+
+    private void saveSitsEvents() {
+        List<SitsEventsListAdapter.SitEventInfo> sitEventInfoList = adapter.getSitEventsData();
+
+        List<UtilStorage.SitOrEvent> sitEvents = new ArrayList<>();
+        for (SitsEventsListAdapter.SitEventInfo info: sitEventInfoList) {
+            sitEvents.add(new UtilStorage.SitOrEvent(
+                    info.isSituation(), info.getSitOrEventId(), info.getName()));
+        }
+        UtilStorage.overwriteAllSituationsEvents(this, sitEvents);
     }
 
     //

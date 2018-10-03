@@ -313,6 +313,48 @@ public class UtilStorage {
         return allEvents;
     }
 
+    public static class SitOrEvent {
+        public boolean isSituation;
+        public int id;
+        public String name;
+
+        public SitOrEvent(boolean isSituation, int id, String name) {
+            this.isSituation = isSituation;
+            this.id = id;
+            this.name = name;
+        }
+    }
+
+    public static List<SitOrEvent> getAllSitsEvents(Context context) {
+        List<SitOrEvent> list = new ArrayList<>();
+
+        SQLiteDatabase db = getReadableDatabase(context);
+        Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                new String[] {"is_situation", "sit_event_id", "name"},
+                null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            list.add(new SitOrEvent(cursor.getInt(0) == 1,
+                    cursor.getInt(1), cursor.getString(2)));
+        }
+        cursor.close();
+        return list;
+    }
+
+    public static void overwriteAllSituationsEvents(Context context, List<SitOrEvent> sitEvents) {
+        SQLiteDatabase db = getWritableDatabase(context);
+        db.delete(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, null);
+        ContentValues values = new ContentValues();
+        for (SitOrEvent sitEvent: sitEvents) {
+            values.clear();
+            values.put("is_situation", sitEvent.isSituation ? 1 : 0);
+            values.put("sit_event_id", sitEvent.id);
+            values.put("name", sitEvent.name);
+            db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
+        }
+    }
+
     public static boolean overwriteAllSituationsEvents(
             SQLiteDatabase db, SparseArray<String> allSits, SparseArray<String> allEvents) {
         db.delete(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, null);

@@ -14,5 +14,6 @@
     <color name="boardItemSelectedBack">#E0B0E0</color>
 
     <color name="background1">#DDE5DD</color>
+    <color name="background2">#E1E1E1</color>
 
 </resources>

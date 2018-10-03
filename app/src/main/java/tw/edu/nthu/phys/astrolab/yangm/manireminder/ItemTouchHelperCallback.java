@@ -3,6 +3,9 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
+/**
+ * For items of situation/event list in EditSitsEventsActivity
+ */
 public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
 
     AdapterForItemTouchHelper adapter;
