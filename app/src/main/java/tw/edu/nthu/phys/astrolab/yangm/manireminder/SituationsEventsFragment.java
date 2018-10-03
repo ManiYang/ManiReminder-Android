@@ -35,15 +35,36 @@ public class SituationsEventsFragment extends Fragment {
     private List<Integer> startedSitIds = new ArrayList<>(); //will be re-assigned
     private List<String> startedSitNames = new ArrayList<>(); //do not re-assign, used by adapter
                                                               //of recycler_started_situations
-
-    private List<String> allSitsEventsListItem = new ArrayList<>(); //do not re-assign, used by
-                                                                    //adapter of list_all_sits_events
-
-    private SparseArray<String> allSits;
-    private SparseArray<String> allEvents;
+    private SitsEventsData sitsEventsData = new SitsEventsData();
     private boolean startedSitClickFirstTime;
     private boolean sitEventClickFirstTime;
 
+    private class SitsEventsData {
+        private List<UtilStorage.SitOrEvent> sitEventList;
+        private SparseArray<String> allSits = new SparseArray<>();
+        private SparseArray<String> allEvents = new SparseArray<>();
+
+        private void readData() {
+            sitEventList = UtilStorage.getAllSitsEvents(getContext());
+            for (UtilStorage.SitOrEvent sitEvent: sitEventList) {
+                if (sitEvent.isSituation) {
+                    allSits.put(sitEvent.id, sitEvent.name);
+                } else {
+                    allEvents.put(sitEvent.id, sitEvent.name);
+                }
+            }
+        }
+
+        private String getSitName(int sitId) {
+            return allSits.get(sitId);
+        }
+
+        private String getEventName(int eventId) {
+            return allEvents.get(eventId);
+        }
+    }
+
+    //
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -82,7 +103,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // setup an empty list_all_sits_events
         ArrayAdapter<String> adapterAllSitsEvents = new ArrayAdapter<>(
-                getContext(), R.layout.text_list_item_plain_taller, allSitsEventsListItem);
+                getContext(), R.layout.text_list_item_plain_taller, new ArrayList<String>());
 
         ListView listViewAllSitsEvents = view.findViewById(R.id.list_all_sits_events);
         listViewAllSitsEvents.setAdapter(adapterAllSitsEvents);
@@ -129,8 +150,7 @@ public class SituationsEventsFragment extends Fragment {
             throw new RuntimeException("`view` is null");
 
         // read all situations & events
-        allSits = UtilStorage.getAllSituations(getContext());
-        allEvents = UtilStorage.getAllEvents(getContext());
+        sitsEventsData.readData();
 
         // read & load started situations
         RecyclerView recyclerStartedSits = view.findViewById(R.id.recycler_started_situations);
@@ -141,7 +161,7 @@ public class SituationsEventsFragment extends Fragment {
         adapter.dataCleared();
 
         for (int id: startedSitIds) {
-            startedSitNames.add(allSits.get(id));
+            startedSitNames.add(sitsEventsData.getSitName(id));
         }
         if (! startedSitIds.isEmpty()) {
             adapter.itemsAppended();
@@ -153,8 +173,6 @@ public class SituationsEventsFragment extends Fragment {
         //
         startedSitClickFirstTime = true;
         sitEventClickFirstTime = true;
-
-        //Log.v("SituationsEventsFrag", "### onStart() done");
     }
 
     private void loadAllSitsEventsList(View view) {
@@ -172,20 +190,19 @@ public class SituationsEventsFragment extends Fragment {
             showEvents = true;
         }
 
-        allSitsEventsListItem.clear();
-        if (showSits) {
-            for (int i=0; i<allSits.size(); i++) {
-                allSitsEventsListItem.add("(S) " + allSits.valueAt(i));
-            }
-        }
-        if (showEvents) {
-            for (int i=0; i<allEvents.size(); i++) {
-                allSitsEventsListItem.add("(E) " + allEvents.valueAt(i));
+        List<String> newItems = new ArrayList<>();
+        for (UtilStorage.SitOrEvent sitEvent: sitsEventsData.sitEventList) {
+            if (sitEvent.isSituation && showSits) {
+                newItems.add("(S) " + sitEvent.name);
+            } else if (!sitEvent.isSituation && showEvents) {
+                newItems.add("(E) " + sitEvent.name);
             }
         }
 
         ArrayAdapter<String> adapter = (ArrayAdapter<String>)
                 ((ListView) view.findViewById(R.id.list_all_sits_events)).getAdapter();
+        adapter.clear();
+        adapter.addAll(newItems);
         adapter.notifyDataSetChanged();
     }
 
@@ -205,13 +222,15 @@ public class SituationsEventsFragment extends Fragment {
 
         if (!isEvent) {
             // to start situation
-            int sitId = UtilGeneral.searchSparseStringArrayByValue(allSits, sitEventName);
+            int sitId = UtilGeneral.searchSparseStringArrayByValue(
+                    sitsEventsData.allSits, sitEventName);
             if (sitId == -1)
                 throw new RuntimeException("situation not found");
             userStartSituation(sitId, clickTime, view);
         } else {
             // to trigger event
-            int eventId = UtilGeneral.searchSparseStringArrayByValue(allEvents, sitEventName);
+            int eventId = UtilGeneral.searchSparseStringArrayByValue(
+                    sitsEventsData.allEvents, sitEventName);
             if (eventId == -1) {
                 throw new RuntimeException("event not found");
             }
@@ -237,7 +256,8 @@ public class SituationsEventsFragment extends Fragment {
             return;
         }
 
-        Log.v("mainlog", String.format("sit start: %d (%s)", sitId, allSits.get(sitId)));
+        Log.v("mainlog",
+                String.format("sit start: %d (%s)", sitId, sitsEventsData.getSitName(sitId)));
 
         // determine which induced situations (not yet started) to start once `sitId` is started
         Set<Integer> inducedSitsToStart =
@@ -245,7 +265,7 @@ public class SituationsEventsFragment extends Fragment {
 
         // add to started situations
         startedSitIds.add(sitId);
-        startedSitNames.add(allSits.get(sitId));
+        startedSitNames.add(sitsEventsData.getSitName(sitId));
 
         TextListAdapter adapter = (TextListAdapter)
                 ((RecyclerView) view.findViewById(R.id.recycler_started_situations)).getAdapter();
@@ -263,7 +283,7 @@ public class SituationsEventsFragment extends Fragment {
     private void userTriggerEvent(int eventId, Calendar at) {
         Toast.makeText(getContext(), "Event triggered", Toast.LENGTH_SHORT).show();
         Log.v("mainlog", String.format("event triggered: %d (%s)",
-                eventId, allEvents.get(eventId)));
+                eventId, sitsEventsData.getEventName(eventId)));
 
         // add to history
         UtilStorage.addToHistory(getContext(), at, UtilStorage.HIST_TYPE_EVENT, eventId);
@@ -273,13 +293,12 @@ public class SituationsEventsFragment extends Fragment {
     }
 
     private void userStopSituation(int startedSitIndex, Calendar at, View view) {
-
         // remove started situations
         int sitId = startedSitIds.remove(startedSitIndex);
         startedSitNames.remove(startedSitIndex);
 
         Log.v("mainlog", String.format("sit stop: %d (%s)",
-                startedSitIndex, allSits.get(sitId)));
+                startedSitIndex, sitsEventsData.getSitName(sitId)));
 
         TextListAdapter adapter = (TextListAdapter)
                 ((RecyclerView) view.findViewById(R.id.recycler_started_situations)).getAdapter();
@@ -302,9 +321,11 @@ public class SituationsEventsFragment extends Fragment {
     /** Determines which induced situations (not already started) will be started if `sitIdToStart`
      *  gets started. */
     private Set<Integer> getInducedSituationsToStart(int sitIdToStart) {
-        Set<Integer> inducedSitsCand = UtilReminder.getInducedSituations(sitIdToStart, allSits);
+        Set<Integer> inducedSitsCand =
+                UtilReminder.getInducedSituations(sitIdToStart, sitsEventsData.allSits);
         for (int startedId: startedSitIds) {
-            Set<Integer> sitsAlreadyStarted = UtilReminder.getInducedSituations(startedId, allSits);
+            Set<Integer> sitsAlreadyStarted =
+                    UtilReminder.getInducedSituations(startedId, sitsEventsData.allSits);
             inducedSitsCand.removeAll(sitsAlreadyStarted);
         }
         return inducedSitsCand;

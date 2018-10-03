@@ -520,12 +520,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 //
                 allSituations = UtilGeneral.parseAsSparseStringArray(newAllSitsDict);
                 allEvents = UtilGeneral.parseAsSparseStringArray(newAllEventsDict);
-                boolean b = UtilStorage.overwriteAllSituationsEvents(db, allSituations, allEvents);
-                if (!b) {
-                    Toast.makeText(getContext(), "Could not write to database", Toast.LENGTH_LONG)
-                            .show();
-                    return;
-                }
+                UtilStorage.addNewSituationsEvents(db, allSituations, allEvents);
 
                 ReminderDataBehavior behavior = new ReminderDataBehavior()
                         .setFromStringRepresentation(newData);

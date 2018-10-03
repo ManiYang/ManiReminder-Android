@@ -355,31 +355,49 @@ public class UtilStorage {
         }
     }
 
-    public static boolean overwriteAllSituationsEvents(
-            SQLiteDatabase db, SparseArray<String> allSits, SparseArray<String> allEvents) {
-        db.delete(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, null);
+    /**
+     * Only add the ones in `sits` or `events` whose ID's do not already exist.
+     */
+    public static void addNewSituationsEvents(SQLiteDatabase db,
+                                              SparseArray<String> sits, SparseArray<String> events) {
+        List<Integer> sitsOld = new ArrayList<>();
+        List<Integer> eventsOld = new ArrayList<>();
+        Cursor cursor = db.query(MainDbHelper.TABLE_SITUATIONS_EVENTS,
+                new String[] {"is_situation", "sit_event_id"}, null, null,
+                null, null, null);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            int id = cursor.getInt(1);
+            if (cursor.getInt(0) == 1) {
+                sitsOld.add(id);
+            } else {
+                eventsOld.add(id);
+            }
+        }
+        cursor.close();
+
+        //
         ContentValues values = new ContentValues();
-        for (int i=0; i<allSits.size(); i++) {
-            values.clear();
-            values.put("is_situation", 1);
-            values.put("sit_event_id", allSits.keyAt(i));
-            values.put("name", allSits.valueAt(i));
-            long check = db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
-            if (check == -1) {
-                return false;
+        for (int i=0; i<sits.size(); i++) {
+            int id = sits.keyAt(i);
+            if (!sitsOld.contains(id)) {
+                values.clear();
+                values.put("is_situation", 1);
+                values.put("sit_event_id", id);
+                values.put("name", sits.valueAt(i));
+                db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
             }
         }
-        for (int i=0; i<allEvents.size(); i++) {
-            values.clear();
-            values.put("is_situation", 0);
-            values.put("sit_event_id", allEvents.keyAt(i));
-            values.put("name", allEvents.valueAt(i));
-            long check = db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
-            if (check == -1) {
-                return false;
+        for (int i=0; i<events.size(); i++) {
+            int id = events.keyAt(i);
+            if (!eventsOld.contains(id)) {
+                values.clear();
+                values.put("is_situation", 0);
+                values.put("sit_event_id", id);
+                values.put("name", events.valueAt(i));
+                db.insert(MainDbHelper.TABLE_SITUATIONS_EVENTS, null, values);
             }
         }
-        return true;
     }
 
 
