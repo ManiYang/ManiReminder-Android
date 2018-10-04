@@ -177,13 +177,13 @@ public class UtilStorage {
             writer.write('\n');
 
             // write data rows
-            int Ncols = cursor.getColumnCount();
+            int nCols = cursor.getColumnCount();
             List<String> strList = new ArrayList<>();
             cursor.moveToPosition(-1);
             while (cursor.moveToNext()) {
                 strList.clear();
-                for (int c=0; c<Ncols; c++) {
-                    strList.add(cursor.getString(c));
+                for (int c=0; c<nCols; c++) {
+                    strList.add(cursor.isNull(c) ? "" : cursor.getString(c));
                 }
                 String line = UtilGeneral.joinStringList("\t", strList)
                         .replaceAll("\\\\", "\\\\\\\\")

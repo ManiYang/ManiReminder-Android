@@ -141,17 +141,18 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                     "Reminder (id: %d) not found in table 'reminders_detail'", reminderId));
         }
         String description = cursor.getString(1);
-        if (description.isEmpty()) {
-            description = NONE_INDICATOR;
-        }
         String quickNotes = cursor.getString(2);
-        if (quickNotes == null || quickNotes.isEmpty()) {
-            quickNotes = NONE_INDICATOR;
+        if (quickNotes == null) {
+            quickNotes = "";
         }
         cursor.close();
 
-        ((TextView) view.findViewById(R.id.description)).setText(description);
-        ((TextView) view.findViewById(R.id.quick_notes)).setText(quickNotes);
+        ((TextView) view.findViewById(R.id.description)).setText(
+                description.isEmpty() ? NONE_INDICATOR : description);
+        ((TextView) view.findViewById(R.id.quick_notes)).setText(
+                quickNotes.isEmpty() ? NONE_INDICATOR : quickNotes);
+        view.findViewById(R.id.button_remove_quick_notes).setVisibility(
+                quickNotes.isEmpty() ? View.GONE : View.VISIBLE);
 
         // get and load behavior settings data
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, null,
@@ -388,8 +389,14 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
             case "dialog_edit_quick_notes": {
                 // update quick notes
                 newText = newText.trim();
-                ((TextView) view.findViewById(R.id.quick_notes)).setText(
-                        newText.isEmpty() ? NONE_INDICATOR : newText);
+                if (newText.isEmpty()) {
+                    ((TextView) view.findViewById(R.id.quick_notes)).setText(NONE_INDICATOR);
+                    view.findViewById(R.id.button_remove_quick_notes).setVisibility(View.GONE);
+                } else {
+                    ((TextView) view.findViewById(R.id.quick_notes)).setText(newText);
+                    view.findViewById(R.id.button_remove_quick_notes).setVisibility(View.VISIBLE);
+                }
+
                 ContentValues values = new ContentValues();
                 values.put("quick_notes", newText);
                 int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
@@ -566,32 +573,6 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         return true;
     }
 
-    /*
-    private boolean saveAllSituationsEventsToDb(
-            SparseArray<String> allSits, SparseArray<String> allEvents, SQLiteDatabase db) {
-        db.delete(MainDbHelper.TABLE_SITUATIONS, null, null);
-        for (int i=0; i<allSits.size(); i++) {
-            ContentValues values = new ContentValues();
-            values.put("_id", allSits.keyAt(i));
-            values.put("name", allSits.valueAt(i));
-            long check = db.insert(MainDbHelper.TABLE_SITUATIONS, null, values);
-            if (check == -1)
-                return false;
-        }
-
-        db.delete(MainDbHelper.TABLE_EVENTS, null, null);
-        for (int i=0; i<allEvents.size(); i++) {
-            ContentValues values = new ContentValues();
-            values.put("_id", allEvents.keyAt(i));
-            values.put("name", allEvents.valueAt(i));
-            long check = db.insert(MainDbHelper.TABLE_EVENTS, null, values);
-            if (check == -1)
-                return false;
-        }
-
-        return true;
-    }*/
-
     private ArrayList<Integer> getTagIds(List<String> tags, SparseArray<String> allTags) {
         ArrayList<Integer> ids = new ArrayList<>();
         for (String tag: tags) {
@@ -606,13 +587,15 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
     }
 
     private void actionDeleteQuickNotes() {
-        TextView quickNotes = getView().findViewById(R.id.quick_notes);
+        View view = getView();
+        TextView quickNotes = view.findViewById(R.id.quick_notes);
         if (quickNotes.getText().length() == 0
                 || quickNotes.getText().toString().equals(NONE_INDICATOR)) {
             return;
         }
 
         quickNotes.setText(NONE_INDICATOR);
+        view.findViewById(R.id.button_remove_quick_notes).setVisibility(View.GONE);
 
         ContentValues values = new ContentValues();
         values.put("quick_notes", "");
