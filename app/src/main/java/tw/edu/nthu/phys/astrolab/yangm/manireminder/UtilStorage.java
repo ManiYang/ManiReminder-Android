@@ -97,6 +97,14 @@ public class UtilStorage {
         sharedPref.edit().putString(KEY_STARTED_SITUATIONS, data).commit(); //synchronous
     }
 
+    public static void removeFromStartedSituations(Context context, int sitId) {
+        List<Integer> startedSitIds = getStartedSituations(context);
+        if (startedSitIds.contains(sitId)) {
+            startedSitIds.remove(Integer.valueOf(sitId));
+            writeStartedSituations(context, startedSitIds);
+        }
+    }
+
     //
     public static SQLiteDatabase getReadableDatabase(Context context) {
         SQLiteDatabase db;

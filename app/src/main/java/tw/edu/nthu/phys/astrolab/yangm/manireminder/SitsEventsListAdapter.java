@@ -2,7 +2,9 @@ package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -59,6 +61,33 @@ public class SitsEventsListAdapter extends RecyclerView.Adapter<SitsEventsListAd
         return sitEventsData;
     }
 
+    public void renameSituation(int sitId, String newName) {
+        for (int i=0; i<sitEventsData.size(); i++) {
+            SitEventInfo info = sitEventsData.get(i);
+            if (info.isSituation && info.sitOrEventId == sitId) {
+                info.name = newName;
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
+    public void renameEvent(int eventId, String newName) {
+        for (int i=0; i<sitEventsData.size(); i++) {
+            SitEventInfo info = sitEventsData.get(i);
+            if (!info.isSituation && info.sitOrEventId == eventId) {
+                info.name = newName;
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
+    public void removeSitOrEvent(int position) {
+        sitEventsData.remove(position);
+        notifyDataSetChanged();
+    }
+
     //
     @Override
     public int getItemCount() {
@@ -95,7 +124,7 @@ public class SitsEventsListAdapter extends RecyclerView.Adapter<SitsEventsListAd
                 if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                     onStartDragListener.onStartDrag(holder);
                 }
-                return false;
+                return true;
             }
         });
     }
@@ -110,12 +139,29 @@ public class SitsEventsListAdapter extends RecyclerView.Adapter<SitsEventsListAd
     }
 
     //
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder
+            implements View.OnCreateContextMenuListener {
         private LinearLayout layout;
 
         public ViewHolder(LinearLayout v) {
             super(v);
             this.layout = v;
+            v.setOnCreateContextMenuListener(this);
+        }
+
+        @Override
+        public void onCreateContextMenu(ContextMenu menu, View v,
+                                        ContextMenu.ContextMenuInfo menuInfo) {
+
+            String sitEventName = ((TextView) v.findViewById(R.id.name)).getText().toString();
+            String countStr = ((TextView) v.findViewById(R.id.count)).getText().toString();
+            int position = getAdapterPosition();
+
+            menu.setHeaderTitle(sitEventName);
+            menu.add(Menu.NONE, position, 0, "Edit");
+            if (countStr.equals("0")) {
+                menu.add(Menu.NONE, position, 1, "Remove");
+            }
         }
     }
 }

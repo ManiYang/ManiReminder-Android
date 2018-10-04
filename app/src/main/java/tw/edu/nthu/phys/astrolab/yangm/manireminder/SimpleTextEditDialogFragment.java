@@ -64,10 +64,18 @@ public class SimpleTextEditDialogFragment extends DialogFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        try {
-            listener = (Listener) getTargetFragment();
-        } catch (ClassCastException e) {
-            throw new ClassCastException("target fragment should implement Listener");
+        if (getTargetFragment() != null) {
+            try {
+                listener = (Listener) getTargetFragment();
+            } catch (ClassCastException e) {
+                throw new ClassCastException("target fragment should implement Listener");
+            }
+        } else {
+            try {
+                listener = (Listener) getContext();
+            } catch (ClassCastException e) {
+                throw new ClassCastException("activity should implement Listener");
+            }
         }
     }
 
