@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background2"
     tools:context=".EditSitsEventsActivity">
 
     <include
@@ -17,6 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:paddingTop="2dp"
-        android:scrollbars="vertical" />
+        android:scrollbars="vertical"
+        android:background="@color/background1" />
 
 </LinearLayout>

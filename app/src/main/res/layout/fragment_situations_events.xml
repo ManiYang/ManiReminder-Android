@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="4dp"
+    android:background="@color/background1"
     tools:context=".SituationsEventsFragment">
 
     <TextView
@@ -32,9 +33,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/shape_rect_border_white_back"
+            android:background="@drawable/shape_rect_border_light_back"
             android:minHeight="45dp"
-            android:padding="4dp" >
+            android:padding="4dp">
 
         </android.support.v7.widget.RecyclerView>
 
@@ -92,7 +93,7 @@
             android:layout_weight="1"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:background="@drawable/shape_rect_border_white_back" />
+            android:background="@drawable/shape_rect_border_light_back" />
 
     </LinearLayout>
 </LinearLayout>
