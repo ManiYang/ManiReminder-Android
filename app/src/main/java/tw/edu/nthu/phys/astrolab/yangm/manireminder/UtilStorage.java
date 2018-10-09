@@ -105,7 +105,7 @@ public class UtilStorage {
         }
     }
 
-    //
+    //// tables ////
     public static SQLiteDatabase getReadableDatabase(Context context) {
         SQLiteDatabase db;
         try {
@@ -152,6 +152,9 @@ public class UtilStorage {
         return count;
     }
 
+    /**
+     * @return "?,?,..." (n question marks)
+     */
     public static String qMarks(int n) {
         StringBuilder builder = new StringBuilder();
         for (int i=0; i<n; i++) {
@@ -164,8 +167,9 @@ public class UtilStorage {
     }
 
     /**
-     * replace '\\' by "\\\\" and '\n' by "\\n"; use \t as column separator
-     * @return true if done
+     * Replace '\\' by "\\\\" and '\n' by "\\n"; use \t as column separator.
+     * Null cell will be replaced by "".
+     * @return true iff done
      */
     public static boolean dumpTableToCsv(Context context, String table, File outputFile) {
         FileWriter writer = null;
@@ -218,6 +222,10 @@ public class UtilStorage {
         return done;
     }
 
+    /**
+     * replace "\\n" by '\n' and "\\\\" by '\\'
+     * @return true iff done
+     */
     public static boolean overwriteTableFromCsv(Context context, String table, File inputFile) {
         // get column names
         SQLiteDatabase db = getWritableDatabase(context);

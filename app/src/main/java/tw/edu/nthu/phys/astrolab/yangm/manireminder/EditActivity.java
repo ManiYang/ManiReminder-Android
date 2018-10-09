@@ -72,6 +72,12 @@ public class EditActivity extends AppCompatActivity {
                 EditRemBehaviorFragment fragment =
                         EditRemBehaviorFragment.newInstance(initData, initAllSits, initAllEvents);
                 setFragment(fragment);
+                break;
+            }
+            case "checklist": {
+                EditRemChecklistFragment fragment = EditRemChecklistFragment.newInstance(initData);
+                setFragment(fragment);
+                break;
             }
         }
     }

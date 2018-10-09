@@ -46,7 +46,33 @@
         android:textAppearance="@android:style/TextAppearance.Medium"
         tools:text="Reminder Description" />
 
+    <!-- checklist -->
+    <TextView android:id="@+id/label_checklist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/label_checklist" />
+
+    <TextView
+        android:id="@+id/checklist_textview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:textAppearance="@android:style/TextAppearance.Medium"
+        tools:text="(none)" />
+
+    <LinearLayout
+        android:id="@+id/container_checklist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="4dp"
+        android:layout_marginStart="8dp" >
+
+    </LinearLayout>
+
+
     <!-- - - - -->
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

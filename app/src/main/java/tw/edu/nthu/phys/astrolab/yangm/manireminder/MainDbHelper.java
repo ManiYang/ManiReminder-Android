@@ -13,7 +13,7 @@ import java.util.List;
 public class MainDbHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "main.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
 
     public static final String TABLE_REMINDERS_BRIEF = "reminders_brief";
     public static final String TABLE_REMINDERS_DETAIL = "reminders_detail";
@@ -68,11 +68,13 @@ public class MainDbHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE TABLE " + TABLE_REMINDERS_DETAIL + " ("
                     + "_id INTEGER PRIMARY KEY, "
                     + "description TEXT, "
-                    + "quick_notes TEXT);");
+                    + "quick_notes TEXT, "
+                    + "checklist TEXT);");
             values.clear();
             values.put("_id", 0);
             values.put("description", "This is a reminder for testing only.");
             values.put("quick_notes", "");
+            values.put("checklist", "");
             db.insert(TABLE_REMINDERS_DETAIL, null, values);
 
             values.clear();
@@ -240,6 +242,10 @@ public class MainDbHelper extends SQLiteOpenHelper {
             for (ContentValues values: rows) {
                 db.insert(TABLE_SITUATIONS_EVENTS, null, values);
             }
+        }
+        else if (oldVersion == 6) {
+            // add column "checklist" to reminder detail
+            db.execSQL("ALTER TABLE " + TABLE_REMINDERS_DETAIL + " ADD checklist TEXT;");
         }
     }
 

@@ -20,24 +20,15 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!--
-        <Button
-            android:id="@+id/button_test"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="test" /> -->
-
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_started_situations"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:scrollbars="vertical"
             android:background="@drawable/shape_rect_border_light_back"
             android:minHeight="45dp"
-            android:padding="4dp">
-
-        </android.support.v7.widget.RecyclerView>
+            android:padding="4dp" />
 
     </LinearLayout>
 

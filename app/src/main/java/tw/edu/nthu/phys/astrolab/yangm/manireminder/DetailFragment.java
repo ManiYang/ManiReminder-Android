@@ -20,6 +20,7 @@ import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,6 +71,10 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
 
         view.findViewById(R.id.label_quick_notes).setOnClickListener(viewsOnClickListener);
         view.findViewById(R.id.quick_notes).setOnClickListener(viewsOnClickListener);
+
+        view.findViewById(R.id.label_checklist).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.container_checklist).setOnClickListener(viewsOnClickListener);
+        view.findViewById(R.id.checklist_textview).setOnClickListener(viewsOnClickListener);
 
         view.findViewById(R.id.button_remove_quick_notes).setOnClickListener(buttonsOnClickListener);
 
@@ -145,6 +150,10 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         if (quickNotes == null) {
             quickNotes = "";
         }
+        String checkListStr = cursor.getString(3);
+        if (checkListStr == null) {
+            checkListStr = "";
+        }
         cursor.close();
 
         ((TextView) view.findViewById(R.id.description)).setText(
@@ -153,6 +162,7 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 quickNotes.isEmpty() ? NONE_INDICATOR : quickNotes);
         view.findViewById(R.id.button_remove_quick_notes).setVisibility(
                 quickNotes.isEmpty() ? View.GONE : View.VISIBLE);
+        loadChecklist(view, checkListStr);
 
         // get and load behavior settings data
         cursor = db.query(MainDbHelper.TABLE_REMINDERS_BEHAVIOR, null,
@@ -253,6 +263,42 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         }
     }
 
+    private void loadChecklist(View view, String checkListStr) {
+        EditRemChecklistFragment.ChecklistInfo info =
+                EditRemChecklistFragment.parseChecklistStr(checkListStr);
+
+        if (info.texts.isEmpty()) {
+            view.findViewById(R.id.checklist_textview).setVisibility(View.VISIBLE);
+            ((TextView) view.findViewById(R.id.checklist_textview)).setText(NONE_INDICATOR);
+        } else {
+            view.findViewById(R.id.checklist_textview).setVisibility(View.GONE);
+        }
+
+        LinearLayout layout = view.findViewById(R.id.container_checklist);
+        layout.removeAllViews();
+        for (int i=0; i<info.texts.size(); i++) {
+            CheckBox checkBox = new CheckBox(getContext());
+            checkBox.setText(info.texts.get(i));
+            checkBox.setChecked(info.checked.get(i));
+            layout.addView(checkBox,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
+    private String stringifyChecklist() {
+        View view = getView();
+        LinearLayout layout = view.findViewById(R.id.container_checklist);
+
+        List<String> texts = new ArrayList<>();
+        List<Boolean> checked = new ArrayList<>();
+        for (int i=0; i<layout.getChildCount(); i++) {
+            CheckBox checkBox = (CheckBox) layout.getChildAt(i);
+            texts.add(checkBox.getText().toString());
+            checked.add(checkBox.isChecked());
+        }
+        return EditRemChecklistFragment.stringifyChecklistData(texts, checked);
+    }
+
     // OnClick listener for views
     private View.OnClickListener viewsOnClickListener = new View.OnClickListener() {
         @Override
@@ -272,6 +318,13 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 case R.id.description:
                     showSimpleTextEditDialog("description", R.id.description,
                             InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+                    break;
+
+                case R.id.label_checklist:
+                case R.id.container_checklist:
+                case R.id.checklist_textview:
+                    startEditActivity("checklist", stringifyChecklist(),
+                            false, false);
                     break;
 
                 case R.id.container_behavior_settings:
@@ -554,6 +607,17 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
                 //
                 new ReminderBoardLogic(getContext())
                         .afterReminderBehaviorUpdate(reminderId, behavior, now);
+                break;
+            }
+            case "checklist": {
+                ContentValues values = new ContentValues();
+                values.put("checklist", newData);
+                int check = db.update(MainDbHelper.TABLE_REMINDERS_DETAIL, values,
+                        "_id = ?", new String[] {Integer.toString(reminderId)});
+                if (check != 1) {
+                    Toast.makeText(getContext(), "Could not update database", Toast.LENGTH_LONG)
+                            .show();
+                }
                 break;
             }
         }
