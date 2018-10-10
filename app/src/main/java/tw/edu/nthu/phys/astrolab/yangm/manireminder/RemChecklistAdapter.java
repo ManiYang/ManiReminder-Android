@@ -43,6 +43,26 @@ public class RemChecklistAdapter extends RecyclerView.Adapter<RemChecklistAdapte
         return checked;
     }
 
+    public String getSelectedText() {
+        return (selectedPos == -1) ? null : texts.get(selectedPos);
+    }
+
+    public void renameSelected(String newText) {
+        if (selectedPos != -1) {
+            texts.set(selectedPos, newText);
+            notifyItemChanged(selectedPos);
+        }
+    }
+
+    public void removeSelected() {
+        if (selectedPos != -1) {
+            texts.remove(selectedPos);
+            checked.remove(selectedPos);
+            selectedPos = -1;
+            notifyDataSetChanged();
+        }
+    }
+
     //
     @Override
     public int getItemCount() {

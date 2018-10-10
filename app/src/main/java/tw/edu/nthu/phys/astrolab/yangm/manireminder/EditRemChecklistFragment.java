@@ -1,10 +1,12 @@
 package tw.edu.nthu.phys.astrolab.yangm.manireminder;
 
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
@@ -108,9 +110,11 @@ public class EditRemChecklistFragment extends Fragment
                     break;
 
                 case R.id.button_edit:
+                    actionEdit();
                     break;
 
                 case R.id.button_remove:
+                    actionRemove();
                     break;
             }
         }
@@ -123,6 +127,24 @@ public class EditRemChecklistFragment extends Fragment
         dialog.show(getFragmentManager(), "add_item");
     }
 
+    private void actionEdit() {
+        SimpleTextEditDialogFragment dialog = SimpleTextEditDialogFragment.newInstance(
+                "Edit item", adapter.getSelectedText(), InputType.TYPE_CLASS_TEXT);
+        dialog.setTargetFragment(this, 1);
+        dialog.show(getFragmentManager(), "edit_item");
+    }
+
+    private void actionRemove() {
+        new AlertDialog.Builder(getContext()).setTitle("Remove item").setMessage("Are you sure?")
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        adapter.removeSelected();
+                    }
+                }).show();
+    }
+
     @Override
     public void onDialogClick(DialogFragment dialog, boolean positive, String newText) {
         if (!positive) {
@@ -132,6 +154,10 @@ public class EditRemChecklistFragment extends Fragment
         switch (dialog.getTag()) {
             case "add_item":
                 adapter.addItem(newText);
+                break;
+
+            case "edit_item":
+                adapter.renameSelected(newText);
                 break;
         }
     }
