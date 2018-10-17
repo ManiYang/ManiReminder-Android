@@ -60,6 +60,7 @@ public class RemChecklistAdapter extends RecyclerView.Adapter<RemChecklistAdapte
             checked.remove(selectedPos);
             selectedPos = -1;
             notifyDataSetChanged();
+            listener.onItemSelectDeselect(false);
         }
     }
 

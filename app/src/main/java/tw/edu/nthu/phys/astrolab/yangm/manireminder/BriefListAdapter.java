@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 public class BriefListAdapter
         extends RecyclerView.Adapter<BriefListAdapter.ViewHolder> {
 
@@ -67,6 +69,9 @@ public class BriefListAdapter
         ((TextView) cardView.findViewById(R.id.item_tags)).setText(tagsStr);
 
         final int reminderId = cursor.getInt(0);
+        ((TextView) cardView.findViewById(R.id.item_id)).setText(
+                String.format(Locale.US, "%d", reminderId));
+
         cardView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
