@@ -9,13 +9,21 @@
     android:orientation="vertical"
     tools:context=".DetailFragment">
 
+    <!-- id -->
+    <TextView
+        android:id="@+id/rem_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        tools:text="#10" />
+
     <!-- title -->
     <TextView android:id="@+id/title"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="@android:style/TextAppearance.Large"
-        android:textStyle="bold"
         android:layout_marginBottom="4dp"
+        android:textStyle="bold"
         tools:text="Reminder Title" />
 
     <!-- tags -->
@@ -176,7 +184,7 @@
             android:text="@string/label_quick_notes" />
 
         <Space
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 

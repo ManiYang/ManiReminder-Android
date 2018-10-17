@@ -70,7 +70,7 @@ public class BriefListAdapter
 
         final int reminderId = cursor.getInt(0);
         ((TextView) cardView.findViewById(R.id.item_id)).setText(
-                String.format(Locale.US, "%d", reminderId));
+                String.format(Locale.US, "#%d", reminderId));
 
         cardView.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -134,6 +134,8 @@ public class DetailFragment extends Fragment implements SimpleTextEditDialogFrag
         }
         cursor.close();
 
+        ((TextView) view.findViewById(R.id.rem_id)).setText(
+                String.format(Locale.US, "#%d", reminderId));
         ((TextView) view.findViewById(R.id.title)).setText(title);
         ((TextView) view.findViewById(R.id.tags)).setText(tagsStr);
 
